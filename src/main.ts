@@ -14,6 +14,7 @@ import { FriendsUi } from './ui/friends';
 import { ProfileUi } from './ui/profile';
 import { AchievementsUi, rewardText } from './ui/achievements';
 import { evaluate, type MatchMode } from './progress/achievements';
+import { coinsForMatch } from './progress/economy';
 import { progress } from './progress/progress';
 import { MatchTracker } from './progress/tracker';
 import { addMatchToStats, loadProfile, loadStats } from './progress/profile';
@@ -130,7 +131,8 @@ function recordResult(g: Game, tracker: MatchTracker): void {
   const s = tracker.teams[me];
   addMatchToStats(s, won);
 
-  // conquistas
+  // conquistas e moedas
+  const coinsEl = $('#over-coins');
   const mode: MatchMode = g === mailGame ? 'mail' : g.online ? 'online' : g.match.teams.some((t) => t.control === 'cpu') ? 'cpu' : 'local';
   const p = progress();
   const fresh = evaluate(
@@ -150,6 +152,21 @@ function recordResult(g: Game, tracker: MatchTracker): void {
     unlocksEl.append(li);
   }
   unlocksEl.hidden = fresh.length === 0;
+
+  const pay = mode === 'local' ? null : coinsForMatch(s, won, mode, mode === 'cpu' ? settings.difficulty : null);
+  coinsEl.hidden = !pay;
+  if (pay) {
+    p.addCoins(pay.total);
+    coinsEl.innerHTML = '';
+    for (const l of pay.lines) {
+      const span = document.createElement('span');
+      span.textContent = `${l.label} ${l.coins >= 0 ? '+' : ''}${l.coins}`;
+      coinsEl.append(span);
+    }
+    const total = document.createElement('b');
+    total.textContent = `+${pay.total} 🪙`;
+    coinsEl.append(total);
+  }
 
   if (mode !== 'mail' && mode !== 'online') return;
   void getBackend().profile.reportMatch({
@@ -590,6 +607,9 @@ const account = new AccountUi(show);
 const friends = new FriendsUi(show, () => account.open());
 new ProfileUi(show);
 new AchievementsUi(show);
+const wallet = () => ($('#wallet').textContent = `🪙 ${progress().state.coins}`);
+progress().on(wallet);
+wallet();
 
 // progresso: com conta, mescla com o servidor e espelha cada mudança
 {

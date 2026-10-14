@@ -1315,3 +1315,33 @@ button.big:disabled {
   background: #fff6d6;
   animation: pop-card 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
+
+/* ───────── moedas ───────── */
+.chip.coin {
+  margin-right: auto;
+  background: #fff1b8;
+  font: 15px var(--font-title);
+  cursor: default;
+}
+.coins-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 800;
+  font-size: 14px;
+}
+.coins-box span {
+  padding: 3px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+}
+.coins-box b {
+  padding: 3px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #ffd84a;
+  font: 16px var(--font-title);
+  font-weight: normal;
+}
