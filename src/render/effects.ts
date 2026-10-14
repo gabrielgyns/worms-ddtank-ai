@@ -33,6 +33,7 @@ const COMIC = ['BUM!', 'POW!', 'KABUM!', 'BAM!', 'CABRUM!'];
 export class Effects {
   private parts: Particle[] = [];
   readonly graves: Grave[] = [];
+  private bubbles: Array<{ teamId: number; text: string; life: number }> = [];
   private trailClock = 0;
   readonly hurt = new Map<number, number>();
   quality: Quality = HIGH;
@@ -225,7 +226,15 @@ export class Effects {
     }
   }
 
+  /** Balão de fala sobre uma bolota do time. */
+  say(teamId: number, text: string): void {
+    this.bubbles = this.bubbles.filter((b) => b.teamId !== teamId);
+    this.bubbles.push({ teamId, text, life: 2.8 });
+  }
+
   update(dt: number): void {
+    for (const b of this.bubbles) b.life -= dt;
+    this.bubbles = this.bubbles.filter((b) => b.life > 0);
     for (const [id, t] of this.hurt) {
       if (t - dt <= 0) this.hurt.delete(id);
       else this.hurt.set(id, t - dt);
@@ -282,6 +291,40 @@ export class Effects {
       } else g.vy = 0;
     }
     for (let i = this.graves.length - 1; i >= 0; i--) if (this.graves[i].y > t.waterY + 20) this.graves.splice(i, 1);
+  }
+
+  drawBubbles(c: CanvasRenderingContext2D, zoom: number): void {
+    const s = 1 / Math.max(0.75, Math.min(1.3, zoom));
+    for (const b of this.bubbles) {
+      const team = this.m.teams[b.teamId];
+      if (!team) continue;
+      const u = (this.m.active?.team === team ? this.m.active : null) ?? team.units.find((x) => x.alive);
+      if (!u) continue;
+      const pop = Math.min(1, (2.8 - b.life) * 6);
+      c.save();
+      c.translate(u.x, u.y - 82);
+      c.scale(s * pop, s * pop);
+      c.globalAlpha = Math.min(1, b.life * 3);
+      c.font = `16px ${FONT}`;
+      const w = c.measureText(b.text).width + 22;
+      c.fillStyle = '#fff';
+      c.strokeStyle = INK;
+      c.lineWidth = 3;
+      c.beginPath();
+      c.roundRect(-w / 2, -16, w, 30, 15);
+      c.moveTo(-6, 13);
+      c.lineTo(0, 24);
+      c.lineTo(6, 13);
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#fff';
+      c.fillRect(-5, 11, 10, 4);
+      c.fillStyle = INK;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(b.text, 0, 0);
+      c.restore();
+    }
   }
 
   drawGraves(c: CanvasRenderingContext2D): void {

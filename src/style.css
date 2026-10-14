@@ -1009,3 +1009,33 @@ button.big:disabled {
     gap: 4px;
   }
 }
+
+/* ───────── emotes ───────── */
+#emotes {
+  position: absolute;
+  top: 70px;
+  right: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 6px;
+  padding: 8px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 0 4px 0 var(--ink);
+  pointer-events: auto;
+}
+#emotes[hidden] {
+  display: none;
+}
+#emotes button {
+  padding: 8px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #f3e6cf;
+  font-size: 15px;
+  white-space: nowrap;
+}
+#emotes button:hover {
+  background: var(--accent);
+}

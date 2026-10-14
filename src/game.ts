@@ -424,6 +424,8 @@ export class Game {
       if (u.alive) drawLabel(c, u, u === m.active && m.phase === 'turn', t, z);
     }
 
+    this.fx.drawBubbles(c, z);
+
     // mira de alvo (ataque aéreo / teletransporte)
     if (this.hoverWorld && this.humanTurn && m.phase === 'turn' && m.weapon.mode === 'target') {
       const { x, y } = this.hoverWorld;

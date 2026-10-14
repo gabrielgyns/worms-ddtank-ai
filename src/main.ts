@@ -9,6 +9,7 @@ import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDev
 import { Hud, setupTouch } from './ui/hud';
 import { OnlineUi } from './ui/online';
 import { Lobby } from './ui/lobby';
+import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
 import type { Room } from './net/room';
 import type { MatchSetup } from './domain/match';
@@ -139,6 +140,10 @@ let lobby: Lobby | null = null;
 function onRoom(room: Room): void {
   session = new NetSession(room);
   lobby = new Lobby(session, $('#lobby-body'), hostStart);
+  room.link.on('emote', (m) => {
+    const text = emoteText(m.id);
+    if (text && session?.game) session.game.fx.say(m.team, text);
+  });
   room.link.on('start', (m) => {
     // reconexão: a partida já está aberta, só falta o estado (vem no resync)
     if (m.rejoin && session?.game && session.game.setup.seed === m.setup.seed && game === session.game) return;
@@ -258,6 +263,37 @@ $('#fullscreen').addEventListener('click', (e) => {
   void toggleFullscreen();
 });
 $('#rotate-ok').addEventListener('click', () => document.body.classList.add('portrait-ok'));
+// ─── frases rápidas ───
+let lastEmote = 0;
+function myTeamId(): number | null {
+  if (!game || game.isReplay) return null;
+  if (game.online) return session?.role === 'host' ? 0 : 1;
+  const team = game.match.activeTeam;
+  return team && game.isLocal(team.id) ? team.id : game.match.teams.find((t) => game!.isLocal(t.id))?.id ?? null;
+}
+function sendEmote(id: string): void {
+  const team = myTeamId();
+  const text = emoteText(id);
+  if (team === null || !text || !game || performance.now() - lastEmote < 1200) return;
+  lastEmote = performance.now();
+  game.fx.say(team, text);
+  if (game.online) session?.room.link.send({ t: 'emote', id, team });
+  $('#emotes').hidden = true;
+}
+for (const e of EMOTES) {
+  const b = document.createElement('button');
+  b.textContent = e.text;
+  b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    sendEmote(e.id);
+  });
+  $('#emotes').append(b);
+}
+$('#emote-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('#emotes').hidden = !$('#emotes').hidden;
+});
+
 $('#mute').addEventListener('click', (e) => {
   e.stopPropagation();
   $('#mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
@@ -270,6 +306,7 @@ $('#pause-btn').addEventListener('click', (e) => {
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape' || e.code === 'KeyP') setPaused(!game?.paused);
   if (e.code === 'KeyF' && game) void toggleFullscreen();
+  if (e.code === 'KeyT' && game) $('#emotes').hidden = !$('#emotes').hidden;
   if (e.code === 'KeyM') $('#mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
   if ((e.code === 'Enter' || e.code === 'Space') && !game && $('#menu').classList.contains('open')) startGame();
   if (e.code === 'Escape' && !game && !$('#menu').classList.contains('open')) online.leave();

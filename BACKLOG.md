@@ -36,7 +36,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 - [x] **F3-04** · P0 · M — Checksum no fim do turno; se divergir, o dono do turno manda `resync`.
 - [x] **F3-05** · P1 · M — Reconexão (voltar para a mesma sala), "aguardando oponente", abandono = derrota após 60 s.
 - [x] **F3-06** · P1 · P — Lobby da sala: escolher time/cor, cenário, bolotas por time, botão "pronto".
-- [ ] **F3-07** · P1 · P — Emotes e frases rápidas ("Boa!", "Ops…", "Revanche?") com balão sobre a bolota.
+- [x] **F3-07** · P1 · P — Emotes e frases rápidas ("Boa!", "Ops…", "Revanche?") com balão sobre a bolota.
 - [ ] **F3-08** · P2 · G — Turno assíncrono (estilo "Words with Friends"): joga sua vez quando puder, recebe aviso quando for sua vez.
 
 ## Fase 4 — Contas e amigos
