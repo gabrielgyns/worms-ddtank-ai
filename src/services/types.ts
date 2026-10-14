@@ -91,6 +91,8 @@ export interface ProfileApi {
   load(): Promise<RemoteProfile | null>;
   save(p: RemoteProfile): Promise<Result>;
   reportMatch(r: MatchReport): Promise<Result>;
+  /** rating Elo (só com servidor e partidas online relatadas pelos dois) */
+  rating(): Promise<{ rating: number; games: number } | null>;
 }
 
 /** Espelho do progresso no servidor (formato igual ao do aparelho). */

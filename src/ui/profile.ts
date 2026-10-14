@@ -57,7 +57,16 @@ export class ProfileUi {
         <div><dt>Precisão</dt><dd>${pct(s.hits, s.shots)}</dd></div>
         <div><dt>Maior tiro</dt><dd>${Math.round(s.longestShot / 10)} m</dd></div>
         <div><dt>Arma favorita</dt><dd>${fav ? weaponById(fav).name : '—'}</dd></div>
+        <div id="pf-rating" hidden><dt>Rating online</dt><dd></dd></div>
       </dl>`;
+    void getBackend()
+      .profile.rating()
+      .then((r) => {
+        const el = body.querySelector<HTMLElement>('#pf-rating');
+        if (!el || !r) return;
+        el.hidden = false;
+        el.querySelector('dd')!.textContent = `${r.rating}`;
+      });
     const save = (patch: Partial<Profile>) => {
       const next = { ...loadProfile(), ...patch };
       saveProfile(next);

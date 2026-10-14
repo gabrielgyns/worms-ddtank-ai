@@ -276,6 +276,13 @@ class SupabaseProfile implements ProfileApi {
     });
     return msg(error);
   }
+
+  async rating(): Promise<{ rating: number; games: number } | null> {
+    const me = this.auth.current();
+    if (!me) return null;
+    const { data } = await this.sb.from('ratings').select('rating, games').eq('user_id', me.id).maybeSingle<{ rating: number; games: number }>();
+    return data ?? null;
+  }
 }
 
 class SupabaseProgress implements ProgressSyncApi {

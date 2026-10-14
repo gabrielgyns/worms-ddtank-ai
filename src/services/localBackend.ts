@@ -84,6 +84,9 @@ class LocalProfile implements ProfileApi {
   async reportMatch(): Promise<Result> {
     return ok;
   }
+  async rating(): Promise<{ rating: number; games: number } | null> {
+    return null;
+  }
 }
 
 /** No modo local o progresso já mora no aparelho; nada a sincronizar. */
