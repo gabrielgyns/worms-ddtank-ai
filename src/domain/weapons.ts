@@ -1,0 +1,128 @@
+/** Como um projétil se comporta em voo. */
+export interface ProjectileSpec {
+  kind: 'missile' | 'grenade' | 'bomblet' | 'dynamite' | 'cluster';
+  /** raio da explosão (px) */
+  blast: number;
+  /** dano no centro da explosão */
+  damage: number;
+  /** quanto o vento empurra (0 = nada) */
+  windFactor: number;
+  /** segundos até explodir; undefined = explode ao tocar */
+  fuse?: number;
+  /** coeficiente de quique quando tem pavio */
+  bounce: number;
+  /** raio de colisão do projétil */
+  size: number;
+  /** ao explodir, solta estes fragmentos */
+  fragments?: { count: number; spec: ProjectileSpec };
+}
+
+export type WeaponId = 'bazooka' | 'grenade' | 'triple' | 'cluster' | 'dynamite' | 'airstrike' | 'teleport';
+
+export type AimMode = 'charge' | 'drop' | 'target';
+
+export interface WeaponDef {
+  id: WeaponId;
+  name: string;
+  hint: string;
+  key: string;
+  ammo: number;
+  mode: AimMode;
+  /** velocidade máxima de lançamento com força 100% */
+  maxSpeed: number;
+  projectile?: ProjectileSpec;
+  /** ângulos extras (graus) para disparos múltiplos */
+  spread?: number[];
+}
+
+const bomblet: ProjectileSpec = {
+  kind: 'bomblet',
+  blast: 26,
+  damage: 20,
+  windFactor: 0.4,
+  bounce: 0,
+  size: 3,
+};
+
+export const WEAPONS: readonly WeaponDef[] = [
+  {
+    id: 'bazooka',
+    name: 'Bazuca',
+    hint: 'Explode ao tocar. Sofre com o vento.',
+    key: '1',
+    ammo: Infinity,
+    mode: 'charge',
+    maxSpeed: 920,
+    projectile: { kind: 'missile', blast: 44, damage: 48, windFactor: 1, bounce: 0, size: 4 },
+  },
+  {
+    id: 'grenade',
+    name: 'Granada',
+    hint: 'Quica e explode em 3s. Ignora o vento.',
+    key: '2',
+    ammo: Infinity,
+    mode: 'charge',
+    maxSpeed: 760,
+    projectile: { kind: 'grenade', blast: 48, damage: 52, windFactor: 0, fuse: 3, bounce: 0.45, size: 4 },
+  },
+  {
+    id: 'triple',
+    name: 'Tiro Triplo',
+    hint: 'Três disparos em leque, estilo DDTank.',
+    key: '3',
+    ammo: 3,
+    mode: 'charge',
+    maxSpeed: 920,
+    spread: [-5, 0, 5],
+    projectile: { kind: 'missile', blast: 30, damage: 25, windFactor: 1, bounce: 0, size: 3 },
+  },
+  {
+    id: 'cluster',
+    name: 'Fragmentação',
+    hint: 'Explode e espalha 5 bombinhas.',
+    key: '4',
+    ammo: 2,
+    mode: 'charge',
+    maxSpeed: 880,
+    projectile: {
+      kind: 'cluster',
+      blast: 34,
+      damage: 26,
+      windFactor: 0.8,
+      bounce: 0,
+      size: 5,
+      fragments: { count: 5, spec: bomblet },
+    },
+  },
+  {
+    id: 'dynamite',
+    name: 'Dinamite',
+    hint: 'Solta aos pés. Corra! Explosão enorme.',
+    key: '5',
+    ammo: 1,
+    mode: 'drop',
+    maxSpeed: 0,
+    projectile: { kind: 'dynamite', blast: 75, damage: 75, windFactor: 0, fuse: 4, bounce: 0.15, size: 5 },
+  },
+  {
+    id: 'airstrike',
+    name: 'Ataque Aéreo',
+    hint: 'Clique no mapa: chuva de mísseis.',
+    key: '6',
+    ammo: 1,
+    mode: 'target',
+    maxSpeed: 0,
+    projectile: { kind: 'missile', blast: 34, damage: 28, windFactor: 0.6, bounce: 0, size: 4 },
+  },
+  {
+    id: 'teleport',
+    name: 'Teletransporte',
+    hint: 'Clique num lugar livre para aparecer lá.',
+    key: '7',
+    ammo: 2,
+    mode: 'target',
+    maxSpeed: 0,
+  },
+];
+
+export const weaponById = (id: WeaponId): WeaponDef => WEAPONS.find((w) => w.id === id)!;

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Bolotas em Guerra</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="hud-top">
+        <div id="timer"><b>30</b></div>
+        <div id="turn"><span id="turn-name"></span><small id="turn-team"></small></div>
+        <div id="wind">
+          <small>VENTO</small>
+          <div id="wind-bar"><div id="wind-fill"></div><div class="mid"></div></div>
+          <span id="wind-text"></span>
+        </div>
+        <div id="hud-buttons">
+          <button id="mute" title="Som (M)">🔊</button>
+          <button id="pause-btn" title="Pausar (Esc)">⏸</button>
+        </div>
+      </div>
+
+      <div id="hud-bottom">
+        <div id="teams"></div>
+        <div id="shot">
+          <div id="shot-info"><b id="weapon-name"></b><span id="weapon-hint"></span><em id="angle"></em></div>
+          <div id="power">
+            <div id="power-fill"></div>
+            <div id="power-ticks"></div>
+            <div id="power-mark"></div>
+          </div>
+        </div>
+        <div id="weapons"></div>
+      </div>
+      <div id="banner"></div>
+    </div>
+
+    <!-- controles de toque -->
+    <div id="touch">
+      <div class="pad left">
+        <button data-a="left">◀</button>
+        <button data-a="right">▶</button>
+        <button data-a="jump" class="small">PULO</button>
+      </div>
+      <div class="pad right">
+        <button data-a="up">▲</button>
+        <button data-a="down">▼</button>
+        <button data-a="cycle" class="small">ARMA</button>
+        <button data-a="fire" class="fire">FOGO</button>
+      </div>
+    </div>
+
+    <!-- telas -->
+    <div id="menu" class="screen">
+      <div class="card">
+        <h1><span>Bolotas</span><small>em</small><span>Guerra!</span></h1>
+        <p class="tag">Artilharia por turnos no estilo Worms &amp; DDTank</p>
+
+        <div class="opt"><label>Modo</label>
+          <div class="seg" data-opt="mode">
+            <button data-v="cpu">Contra CPU</button>
+            <button data-v="pvp">2 Jogadores</button>
+          </div>
+        </div>
+        <div class="opt" id="diff-row"><label>Dificuldade</label>
+          <div class="seg" data-opt="difficulty">
+            <button data-v="facil">Fácil</button>
+            <button data-v="normal">Normal</button>
+            <button data-v="dificil">Difícil</button>
+          </div>
+        </div>
+        <div class="opt"><label>Bolotas por time</label>
+          <div class="seg" data-opt="units">
+            <button data-v="2">2</button>
+            <button data-v="3">3</button>
+            <button data-v="4">4</button>
+          </div>
+        </div>
+        <div class="opt"><label>Cenário</label>
+          <div class="seg" data-opt="theme">
+            <button data-v="random">Surpresa</button>
+            <button data-v="prado">Prado</button>
+            <button data-v="deserto">Deserto</button>
+            <button data-v="neve">Neve</button>
+            <button data-v="doce">Doce</button>
+          </div>
+        </div>
+
+        <button id="play" class="big">JOGAR!</button>
+
+        <details class="help">
+          <summary>Como jogar</summary>
+          <ul>
+            <li><kbd>←</kbd><kbd>→</kbd> andar &nbsp; <kbd>↑</kbd><kbd>↓</kbd> mirar (<kbd>Shift</kbd> = ajuste fino)</li>
+            <li><kbd>Espaço</kbd> segure para carregar a força, solte para atirar</li>
+            <li><kbd>Enter</kbd> pular &nbsp; <kbd>Backspace</kbd> mortal pra trás</li>
+            <li><kbd>1</kbd>–<kbd>7</kbd> ou <kbd>Q</kbd>/<kbd>E</kbd> trocar arma &nbsp; clique no mapa p/ armas de alvo</li>
+            <li>Arraste o mapa para olhar ao redor · roda do mouse = zoom · <kbd>Esc</kbd> pausa</li>
+            <li>O vento empurra bazucas! A marquinha branca na barra mostra sua última força.</li>
+          </ul>
+        </details>
+      </div>
+    </div>
+
+    <div id="pause" class="screen">
+      <div class="card small">
+        <h2>Pausado</h2>
+        <button id="resume" class="big">Continuar</button>
+        <button id="quit">Sair para o menu</button>
+      </div>
+    </div>
+
+    <div id="over" class="screen">
+      <div class="card small">
+        <h2 id="over-title"></h2>
+        <p id="over-sub"></p>
+        <button id="again" class="big">Revanche!</button>
+        <button id="to-menu">Menu</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
