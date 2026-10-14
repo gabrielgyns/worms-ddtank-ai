@@ -27,14 +27,21 @@ export class Game {
   private pending: TickInput = {};
   /** todos os comandos aplicados, para replay */
   readonly log: Command[] = [];
+  /** se definido, a partida é um replay: as entradas vêm daqui */
+  private replay: readonly Command[] | null = null;
+  private replayIdx = 0;
+  /** velocidade da simulação (replay pode ir em 2x, 4x) */
+  speed = 1;
 
   constructor(
-    setup: MatchSetup,
+    readonly setup: MatchSetup,
     difficulty: Difficulty,
     private canvas: HTMLCanvasElement,
     private input: Input,
     private sfx: Sfx,
+    replay?: readonly Command[],
   ) {
+    this.replay = replay ?? null;
     this.match = new Match(setup);
     const t = this.match.terrain;
     this.cam = new Camera(t.width, t.height);
@@ -93,8 +100,12 @@ export class Game {
     });
   }
 
+  get isReplay(): boolean {
+    return this.replay !== null;
+  }
+
   get humanTurn(): boolean {
-    return this.match.activeTeam?.control === 'human';
+    return !this.replay && this.match.activeTeam?.control === 'human';
   }
 
   /** Clique no mundo (coordenadas de tela). */
@@ -120,7 +131,7 @@ export class Game {
       this.render();
       return;
     }
-    this.acc += Math.min(0.1, realDt);
+    this.acc += Math.min(0.1, realDt) * this.speed;
     while (this.acc >= DT) {
       this.acc -= DT;
       this.step(DT);
@@ -133,7 +144,13 @@ export class Game {
     this.time += dt;
     const m = this.match;
     let input: TickInput = NO_INPUT;
-    if (this.humanTurn) input = this.humanControl();
+    if (this.replay) {
+      const next = this.replay[this.replayIdx];
+      if (next && next.tick === m.tick) {
+        input = next.input;
+        this.replayIdx++;
+      }
+    } else if (this.humanTurn) input = this.humanControl();
     else if (m.activeTeam) input = this.ai.decide(m);
 
     const wasCharging = m.charging;

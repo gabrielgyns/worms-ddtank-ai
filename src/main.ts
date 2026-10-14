@@ -64,32 +64,53 @@ function startGame(): void {
   sfx.unlock();
   const ids = Object.keys(THEMES) as ThemeId[];
   const themeId = settings.theme === 'random' ? ids[Math.floor(Math.random() * ids.length)] : settings.theme;
-  game = new Game(
-    {
-      teams: teams(),
-      unitsPerTeam: settings.units,
-      theme: THEMES[themeId],
-      seed: (Math.random() * 2 ** 31) | 0,
-      turnTime: 30,
-    },
-    settings.difficulty,
-    canvas,
-    input,
-    sfx,
+  launch(
+    new Game(
+      {
+        teams: teams(),
+        unitsPerTeam: settings.units,
+        theme: THEMES[themeId],
+        seed: (Math.random() * 2 ** 31) | 0,
+        turnTime: 30,
+      },
+      settings.difficulty,
+      canvas,
+      input,
+      sfx,
+    ),
   );
+}
+
+/** Partida que acabou de terminar (para o replay). */
+let finished: Game | null = null;
+
+function startReplay(): void {
+  if (!finished) return;
+  launch(new Game(finished.setup, settings.difficulty, canvas, input, sfx, [...finished.log]), finished);
+}
+
+function launch(g: Game, original: Game = g): void {
+  game = g;
   demo = null;
-  hud.bind(game);
-  game.match.on((e) => {
-    if (e.type === 'gameOver') {
-      setTimeout(() => {
-        $('#over-title').textContent = e.winner ? `${e.winner.name} venceu!` : 'Empate!';
-        $('#over-title').style.color = e.winner?.color ?? '#fff';
-        const human = e.winner?.control === 'human';
-        $('#over-sub').textContent =
-          settings.mode === 'cpu' ? (human ? 'Você amassou os robôs! 🎉' : 'Os robôs levaram essa… revanche?') : 'Boa partida!';
-        show('over');
-      }, 2200);
-    }
+  hud.bind(g);
+  document.body.classList.toggle('replay', g.isReplay);
+  g.match.on((e) => {
+    if (e.type !== 'gameOver') return;
+    setTimeout(() => {
+      if (game !== g) return;
+      finished = original;
+      $('#over-title').textContent = e.winner ? `${e.winner.name} venceu!` : 'Empate!';
+      $('#over-title').style.color = e.winner?.color ?? '#fff';
+      const human = e.winner?.control === 'human';
+      $('#over-sub').textContent = g.isReplay
+        ? 'Fim do replay.'
+        : settings.mode === 'cpu'
+          ? human
+            ? 'Você amassou os robôs! 🎉'
+            : 'Os robôs levaram essa… revanche?'
+          : 'Boa partida!';
+      show('over');
+    }, g.isReplay ? 1200 : 2200);
   });
   document.body.classList.add('playing');
   show(null);
@@ -120,6 +141,19 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
 
 $('#play').addEventListener('click', startGame);
 $('#again').addEventListener('click', startGame);
+$('#watch').addEventListener('click', startReplay);
+$('#replay-speed').addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!game?.isReplay) return;
+  game.speed = game.speed >= 4 ? 1 : game.speed * 2;
+  $('#replay-speed').textContent = `${game.speed}×`;
+});
+$('#replay-exit').addEventListener('click', (e) => {
+  e.stopPropagation();
+  game = null;
+  show('over');
+  document.body.classList.remove('playing', 'replay');
+});
 $('#resume').addEventListener('click', () => setPaused(false));
 for (const sel of ['#quit', '#to-menu']) {
   $(sel).addEventListener('click', () => {

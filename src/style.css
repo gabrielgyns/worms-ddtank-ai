@@ -731,3 +731,35 @@ body.playing #touch.on {
     top: 30%;
   }
 }
+
+/* ───────── replay ───────── */
+#replay-bar {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 14px;
+  background: var(--ink);
+  border-radius: 999px;
+  color: var(--accent);
+  font: 16px var(--font-title);
+  letter-spacing: 2px;
+}
+body.replay #replay-bar {
+  display: flex;
+}
+body.replay #weapons,
+body.replay #touch {
+  display: none !important;
+}
+#replay-bar button {
+  border: 2px solid var(--paper);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--paper);
+  padding: 3px 12px;
+  font-size: 14px;
+}

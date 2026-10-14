@@ -12,7 +12,7 @@ describe('snapshot', () => {
     const out = new Uint8Array(m.terrain.solid.length);
     decodeMask(enc, out);
     expect(performance.now() - t0).toBeLessThan(500);
-    expect(Buffer.compare(out, m.terrain.solid)).toBe(0);
+    expect(out.every((v, i) => v === m.terrain.solid[i])).toBe(true);
     expect(enc.length).toBeLessThan(m.terrain.solid.length / 50);
   });
 
