@@ -7,7 +7,7 @@ import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
-import { drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawCrate, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -120,6 +120,12 @@ export class Game {
           break;
         case 'select':
           s.select();
+          break;
+        case 'cratePick':
+          s.pickup();
+          break;
+        case 'crateDrop':
+          s.whoosh();
           break;
         case 'damage':
           s.ouch();
@@ -409,6 +415,7 @@ export class Game {
     drawWater(c, m.theme, terr.waterY, x0, right, bottom, t, false);
     c.drawImage(this.terrainView.canvas, 0, 0);
     this.fx.drawGraves(c);
+    for (const crate of m.crates) drawCrate(c, crate, t);
 
     const holding = m.phase === 'turn' && !!m.active ? m.weapon.id : null;
     for (const u of m.units) {

@@ -64,6 +64,7 @@ const settings = {
   difficulty: 'normal' as Difficulty,
   units: 3,
   theme: 'random' as ThemeId | 'random',
+  crates: true,
 };
 
 const NAMES_A = ['Bolota', 'Pipoca', 'Farofa', 'Paçoca'];
@@ -103,6 +104,7 @@ function startGame(): void {
         theme: THEMES[themeId],
         seed: (Math.random() * 2 ** 31) | 0,
         turnTime: 30,
+        crates: settings.crates,
       },
       { difficulty: settings.difficulty },
       canvas,
@@ -416,7 +418,7 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
       group.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
       b.classList.add('on');
       const v = b.dataset.v!;
-      (settings as Record<string, unknown>)[key] = key === 'units' ? Number(v) : v;
+      (settings as Record<string, unknown>)[key] = key === 'units' ? Number(v) : key === 'crates' ? v === 'true' : v;
       $('#diff-row').style.display = settings.mode === 'cpu' ? '' : 'none';
       sfx.unlock();
       sfx.select();

@@ -110,6 +110,12 @@ export class Sfx {
   victory(): void {
     [523, 659, 784, 1046].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.18, undefined, i * 0.13));
   }
+  pickup(): void {
+    [660, 880, 1320].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.15, undefined, i * 0.07));
+  }
+  whoosh(): void {
+    this.burst(0.8, 1200, 0.15, 2);
+  }
   ouch(): void {
     this.tone(700, 0.12, 'sawtooth', 0.06, 350);
   }

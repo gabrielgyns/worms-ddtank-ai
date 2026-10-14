@@ -1,5 +1,6 @@
 import type { Projectile } from '../domain/physics';
 import type { Unit } from '../domain/unit';
+import type { Crate } from '../domain/crates';
 import type { WeaponId } from '../domain/weapons';
 import type { Look } from '../domain/cosmetics';
 import { danceTransform, drawBody, drawEyewear, drawGraveLook, drawHat, drawPineapple } from './cosmetics';
@@ -512,5 +513,74 @@ export function drawDragPower(c: CanvasRenderingContext2D, u: Unit, power: numbe
   c.strokeText(label, x1 + dx * 22, y1 + dy * 22 + 5);
   c.fillStyle = '#fff';
   c.fillText(label, x1 + dx * 22, y1 + dy * 22 + 5);
+  c.restore();
+}
+
+/** Caixa de suprimentos (com paraquedas enquanto cai). */
+export function drawCrate(c: CanvasRenderingContext2D, crate: Crate, time: number): void {
+  c.save();
+  c.translate(crate.x, crate.y);
+  if (!crate.landed) {
+    const sway = Math.sin(time * 3 + crate.id) * 0.12;
+    c.rotate(sway);
+    // paraquedas
+    c.strokeStyle = INK;
+    c.lineWidth = 1.2;
+    c.beginPath();
+    c.moveTo(-9, -16);
+    c.lineTo(-18, -40);
+    c.moveTo(9, -16);
+    c.lineTo(18, -40);
+    c.stroke();
+    c.lineWidth = 2.5;
+    c.fillStyle = crate.kind === 'health' ? '#fff' : '#ffcf3a';
+    c.beginPath();
+    c.moveTo(-24, -40);
+    c.quadraticCurveTo(0, -66, 24, -40);
+    c.quadraticCurveTo(12, -45, 0, -40);
+    c.quadraticCurveTo(-12, -45, -24, -40);
+    c.fill();
+    c.stroke();
+    c.fillStyle = crate.kind === 'health' ? '#ff4a4a' : '#e8402e';
+    c.beginPath();
+    c.moveTo(-8, -43);
+    c.quadraticCurveTo(0, -60, 8, -43);
+    c.quadraticCurveTo(0, -46, -8, -43);
+    c.fill();
+  }
+  // caixa
+  c.lineWidth = 2.5;
+  c.strokeStyle = INK;
+  c.fillStyle = crate.kind === 'health' ? '#f4f1ea' : '#b5793e';
+  c.beginPath();
+  c.roundRect(-10, -18, 20, 18, 3);
+  c.fill();
+  c.stroke();
+  if (crate.kind === 'health') {
+    c.fillStyle = '#e8402e';
+    c.fillRect(-2.5, -15, 5, 12);
+    c.fillRect(-6, -11.5, 12, 5);
+  } else {
+    c.strokeStyle = '#7a4b26';
+    c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(-9, -17);
+    c.lineTo(9, -1);
+    c.moveTo(9, -17);
+    c.lineTo(-9, -1);
+    c.stroke();
+    c.fillStyle = '#ffcf3a';
+    c.strokeStyle = INK;
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.arc(0, -9, 4.5, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.fillStyle = INK;
+    c.font = `8px ${FONT}`;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('?', 0, -8.5);
+  }
   c.restore();
 }

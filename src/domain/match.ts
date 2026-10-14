@@ -11,6 +11,7 @@ import {
 } from './physics';
 import { DT, type TickInput } from './commands';
 import { decodeMask, encodeMask } from './codec';
+import { CRATE_CHANCE, CRATE_HEALTH, CRATE_WEAPONS, stepCrate, touches, type Crate } from './crates';
 import type { Look } from './cosmetics';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
@@ -30,6 +31,8 @@ export type GameEvent =
   | { type: 'teleport'; fromX: number; fromY: number; unit: Unit }
   | { type: 'jump'; unit: Unit }
   | { type: 'select'; weapon: WeaponId }
+  | { type: 'crateDrop'; crate: Crate }
+  | { type: 'cratePick'; crate: Crate; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
 
 export interface TeamSetup {
@@ -48,6 +51,8 @@ export interface MatchSetup {
   theme: Theme;
   seed: number;
   turnTime: number;
+  /** caixas caindo do céu (padrão: sim) */
+  crates?: boolean;
 }
 
 /** Estado completo da partida em JSON. Restaura numa Match criada com o mesmo setup. */
@@ -88,6 +93,8 @@ export interface MatchSnapshot {
   }>;
   projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number }>;
   terrain: string;
+  crates: Crate[];
+  nextCrateId: number;
 }
 
 const RETREAT_TIME = 3;
@@ -104,6 +111,10 @@ export class Match implements SimWorld {
   readonly teams: Team[] = [];
   readonly units: Unit[] = [];
   readonly projectiles: Projectile[] = [];
+  readonly crates: Crate[] = [];
+  private nextCrateId = 1;
+  /** caixas ligadas nesta partida */
+  readonly cratesOn: boolean;
   readonly theme: Theme;
   readonly rng: Rng;
   readonly turnTime: number;
@@ -131,6 +142,7 @@ export class Match implements SimWorld {
     this.theme = setup.theme;
     this.rng = new Rng(setup.seed);
     this.turnTime = setup.turnTime;
+    this.cratesOn = setup.crates ?? true;
     this.terrain = new Terrain(2800, 1400, 1330);
     this.terrain.generate(this.rng);
 
@@ -230,6 +242,7 @@ export class Match implements SimWorld {
       h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0);
     }
     for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
+    for (const c of this.crates) h.int(c.id).num(c.x).num(c.y).num(c.vy).str(c.kind).int(c.landed ? 1 : 0);
     h.bytes(this.terrain.solid);
     return h.value;
   }
@@ -284,6 +297,8 @@ export class Match implements SimWorld {
         rot: p.rot,
       })),
       terrain: encodeMask(this.terrain.solid),
+      crates: this.crates.map((c) => ({ ...c })),
+      nextCrateId: this.nextCrateId,
     };
   }
 
@@ -315,6 +330,9 @@ export class Match implements SimWorld {
     for (const p of s.projectiles) {
       this.projectiles.push({ ...p, spec: specByKey(p.spec), fuse: p.fuse ?? undefined });
     }
+    this.crates.length = 0;
+    for (const c of s.crates ?? []) this.crates.push({ ...c });
+    this.nextCrateId = s.nextCrateId ?? 1;
     const mask = new Uint8Array(this.terrain.solid.length);
     decodeMask(s.terrain, mask);
     this.terrain.replace(mask);
@@ -536,6 +554,7 @@ export class Match implements SimWorld {
     this.turnNumber++;
     this.active = unit;
     this.wind = Math.round(this.rng.range(-10, 10));
+    if (this.cratesOn && this.turnNumber > 1 && this.rng.next() < CRATE_CHANCE) this.dropCrate();
     this.turnTimer = this.turnTime;
     this.phase = 'turn';
     this.charging = false;
@@ -543,6 +562,32 @@ export class Match implements SimWorld {
     this.hasFired = false;
     if (this.ammoOf(team.weapon) <= 0) team.weapon = 'bazooka';
     this.emit({ type: 'turnStart', unit });
+  }
+
+  private dropCrate(): void {
+    const t = this.terrain;
+    let x = this.rng.range(250, t.width - 250);
+    // tenta cair em terra firme
+    for (let i = 0; i < 10 && t.surfaceY(x) > t.waterY - 30; i++) x = this.rng.range(250, t.width - 250);
+    const health = this.rng.next() < 0.45;
+    const crate: Crate = {
+      id: this.nextCrateId++,
+      x: Math.round(x),
+      y: -40,
+      vy: 0,
+      kind: health ? 'health' : 'weapon',
+      weapon: health ? null : CRATE_WEAPONS[Math.floor(this.rng.next() * CRATE_WEAPONS.length)],
+      landed: false,
+    };
+    this.crates.push(crate);
+    this.emit({ type: 'crateDrop', crate });
+  }
+
+  private pickCrate(c: Crate, u: Unit): void {
+    this.crates.splice(this.crates.indexOf(c), 1);
+    if (c.kind === 'health') u.hp += CRATE_HEALTH;
+    else if (c.weapon) u.team.ammo.set(c.weapon, (u.team.ammo.get(c.weapon) ?? 0) + 1);
+    this.emit({ type: 'cratePick', crate: c, unit: u });
   }
 
   private endTurn(): void {
@@ -581,7 +626,7 @@ export class Match implements SimWorld {
   }
 
   private updateSettle(dt: number): void {
-    const busy = this.projectiles.length > 0 || this.units.some((u) => u.alive && !u.onGround);
+    const busy = this.projectiles.length > 0 || this.units.some((u) => u.alive && !u.onGround) || this.crates.some((c) => !c.landed);
     if (busy) {
       this.settleClock = 0;
       return;
@@ -614,6 +659,17 @@ export class Match implements SimWorld {
         this.emit({ type: 'death', unit: u, by: u.lastHitBy });
         if (u === this.active && (this.phase === 'turn' || this.phase === 'retreat')) this.endTurn();
       }
+    }
+
+    for (let i = this.crates.length - 1; i >= 0; i--) {
+      const c = this.crates[i];
+      if (!stepCrate(t, c, dt)) {
+        this.crates.splice(i, 1);
+        this.emit({ type: 'splash', x: c.x, y: t.waterY, big: false });
+        continue;
+      }
+      const u = this.units.find((u) => u.alive && touches(c, u));
+      if (u) this.pickCrate(c, u);
     }
 
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -658,6 +714,11 @@ export class Match implements SimWorld {
       u.vy = (dy / len) * force - 80;
       u.onGround = false;
       u.fallSpeed = 0;
+    }
+    // caixas no raio da explosão viram pó
+    for (let i = this.crates.length - 1; i >= 0; i--) {
+      const c = this.crates[i];
+      if (Math.hypot(c.x - x, c.y - 8 - y) < r + 10) this.crates.splice(i, 1);
     }
     // granadas próximas também voam
     for (const p of this.projectiles) {

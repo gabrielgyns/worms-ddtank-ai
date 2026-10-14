@@ -1,6 +1,7 @@
 import type { GameEvent, Match } from '../domain/match';
 import type { Camera } from './camera';
 import type { Look } from '../domain/cosmetics';
+import { weaponById } from '../domain/weapons';
 import { trailParticle } from './cosmetics';
 import { HIGH, type Quality } from './quality';
 import { drawGrave, FONT, INK } from './sprites';
@@ -127,6 +128,12 @@ export class Effects {
             drag: 2,
           });
         }
+        break;
+      }
+      case 'cratePick': {
+        const text = e.crate.kind === 'health' ? '+25 ❤' : `+1 ${weaponById(e.crate.weapon!).name}`;
+        this.add({ x: e.crate.x, y: e.crate.y - 40, vy: -40, life: 1.8, max: 1.8, size: 18, kind: 'text', text, color: '#fff', stroke: INK, drag: 1.2 });
+        this.sparkles(e.crate.x, e.crate.y - 10);
         break;
       }
       case 'bounce':

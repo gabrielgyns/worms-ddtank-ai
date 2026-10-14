@@ -4,7 +4,7 @@ import type { ThemeId } from '../domain/theme';
 import type { Look } from '../domain/cosmetics';
 
 /** Suba quando mudar mensagens ou regras que afetem a simulação. */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** MatchSetup em forma de JSON (tema por id). */
 export interface WireSetup {
@@ -13,6 +13,7 @@ export interface WireSetup {
   themeId: ThemeId;
   seed: number;
   turnTime: number;
+  crates?: boolean;
 }
 
 export interface LobbyPlayer {
