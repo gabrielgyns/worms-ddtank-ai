@@ -11,6 +11,9 @@ import {
   type Invite,
   type PresenceApi,
   type PresenceStatus,
+  type MatchReport,
+  type ProfileApi,
+  type RemoteProfile,
   type Result,
   type User,
 } from './types';
@@ -231,16 +234,60 @@ class SupabasePresence implements PresenceApi {
   }
 }
 
+class SupabaseProfile implements ProfileApi {
+  constructor(
+    private sb: SupabaseClient,
+    private auth: SupabaseAuth,
+  ) {}
+
+  async load(): Promise<RemoteProfile | null> {
+    const me = this.auth.current();
+    if (!me) return null;
+    const { data } = await this.sb
+      .from('profiles')
+      .select('name, team_name, color')
+      .eq('id', me.id)
+      .single<{ name: string; team_name: string; color: number }>();
+    return data ? { name: data.name, teamName: data.team_name, color: data.color } : null;
+  }
+
+  async save(p: RemoteProfile): Promise<Result> {
+    const me = this.auth.current();
+    if (!me) return ok; // sem conta: fica só no aparelho
+    const { error } = await this.sb.from('profiles').update({ name: p.name, team_name: p.teamName, color: p.color }).eq('id', me.id);
+    return msg(error);
+  }
+
+  async reportMatch(r: MatchReport): Promise<Result> {
+    if (!this.auth.current()) return ok;
+    const { error } = await this.sb.rpc('report_match', {
+      p_key: r.key,
+      p_mode: r.mode,
+      p_theme: r.theme,
+      p_team: r.team,
+      p_result: r.result,
+      p_damage: r.damage,
+      p_kills: r.kills,
+      p_shots: r.shots,
+      p_hits: r.hits,
+      p_longest: r.longestShot,
+    });
+    return msg(error);
+  }
+}
+
 export class SupabaseBackend implements Backend {
   readonly kind = 'supabase';
   readonly sb: SupabaseClient;
   readonly auth: SupabaseAuth;
   readonly friends: SupabaseFriends;
   readonly presence: SupabasePresence;
+  readonly profile: SupabaseProfile;
   constructor() {
     this.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     this.auth = new SupabaseAuth(this.sb);
     this.friends = new SupabaseFriends(this.sb, this.auth);
     this.presence = new SupabasePresence(this.sb, this.auth);
+    this.profile = new SupabaseProfile(this.sb, this.auth);
   }
 }

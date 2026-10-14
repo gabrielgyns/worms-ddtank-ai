@@ -3,6 +3,7 @@ import { TEAM_COLORS } from '../domain/teamColors';
 import { THEMES, type ThemeId } from '../domain/theme';
 import type { LobbyPlayer, LobbyState } from '../net/protocol';
 import type { NetSession } from '../net/session';
+import { loadProfile } from '../progress/profile';
 
 const UNIT_NAMES = [
   ['Bolota', 'Pipoca', 'Farofa', 'Paçoca'],
@@ -41,7 +42,8 @@ export class Lobby {
     private root: HTMLElement,
     private onStart: () => void,
   ) {
-    const me: LobbyPlayer = { name: savedName(), color: session.role === 'host' ? 0 : 1, ready: session.role === 'host', connected: true };
+    const fav = loadProfile().color;
+    const me: LobbyPlayer = { name: savedName(), color: fav, ready: session.role === 'host', connected: true };
     this.state = { host: me, guest: null, units: 3, themeId: 'random' };
     const link = session.room.link;
     session.room.myName = me.name;

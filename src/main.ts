@@ -11,6 +11,9 @@ import { OnlineUi } from './ui/online';
 import { Lobby } from './ui/lobby';
 import { AccountUi } from './ui/account';
 import { FriendsUi } from './ui/friends';
+import { ProfileUi } from './ui/profile';
+import { MatchTracker } from './progress/tracker';
+import { addMatchToStats, loadProfile } from './progress/profile';
 import { getBackend } from './services';
 import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
@@ -56,13 +59,16 @@ const NAMES_A = ['Bolota', 'Pipoca', 'Farofa', 'Paçoca'];
 const NAMES_B = ['Jujuba', 'Torresmo', 'Biscoito', 'Quindim'];
 
 function teams(): TeamSetup[] {
+  const p = loadProfile();
+  const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
+  const other = TEAM_COLORS[p.color === 1 ? 0 : 1];
   return [
-    { name: 'Laranjinhas', color: '#ff8a3d', light: '#ffc89a', dark: '#c4531a', control: 'human', names: NAMES_A },
+    { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A },
     {
       name: settings.mode === 'cpu' ? 'Robolas' : 'Azulões',
-      color: '#3d9bff',
-      light: '#a6d4ff',
-      dark: '#1d5fb8',
+      color: other.color,
+      light: other.light,
+      dark: other.dark,
       control: settings.mode === 'cpu' ? 'cpu' : 'human',
       names: settings.mode === 'cpu' ? ['Robozão', 'Chip', 'Parafuso', 'Bit'] : NAMES_B,
     },
@@ -103,8 +109,40 @@ function startReplay(): void {
   launch(new Game(finished.setup, { difficulty: settings.difficulty, replay: [...finished.log] }, canvas, input, sfx), finished);
 }
 
+/** Qual time é "eu" nesta partida (para estatísticas)? null = não conta (2 no mesmo PC, replay). */
+function myTeamIn(g: Game): number | null {
+  if (g.isReplay) return null;
+  const local = g.match.teams.filter((t) => g.isLocal(t.id));
+  return local.length === 1 ? local[0].id : null;
+}
+
+/** Fim de partida: soma nas estatísticas e relata ao servidor. */
+function recordResult(g: Game, tracker: MatchTracker): void {
+  const me = myTeamIn(g);
+  if (me === null) return;
+  const won = g.match.winner?.id === me;
+  const s = tracker.teams[me];
+  addMatchToStats(s, won);
+  const mode = g === mailGame ? 'mail' : g.online ? 'online' : null;
+  if (!mode) return;
+  void getBackend().profile.reportMatch({
+    key: `${g.setup.seed}-${mode === 'online' ? (session?.room.code ?? 'x') : 'carta'}`,
+    mode,
+    theme: g.setup.theme.id,
+    team: me,
+    result: g.match.winner ? (won ? 'win' : 'loss') : 'draw',
+    damage: s.damage,
+    kills: s.kills,
+    shots: s.shots,
+    hits: s.hits,
+    longestShot: s.longestShot,
+  });
+}
+
 function launch(g: Game, original: Game = g): void {
   getBackend().presence.setStatus(g.isReplay ? 'online' : 'playing');
+  const tracker = new MatchTracker(g.match);
+  g.match.on((e) => e.type === 'gameOver' && recordResult(g, tracker));
   // no celular, jogar já entra em tela cheia deitada (precisa do clique do usuário, que temos aqui)
   if (isTouchDevice()) void enterFullscreen();
   game = g;
@@ -523,6 +561,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 const online = new OnlineUi({ show, onRoom });
 const account = new AccountUi(show);
 const friends = new FriendsUi(show, () => account.open());
+new ProfileUi(show);
 
 // ─── presença e convites ───
 const backend = getBackend();

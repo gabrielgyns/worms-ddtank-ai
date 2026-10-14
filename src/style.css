@@ -1207,3 +1207,43 @@ button.big:disabled {
 #toast button.no {
   background: #f3e6cf;
 }
+
+/* ───────── perfil ───────── */
+.stack > input {
+  padding: 8px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  font: 18px var(--font-title);
+  color: var(--ink);
+  min-width: 0;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+.stats div {
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+}
+.stats dt {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.65;
+}
+.stats dd {
+  margin: 0;
+  font: 20px var(--font-title);
+  font-variant-numeric: tabular-nums;
+}
+.stats small {
+  font-size: 13px;
+  opacity: 0.6;
+}
+#profile .card {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}

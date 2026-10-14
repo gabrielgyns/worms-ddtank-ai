@@ -20,11 +20,11 @@ export type Phase = 'turn' | 'retreat' | 'settle' | 'over';
 
 export type GameEvent =
   | { type: 'explosion'; x: number; y: number; r: number }
-  | { type: 'damage'; unit: Unit; amount: number }
-  | { type: 'fire'; weapon: WeaponId }
+  | { type: 'damage'; unit: Unit; amount: number; by: Unit | null }
+  | { type: 'fire'; weapon: WeaponId; unit: Unit }
   | { type: 'bounce'; x: number; y: number }
   | { type: 'splash'; x: number; y: number; big: boolean }
-  | { type: 'death'; unit: Unit }
+  | { type: 'death'; unit: Unit; by: Unit | null }
   | { type: 'turnStart'; unit: Unit }
   | { type: 'teleport'; fromX: number; fromY: number; unit: Unit }
   | { type: 'jump'; unit: Unit }
@@ -455,7 +455,7 @@ export class Match implements SimWorld {
       });
     }
     this.consumeAmmo();
-    this.emit({ type: 'fire', weapon: this.weapon.id });
+    this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
     this.beginRetreat(RETREAT_TIME);
     return true;
   }
@@ -473,7 +473,7 @@ export class Match implements SimWorld {
     }
     u.lastPower = power;
     this.consumeAmmo();
-    this.emit({ type: 'fire', weapon: w.id });
+    this.emit({ type: 'fire', weapon: w.id, unit: u });
     this.beginRetreat(RETREAT_TIME);
   }
 
@@ -482,7 +482,7 @@ export class Match implements SimWorld {
     const spec = this.weapon.projectile!;
     this.projectiles.push(this.makeProjectile(u.x + u.facing * 8, u.y - 10, u.facing * 30, -80, spec, u.id));
     this.consumeAmmo();
-    this.emit({ type: 'fire', weapon: this.weapon.id });
+    this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
     this.beginRetreat(RETREAT_TIME + 1);
   }
 
@@ -589,7 +589,7 @@ export class Match implements SimWorld {
     const dying = this.units.find((u) => u.alive && u.hp <= 0);
     if (dying) {
       dying.alive = false;
-      this.emit({ type: 'death', unit: dying });
+      this.emit({ type: 'death', unit: dying, by: dying.lastHitBy });
       this.explode(dying.cx, dying.cy, 26, 12, -1);
       this.settleClock = 0.1;
       return;
@@ -602,13 +602,13 @@ export class Match implements SimWorld {
     for (const u of this.units) {
       if (!u.alive) continue;
       const fall = stepUnit(t, u, dt);
-      if (fall > 0) this.damage(u, fall);
+      if (fall > 0) this.damage(u, fall, null);
       if (u.y > t.waterY + 6 || u.x < -200 || u.x > t.width + 200) {
         u.alive = false;
         u.drowned = true;
         u.hp = 0;
         this.emit({ type: 'splash', x: u.x, y: t.waterY, big: true });
-        this.emit({ type: 'death', unit: u });
+        this.emit({ type: 'death', unit: u, by: u.lastHitBy });
         if (u === this.active && (this.phase === 'turn' || this.phase === 'retreat')) this.endTurn();
       }
     }
@@ -629,7 +629,7 @@ export class Match implements SimWorld {
           for (let k = 0; k < frag.count; k++) {
             const a = -Math.PI / 2 + (k - (frag.count - 1) / 2) * 0.38 + this.rng.range(-0.1, 0.1);
             const sp = this.rng.range(230, 330);
-            const fp = this.makeProjectile(p.x, p.y - 4, Math.cos(a) * sp, Math.sin(a) * sp, frag.spec, -1);
+            const fp = this.makeProjectile(p.x, p.y - 4, Math.cos(a) * sp, Math.sin(a) * sp, frag.spec, p.ownerId);
             fp.age = 1;
             this.projectiles.push(fp);
           }
@@ -638,14 +638,15 @@ export class Match implements SimWorld {
     }
   }
 
-  explode(x: number, y: number, r: number, dmg: number, _ownerId: number): void {
+  explode(x: number, y: number, r: number, dmg: number, ownerId: number): void {
+    const attacker = this.units.find((u) => u.id === ownerId) ?? null;
     this.terrain.carve(x, y, r);
     this.emit({ type: 'explosion', x, y, r });
     for (const u of this.units) {
       if (!u.alive) continue;
       const d = blastDamage(r, dmg, x, y, u);
       if (d <= 0) continue;
-      this.damage(u, d);
+      this.damage(u, d, attacker);
       const dx = u.cx - x;
       const dy = u.cy - y - 6;
       const len = Math.hypot(dx, dy) || 1;
@@ -668,9 +669,10 @@ export class Match implements SimWorld {
     }
   }
 
-  private damage(u: Unit, amount: number): void {
+  private damage(u: Unit, amount: number, by: Unit | null): void {
     u.hp -= amount;
-    this.emit({ type: 'damage', unit: u, amount });
+    if (by) u.lastHitBy = by;
+    this.emit({ type: 'damage', unit: u, amount, by });
     // apanhou durante a própria vez? acabou a vez (regra clássica de Worms)
     if (u === this.active && this.phase === 'turn') this.endTurn();
   }

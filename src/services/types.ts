@@ -67,10 +67,37 @@ export interface PresenceApi {
   onInvite(fn: (inv: Invite) => void): void;
 }
 
+export interface RemoteProfile {
+  name: string;
+  teamName: string;
+  color: number;
+}
+
+export interface MatchReport {
+  key: string;
+  mode: 'online' | 'mail';
+  theme: string;
+  team: number;
+  result: 'win' | 'loss' | 'draw';
+  damage: number;
+  kills: number;
+  shots: number;
+  hits: number;
+  longestShot: number;
+}
+
+/** Perfil e histórico no servidor (no modo local, tudo fica no aparelho). */
+export interface ProfileApi {
+  load(): Promise<RemoteProfile | null>;
+  save(p: RemoteProfile): Promise<Result>;
+  reportMatch(r: MatchReport): Promise<Result>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
   readonly auth: AuthApi;
   readonly friends: FriendsApi;
   readonly presence: PresenceApi;
+  readonly profile: ProfileApi;
 }

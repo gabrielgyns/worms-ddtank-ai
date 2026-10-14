@@ -45,7 +45,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 - [x] **F4-02** · P0 · M — Tabelas: `profiles`, `friendships`, `matches`, `match_players` com RLS.
 - [x] **F4-03** · P0 · M — Amigos: código pessoal `#BOLOTA-4821`, link de convite, aceitar/recusar, remover.
 - [x] **F4-04** · P1 · P — Presença (online / em partida) e "convidar para sala".
-- [ ] **F4-05** · P1 · P — Perfil: nome, nome do time, bolota favorita, estatísticas básicas.
+- [x] **F4-05** · P1 · P — Perfil: nome, nome do time, bolota favorita, estatísticas básicas.
 
 ## Fase 5 — Conquistas, moedas e loja
 

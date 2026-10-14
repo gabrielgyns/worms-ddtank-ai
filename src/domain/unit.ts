@@ -35,6 +35,8 @@ export class Unit {
   lastPower = -1;
   /** maior velocidade de queda desde que saiu do chão */
   fallSpeed = 0;
+  /** quem acertou esta bolota por último (para creditar a eliminação) */
+  lastHitBy: Unit | null = null;
   /** só cosmético (piscar, respirar); derivado do id para não depender de Math.random */
   get seed(): number {
     return (this.id * 137.5) % 1000;

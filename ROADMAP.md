@@ -74,3 +74,8 @@ Registro das escolhas e do porquê. Atualize quando mudar.
 | D4 | Uma base de código para PC e celular, **PWA** primeiro | Mantém o "jeito web" intacto no PC. Loja de apps (Capacitor) só se fizer falta depois. |
 | D5 | Loja **só cosmética**, moeda só ganha jogando, sem dinheiro real por enquanto | Mantém a competição justa no ranking e evita pagamentos, impostos e regras das lojas de apps. |
 | D6 | Conquistas, estatísticas e moedas calculadas a partir de `GameEvent` | O barramento de eventos já existe; nada novo precisa entrar no domínio. Online, o servidor valida o resultado para evitar trapaça no ranking. |
+| D7 | Salas online por **WebRTC P2P (PeerJS)**, não Supabase Realtime | Funciona sem servidor próprio nem conta: só o broker público do PeerJS apresenta os dois navegadores. `BroadcastChannel` como segundo transporte permite testar em duas abas. |
+| D8 | O host é o relógio do lockstep e carimba as entradas do convidado com o tick | Elimina acordo de tempo entre dois relógios; o convidado roda ~4 ticks (≈70 ms) atrás para absorver variação de rede. |
+| D9 | Partida assíncrona **por link** (estado + comandos comprimidos na URL) | Turno assíncrono sem servidor: o próprio link é a "notificação" (WhatsApp). ~8 KB por jogada. |
+| D10 | Serviços **local-first** (`services/`): implementação local completa + Supabase opcional por variáveis de ambiente | O jogo inteiro funciona sem configurar nada; ligar o servidor só acrescenta contas, amigos, presença e ranking compartilhado. |
+| D11 | Migrações SQL testadas no **PGlite** com stub do `auth` | Regras de RLS e funções `security definer` ficam cobertas por testes que rodam no CI, sem Docker. |
