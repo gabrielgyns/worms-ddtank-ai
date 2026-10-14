@@ -13,6 +13,13 @@ export class Rng {
   constructor(seed: number) {
     this.s = seed >>> 0;
   }
+  /** estado interno, para salvar e restaurar a partida */
+  get state(): number {
+    return this.s;
+  }
+  set state(v: number) {
+    this.s = v >>> 0;
+  }
   next(): number {
     let t = (this.s += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -50,4 +57,41 @@ export function valueNoise(x: number, y: number): number {
   const c = hash2(xi, yi + 1);
   const d = hash2(xi + 1, yi + 1);
   return lerp(lerp(a, b, u), lerp(c, d, u), v);
+}
+
+/**
+ * Hash FNV-1a incremental de 32 bits. Floats entram pelos bits exatos,
+ * então qualquer diferença mínima entre dois computadores aparece.
+ */
+export class Hasher {
+  private h = 0x811c9dc5;
+  private readonly f64 = new Float64Array(1);
+  private readonly u32 = new Uint32Array(this.f64.buffer);
+
+  int(v: number): this {
+    let h = this.h ^ (v | 0);
+    h = Math.imul(h, 0x01000193);
+    this.h = h >>> 0;
+    return this;
+  }
+  num(v: number): this {
+    this.f64[0] = v;
+    return this.int(this.u32[0]).int(this.u32[1]);
+  }
+  bytes(b: Uint8Array): this {
+    let h = this.h;
+    for (let i = 0; i < b.length; i++) {
+      h ^= b[i];
+      h = Math.imul(h, 0x01000193);
+    }
+    this.h = h >>> 0;
+    return this;
+  }
+  str(s: string): this {
+    for (let i = 0; i < s.length; i++) this.int(s.charCodeAt(i));
+    return this;
+  }
+  get value(): number {
+    return this.h >>> 0;
+  }
 }

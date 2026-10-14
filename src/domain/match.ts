@@ -1,4 +1,4 @@
-import { clamp, DEG, Rng } from '../core/math';
+import { clamp, DEG, Hasher, Rng } from '../core/math';
 import {
   blastDamage,
   bodyCollides,
@@ -166,6 +166,28 @@ export class Match implements SimWorld {
 
   teamHp(team: Team): number {
     return team.units.reduce((s, u) => s + (u.alive ? Math.max(0, u.hp) : 0), 0);
+  }
+
+  /**
+   * Impressão digital do estado da regra. Dois computadores com o mesmo
+   * checksum estão vendo exatamente a mesma partida.
+   */
+  checksum(): number {
+    const h = new Hasher();
+    h.int(this.tick).str(this.phase).int(this.wind).int(this.turnNumber).int(this.rng.state);
+    h.num(this.turnTimer).num(this.retreatTimer).num(this.power).int(this.charging ? 1 : 0);
+    h.int(this.active?.id ?? -1);
+    for (const t of this.teams) {
+      h.int(t.cursor).str(t.weapon);
+      for (const [id, n] of t.ammo) h.str(id).num(n);
+    }
+    for (const u of this.units) {
+      h.num(u.x).num(u.y).num(u.vx).num(u.vy).num(u.hp).num(u.aim).int(u.facing);
+      h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0);
+    }
+    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
+    h.bytes(this.terrain.solid);
+    return h.value;
   }
 
   // ───────────────────────── comandos ─────────────────────────

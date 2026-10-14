@@ -13,7 +13,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 - [x] **F1-01** · P0 · P — Deploy estático com HTTPS (Cloudflare Pages ou Vercel) a cada push na `main`.
 - [x] **F1-02** · P0 · M — Vitest + testes do domínio: terreno (escavar, normal), física (queda, dano), armas, fim de partida. Inclui o teste "N partidas CPU x CPU terminam sem travar".
 - [x] **F1-03** · P0 · M — Comandos serializáveis: `Command = {turn, tick, type, args}`; `Match.apply(cmd)` como única porta. Humano e CPU passam a gerar comandos.
-- [ ] **F1-04** · P0 · M — Determinismo: tirar `Math.random()` de qualquer regra; `checksum()` do estado (terreno + bolotas + projéteis + vento). Teste: mesma seed + mesmos comandos ⇒ mesmo checksum.
+- [x] **F1-04** · P0 · M — Determinismo: tirar `Math.random()` de qualquer regra; `checksum()` do estado (terreno + bolotas + projéteis + vento). Teste: mesma seed + mesmos comandos ⇒ mesmo checksum.
 - [ ] **F1-05** · P1 · P — `Match.snapshot()` / `Match.restore()` (estado completo, terreno comprimido) para ressincronizar e salvar partida.
 - [ ] **F1-06** · P1 · M — Replay local: gravar comandos e reassistir; botão "ver jogada de novo" no fim da partida.
 - [ ] **F1-07** · P2 · P — CI no GitHub Actions: typecheck + testes + build.

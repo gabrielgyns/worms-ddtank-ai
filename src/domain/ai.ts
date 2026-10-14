@@ -153,6 +153,7 @@ export class AiController {
 
   private applyNoise(p: Plan): Plan {
     const n = NOISE[this.difficulty];
+    // Math.random aqui é ok: só muda a DECISÃO da CPU, que vira TickInput e é gravada/transmitida.
     const g = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
     return {
       ...p,
