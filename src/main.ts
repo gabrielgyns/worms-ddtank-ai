@@ -192,9 +192,28 @@ window.addEventListener('keydown', (e) => {
 // ─── mouse / toque no mundo: clique mira, arrastar move a câmera ───
 let drag: { x: number; y: number; moved: boolean; id: number } | null = null;
 let aimPointer: number | null = null;
+/** dedos na tela, para pinça e arrastar com dois dedos */
+const touches = new Map<number, { x: number; y: number }>();
+let pinch: { dist: number; mx: number; my: number } | null = null;
+
+function pinchState(): { dist: number; mx: number; my: number } {
+  const [a, b] = [...touches.values()];
+  return { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+}
+
+function setZoom(z: number): void {
+  if (game) game.cam.userZoom = Math.max(0.6, Math.min(1.8, z));
+}
 canvas.addEventListener('pointerdown', (e) => {
   sfx.unlock();
   canvas.setPointerCapture(e.pointerId);
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2 && aimPointer === null) {
+    drag = null;
+    pinch = pinchState();
+    return;
+  }
+  if (touches.size > 1) return;
   if (game?.beginAim(e.clientX, e.clientY)) {
     aimPointer = e.pointerId;
     return;
@@ -203,6 +222,15 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 canvas.addEventListener('pointermove', (e) => {
   game?.hover(e.clientX, e.clientY);
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && touches.size === 2 && game) {
+    const now = pinchState();
+    if (pinch.dist > 0) setZoom(game.cam.userZoom * (now.dist / pinch.dist));
+    game.cam.fit(canvas.clientWidth, canvas.clientHeight);
+    game.cam.pan(now.mx - pinch.mx, now.my - pinch.my);
+    pinch = now;
+    return;
+  }
   if (aimPointer === e.pointerId) {
     game?.moveAim(e.clientX, e.clientY);
     return;
@@ -216,11 +244,22 @@ canvas.addEventListener('pointermove', (e) => {
   drag.x = e.clientX;
   drag.y = e.clientY;
 });
-canvas.addEventListener('pointercancel', () => {
+function releasePointer(id: number): void {
+  touches.delete(id);
+  if (touches.size < 2) pinch = null;
+}
+canvas.addEventListener('pointercancel', (e) => {
+  releasePointer(e.pointerId);
   aimPointer = null;
   drag = null;
 });
 canvas.addEventListener('pointerup', (e) => {
+  const wasPinch = pinch !== null || touches.size > 1;
+  releasePointer(e.pointerId);
+  if (wasPinch) {
+    drag = null;
+    return;
+  }
   if (aimPointer === e.pointerId) {
     aimPointer = null;
     game?.endAim();
@@ -234,7 +273,7 @@ canvas.addEventListener(
   (e) => {
     if (!game) return;
     e.preventDefault();
-    game.cam.userZoom = Math.max(0.6, Math.min(1.6, game.cam.userZoom * (e.deltaY > 0 ? 0.9 : 1.1)));
+    setZoom(game.cam.userZoom * (e.deltaY > 0 ? 0.9 : 1.1));
   },
   { passive: false },
 );
