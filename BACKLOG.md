@@ -30,7 +30,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 
 ## Fase 3 — Multiplayer online
 
-- [ ] **F3-01** · P0 · M — Salas: criar sala → código de 4 letras + link `…/#sala-ABCD`; entrar pelo código.
+- [x] **F3-01** · P0 · M — Salas: criar sala → código de 4 letras + link `…/#sala-ABCD`; entrar pelo código.
 - [ ] **F3-02** · P0 · G — Transporte (Supabase Realtime Broadcast) + protocolo: `join`, `start{seed, setup}`, `cmd`, `turnEnd{checksum}`, `resync{snapshot}`.
 - [ ] **F3-03** · P0 · M — Lockstep por turno: só o dono do turno envia comandos; o outro aplica com pequeno atraso de buffer (~100 ms) para ficar suave.
 - [ ] **F3-04** · P0 · M — Checksum no fim do turno; se divergir, o dono do turno manda `resync`.

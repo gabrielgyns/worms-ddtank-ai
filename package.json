@@ -22,6 +22,7 @@
     "vitest": "^3.2.7"
   },
   "dependencies": {
-    "@capacitor/core": "^7.6.9"
+    "@capacitor/core": "^7.6.9",
+    "peerjs": "^1.5.4"
   }
 }

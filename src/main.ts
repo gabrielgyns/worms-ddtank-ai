@@ -7,6 +7,7 @@ import { THEMES, type ThemeId } from './domain/theme';
 import { Game } from './game';
 import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
 import { Hud, setupTouch } from './ui/hud';
+import { OnlineUi } from './ui/online';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -186,6 +187,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyF' && game) void toggleFullscreen();
   if (e.code === 'KeyM') $('#mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
   if ((e.code === 'Enter' || e.code === 'Space') && !game && $('#menu').classList.contains('open')) startGame();
+  if (e.code === 'Escape' && !game && !$('#menu').classList.contains('open')) online.leave();
   if (e.code === 'Tab') e.preventDefault();
 });
 
@@ -309,6 +311,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('./sw.js').catch(() => undefined);
   });
 }
+const online = new OnlineUi({ show, onRoom: () => undefined });
 show('menu');
 startDemo();
+online.autoJoin();
 requestAnimationFrame(loop);

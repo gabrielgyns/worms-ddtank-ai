@@ -838,3 +838,75 @@ body.is-touch #game {
 body.is-touch .seg button {
   min-height: 44px;
 }
+
+/* ───────── online ───────── */
+button.big.alt {
+  margin-top: 0;
+  font-size: 22px;
+  background: linear-gradient(180deg, #8fd0ff, #3d9bff);
+}
+.join-row,
+.share-row {
+  display: flex;
+  gap: 8px;
+}
+.join-row input,
+.share-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  font: 20px var(--font-title);
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+.share-row input {
+  font: 600 13px var(--font-body);
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+}
+.join-row button,
+.share-row button {
+  padding: 0 16px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--accent);
+  font-size: 16px;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #ffe1d6;
+  color: #9a2a0a;
+  font-weight: 800;
+  font-size: 14px;
+}
+.code {
+  font: 64px/1 var(--font-title);
+  letter-spacing: 10px;
+  color: var(--blue);
+  -webkit-text-stroke: 6px var(--ink);
+  paint-order: stroke fill;
+}
+.status {
+  margin: 0;
+  font-weight: 800;
+}
+.status.ok {
+  color: #2f8a12;
+}

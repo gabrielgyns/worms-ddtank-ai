@@ -110,6 +110,7 @@
         </div>
 
         <button id="play" class="big">JOGAR!</button>
+        <button id="online-btn" class="big alt">🌐 Jogar online</button>
 
         <details class="help">
           <summary>Como jogar</summary>
@@ -129,6 +130,36 @@
             <li>O vento empurra bazucas! A marquinha branca na barra mostra sua última força.</li>
           </ul>
         </details>
+      </div>
+    </div>
+
+    <div id="online" class="screen">
+      <div class="card small">
+        <h2>Jogar online</h2>
+        <p class="tag">Cada um no seu aparelho. Crie uma sala e mande o link.</p>
+        <button id="create-room" class="big">Criar sala</button>
+        <div class="join-row">
+          <input id="join-code" maxlength="4" placeholder="CÓDIGO" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+          <button id="join-room">Entrar</button>
+        </div>
+        <label class="check"><input type="checkbox" id="local-net" /> Testar em duas abas deste navegador</label>
+        <p id="online-error" class="error" hidden></p>
+        <button id="online-back">Voltar</button>
+      </div>
+    </div>
+
+    <div id="lobby" class="screen">
+      <div class="card small">
+        <h2>Sala</h2>
+        <div id="room-code" class="code"></div>
+        <div class="share-row">
+          <input id="room-link" readonly />
+          <button id="copy-link">Copiar</button>
+          <button id="share-link" hidden>Enviar</button>
+        </div>
+        <p id="lobby-status" class="status"></p>
+        <div id="lobby-body"></div>
+        <button id="lobby-leave">Sair da sala</button>
       </div>
     </div>
 
