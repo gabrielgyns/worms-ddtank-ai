@@ -1,15 +1,14 @@
 import type { Sfx } from './core/audio';
 import type { Input } from './core/input';
 import { AiController, type Difficulty } from './domain/ai';
+import { DT, isEmptyInput, NO_INPUT, type Command, type TickInput } from './domain/commands';
 import { Match, type MatchSetup } from './domain/match';
-import { WEAPONS } from './domain/weapons';
+import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { drawCrosshair, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { TerrainView } from './render/terrainView';
-
-const DT = 1 / 60;
 
 /** Liga partida, controladores, câmera, render e som. */
 export class Game {
@@ -24,6 +23,10 @@ export class Game {
   paused = false;
   private lastTick = -1;
   private hoverWorld: { x: number; y: number } | null = null;
+  /** comandos de clique (HUD, mapa) esperando o próximo tick */
+  private pending: TickInput = {};
+  /** todos os comandos aplicados, para replay */
+  readonly log: Command[] = [];
 
   constructor(
     setup: MatchSetup,
@@ -76,6 +79,9 @@ export class Game {
         case 'jump':
           s.jump();
           break;
+        case 'select':
+          s.select();
+          break;
         case 'damage':
           s.ouch();
           break;
@@ -92,10 +98,15 @@ export class Game {
   }
 
   /** Clique no mundo (coordenadas de tela). */
-  clickAt(px: number, py: number): boolean {
-    if (!this.humanTurn || this.paused) return false;
+  clickAt(px: number, py: number): void {
+    if (!this.humanTurn || this.paused || this.match.weapon.mode !== 'target') return;
     const w = this.cam.toWorld(px, py, this.canvas.clientWidth, this.canvas.clientHeight);
-    return this.match.fireAt(w.x, w.y);
+    this.pending.target = { x: Math.round(w.x), y: Math.round(w.y) };
+  }
+
+  /** Pedido de troca de arma vindo da interface. */
+  requestWeapon(id: WeaponId): void {
+    if (this.humanTurn && !this.paused) this.pending.weapon = id;
   }
 
   hover(px: number, py: number): void {
@@ -121,11 +132,13 @@ export class Game {
   private step(dt: number): void {
     this.time += dt;
     const m = this.match;
-    if (this.humanTurn) this.humanControl(dt);
-    else if (m.activeTeam) this.ai.update(m, dt);
+    let input: TickInput = NO_INPUT;
+    if (this.humanTurn) input = this.humanControl();
+    else if (m.activeTeam) input = this.ai.decide(m);
 
     const wasCharging = m.charging;
-    m.update(dt);
+    if (!isEmptyInput(input)) this.log.push({ tick: m.tick, input });
+    m.step(input);
     if (m.charging) {
       if (!wasCharging) this.sfx.chargeStart();
       this.sfx.chargeLevel(m.power);
@@ -144,39 +157,49 @@ export class Game {
     this.updateCamera(dt);
   }
 
-  private humanControl(dt: number): void {
+  /** Lê teclado/toque e cliques pendentes e monta a entrada deste tick. */
+  private humanControl(): TickInput {
     const m = this.match;
     const i = this.input;
+    const out: TickInput = this.pending;
+    this.pending = {};
     for (const code of i.takeKeys()) {
       const w = WEAPONS.find((w) => `Digit${w.key}` === code || `Numpad${w.key}` === code);
-      if (w && m.selectWeapon(w.id)) this.sfx.select();
-      if (code === 'Tab' || code === 'KeyE' || code === 'KeyQ') this.cycleWeapon(code === 'KeyQ' ? -1 : 1);
+      if (w) out.weapon = w.id;
+      if (code === 'Tab' || code === 'KeyE' || code === 'KeyQ') {
+        const next = this.nextWeapon(code === 'KeyQ' ? -1 : 1);
+        if (next) out.weapon = next;
+      }
     }
-    if (i.isDown('left')) m.walk(-1, dt);
-    else if (i.isDown('right')) m.walk(1, dt);
+    if (i.isDown('left')) out.walk = -1;
+    else if (i.isDown('right')) out.walk = 1;
     if (i.wasPressed('left') || i.wasPressed('right')) this.cam.manual = 0;
     const aimSpeed = i.isDown('fine') ? 0.25 : 1.1;
-    if (i.isDown('up')) m.aimBy(aimSpeed * dt);
-    if (i.isDown('down')) m.aimBy(-aimSpeed * dt);
-    if (i.wasPressed('jump')) m.jump(false);
-    if (i.wasPressed('backflip')) m.jump(true);
+    if (i.isDown('up')) out.aim = aimSpeed * DT;
+    else if (i.isDown('down')) out.aim = -aimSpeed * DT;
+    if (i.wasPressed('jump')) out.jump = 'front';
+    if (i.wasPressed('backflip')) out.jump = 'back';
     if (i.wasPressed('fire')) {
       if (m.weapon.mode !== 'target') this.cam.manual = 0;
-      m.startCharge();
+      out.charge = 'start';
     }
-    if (i.wasReleased('fire')) m.releaseCharge();
+    if (i.wasReleased('fire')) out.charge = 'release';
+    return out;
   }
 
-  cycleWeapon(dir: 1 | -1): void {
+  private nextWeapon(dir: 1 | -1): WeaponId | null {
     const m = this.match;
     let idx = WEAPONS.indexOf(m.weapon);
     for (let k = 0; k < WEAPONS.length; k++) {
       idx = (idx + dir + WEAPONS.length) % WEAPONS.length;
-      if (m.selectWeapon(WEAPONS[idx].id)) {
-        this.sfx.select();
-        return;
-      }
+      if (m.ammoOf(WEAPONS[idx].id) > 0) return WEAPONS[idx].id;
     }
+    return null;
+  }
+
+  cycleWeapon(dir: 1 | -1): void {
+    const next = this.nextWeapon(dir);
+    if (next) this.requestWeapon(next);
   }
 
   private updateCamera(dt: number): void {

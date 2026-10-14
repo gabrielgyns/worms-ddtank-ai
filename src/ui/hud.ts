@@ -44,9 +44,8 @@ export class Hud {
       el.append(cv, key, ammo);
       el.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (this.game?.humanTurn && this.game.match.selectWeapon(w.id)) {
-          (el as HTMLButtonElement).blur();
-        }
+        this.game?.requestWeapon(w.id);
+        el.blur();
       });
       this.bar.append(el);
       this.buttons.set(w.id, { el, ammo });

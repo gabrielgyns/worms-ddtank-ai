@@ -9,6 +9,7 @@ import {
   type Projectile,
   type SimWorld,
 } from './physics';
+import { DT, type TickInput } from './commands';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
 import { Unit, type Control, type Team } from './unit';
@@ -26,6 +27,7 @@ export type GameEvent =
   | { type: 'turnStart'; unit: Unit }
   | { type: 'teleport'; fromX: number; fromY: number; unit: Unit }
   | { type: 'jump'; unit: Unit }
+  | { type: 'select'; weapon: WeaponId }
   | { type: 'gameOver'; winner: Team | null };
 
 export interface TeamSetup {
@@ -75,6 +77,8 @@ export class Match implements SimWorld {
   private settleClock = 0;
   private hasFired = false;
   turnNumber = 0;
+  /** ticks simulados desde o início */
+  tick = 0;
   winner: Team | null = null;
   time = 0;
 
@@ -166,6 +170,27 @@ export class Match implements SimWorld {
 
   // ───────────────────────── comandos ─────────────────────────
 
+  /**
+   * Avança um tick aplicando a entrada do jogador da vez.
+   * É assim que a partida deve ser dirigida (humano, CPU, replay e rede).
+   */
+  step(input: TickInput): void {
+    this.apply(input);
+    this.update(DT);
+    this.tick++;
+  }
+
+  private apply(i: TickInput): void {
+    if (i.weapon !== undefined) this.selectWeapon(i.weapon);
+    if (i.face !== undefined) this.face(i.face);
+    if (i.walk !== undefined) this.walk(i.walk, DT);
+    if (i.aim !== undefined) this.aimBy(i.aim);
+    if (i.jump !== undefined) this.jump(i.jump === 'back');
+    if (i.charge === 'start') this.startCharge(i.chargeLimit ?? 1);
+    if (i.charge === 'release') this.releaseCharge();
+    if (i.target !== undefined) this.fireAt(i.target.x, i.target.y);
+  }
+
   private canAct(): boolean {
     return this.active !== null && (this.phase === 'turn' || this.phase === 'retreat');
   }
@@ -203,7 +228,10 @@ export class Match implements SimWorld {
   selectWeapon(id: WeaponId): boolean {
     if (this.phase !== 'turn' || this.charging || this.hasFired) return false;
     if (this.ammoOf(id) <= 0) return false;
-    this.activeTeam!.weapon = id;
+    if (this.activeTeam!.weapon !== id) {
+      this.activeTeam!.weapon = id;
+      this.emit({ type: 'select', weapon: id });
+    }
     return true;
   }
 

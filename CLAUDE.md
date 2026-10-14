@@ -36,7 +36,8 @@ src/
     terrain.ts   máscara de bits destrutível (Uint8Array); avisa ouvintes ao escavar
     physics.ts   bolota andando/caindo, voo de projétil, dano de explosão
     weapons.ts   catálogo de armas (dados: dano, raio, pavio, vento, fragmentos)
-    match.ts     a partida: turnos, fases, comandos, eventos (GameEvent)
+    commands.ts  TickInput/Command: a entrada serializável de cada tick
+    match.ts     a partida: turnos, fases, step(input), eventos (GameEvent)
     ai.ts        CPU: simula tiros com a MESMA stepProjectile do jogo
     unit.ts      Unit (bolota) e Team
     theme.ts     paletas dos cenários (só dados)
@@ -50,7 +51,7 @@ src/
 ### Regras que não podem quebrar
 
 1. **`src/domain` não importa nada de `render/`, `ui/`, `core/audio` ou DOM.** Precisa rodar no Node (testes, servidor, simulação da IA).
-2. **Estado muda só por comandos do `Match`** (`walk`, `aimBy`, `startCharge`, `releaseCharge`, `fireAt`, `selectWeapon`, `jump`). Humano, CPU e, no futuro, a rede usam a mesma porta de entrada.
+2. **A partida avança só por `match.step(input: TickInput)`** (`src/domain/commands.ts`). Teclado, toque, CPU, replay e rede produzem `TickInput`; nada fora do domínio chama `walk`/`fireAt`/etc. diretamente.
 3. **Efeitos colaterais saem por eventos** (`match.on(...)`): som, partículas, banners, e no futuro conquistas e estatísticas. Não chame som ou efeito de dentro do domínio.
 4. **Aleatoriedade de regra usa `match.rng`** (seedado), nunca `Math.random()`. `Math.random()` só em coisa cosmética (partículas, piscar de olho). Isso é a base do multiplayer.
 5. **Passo fixo de 1/60 s.** Não use o `dt` real do frame na simulação.

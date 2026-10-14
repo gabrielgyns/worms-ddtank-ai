@@ -1,4 +1,5 @@
 import { DEG } from '../core/math';
+import { DT, NO_INPUT, type TickInput } from './commands';
 import type { Match } from './match';
 import { blastDamage, stepProjectile, type Projectile } from './physics';
 import type { Unit } from './unit';
@@ -79,9 +80,11 @@ export class AiController {
 
   constructor(private readonly difficulty: Difficulty) {}
 
-  update(m: Match, dt: number): void {
+  /** Decide a entrada deste tick. Não mexe na partida: quem aplica é o `Match.step`. */
+  decide(m: Match): TickInput {
+    const dt = DT;
     const u = m.active;
-    if (!u || m.phase !== 'turn') return;
+    if (!u || m.phase !== 'turn') return NO_INPUT;
     if (this.turnSeen !== m.turnNumber) {
       this.turnSeen = m.turnNumber;
       this.plan = null;
@@ -91,54 +94,47 @@ export class AiController {
     }
     if (this.wait > 0) {
       this.wait -= dt;
-      return;
+      return NO_INPUT;
     }
     if (this.walkTime > 0) {
       this.walkTime -= dt;
-      m.walk(this.walkDir, dt);
       if (this.walkTime <= 0) this.wait = 0.4;
-      return;
+      return { walk: this.walkDir };
     }
-    if (!u.onGround) return;
+    if (!u.onGround) return NO_INPUT;
 
     if (!this.plan) {
       if (!this.search) this.search = this.think(m, u);
       const r = this.search.next();
-      if (!r.done) return;
+      if (!r.done) return NO_INPUT;
       this.search = null;
       const plan = r.value;
       if (plan.score <= 2 && !this.walked) {
-        // nada bom daqui — anda um pouco na direção do inimigo e tenta de novo
+        // nada bom daqui: anda um pouco na direção do inimigo e tenta de novo
         const enemy = this.nearestEnemy(m, u);
         this.walked = true;
         if (enemy) {
           this.walkDir = enemy.x > u.x ? 1 : -1;
           this.walkTime = 1.6;
-          return;
+          return NO_INPUT;
         }
       }
       this.plan = this.applyNoise(plan);
-      m.selectWeapon(this.plan.weapon);
-      return;
+      return { weapon: this.plan.weapon };
     }
 
     const p = this.plan;
-    if (p.target) {
-      m.fireAt(p.target.x, p.target.y);
-      return;
-    }
+    if (p.target) return { target: { x: p.target.x, y: p.target.y } };
     if (u.facing !== p.facing) {
-      m.face(p.facing);
       this.wait = 0.25;
-      return;
+      return { face: p.facing };
     }
     const diff = p.aim - u.aim;
     if (Math.abs(diff) > 0.004) {
-      const step = Math.sign(diff) * Math.min(Math.abs(diff), 1.3 * dt);
-      m.aimBy(step);
-      return;
+      return { aim: Math.sign(diff) * Math.min(Math.abs(diff), 1.3 * dt) };
     }
-    if (!m.charging) m.startCharge(p.power);
+    if (!m.charging) return { charge: 'start', chargeLimit: p.power };
+    return NO_INPUT;
   }
 
   private nearestEnemy(m: Match, u: Unit): Unit | null {

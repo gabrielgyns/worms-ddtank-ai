@@ -19,8 +19,7 @@ export function playOut(m: Match, maxSeconds = 60 * 25, levels: Difficulty[] = [
   let t = 0;
   while (m.phase !== 'over' && t < maxSeconds) {
     const team = m.activeTeam;
-    if (team) ais[team.id].update(m, DT);
-    m.update(DT);
+    m.step(team ? ais[team.id].decide(m) : {});
     t += DT;
   }
   return t;
