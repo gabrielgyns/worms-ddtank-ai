@@ -28,8 +28,30 @@ export interface AuthApi {
   signOut(): Promise<void>;
 }
 
+export interface Friend {
+  id: string;
+  name: string;
+  color: number;
+  code: string;
+  /** accepted = amigos; incoming = pediu para mim; outgoing = eu pedi */
+  status: 'accepted' | 'incoming' | 'outgoing';
+}
+
+export type FriendRequestResult = 'sent' | 'accepted' | 'already_sent' | 'already_friends' | 'not_found' | 'self' | 'error';
+
+export interface FriendsApi {
+  /** precisa de servidor e de estar logado */
+  available(): boolean;
+  myCode(): Promise<string | null>;
+  list(): Promise<Friend[]>;
+  request(code: string): Promise<FriendRequestResult>;
+  accept(id: string): Promise<Result>;
+  remove(id: string): Promise<Result>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
   readonly auth: AuthApi;
+  readonly friends: FriendsApi;
 }

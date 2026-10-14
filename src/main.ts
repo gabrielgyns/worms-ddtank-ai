@@ -10,6 +10,7 @@ import { Hud, setupTouch } from './ui/hud';
 import { OnlineUi } from './ui/online';
 import { Lobby } from './ui/lobby';
 import { AccountUi } from './ui/account';
+import { FriendsUi } from './ui/friends';
 import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
 import { decodeLetter, encodeLetter, letterFromUrl, letterLink, MailDriver, type Letter } from './net/mail';
@@ -517,11 +518,12 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   });
 }
 const online = new OnlineUi({ show, onRoom });
-new AccountUi(show);
+const account = new AccountUi(show);
+const friends = new FriendsUi(show, () => account.open());
 document.querySelectorAll<HTMLElement>('[data-back]').forEach((b) => b.addEventListener('click', () => show('menu')));
 show('menu');
 startDemo();
-void openLetterFromUrl().then((opened) => opened || online.autoJoin());
+void openLetterFromUrl().then((opened) => opened || friends.fromUrl() || online.autoJoin());
 $('#mail-create').addEventListener('click', () => {
   const name = ($('#mail-opponent') as HTMLInputElement).value.trim().slice(0, 14);
   startMail(null, name || 'Convidado');
