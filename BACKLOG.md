@@ -21,7 +21,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 ## Fase 2 — Celular
 
 - [x] **F2-01** · P0 · P — PWA: `manifest.webmanifest`, ícones, `display: fullscreen`, `orientation: landscape`, service worker para jogar offline.
-- [ ] **F2-02** · P0 · P — Botão de tela cheia (Fullscreen API + `screen.orientation.lock`) e aviso "gire o celular" em retrato.
+- [x] **F2-02** · P0 · P — Botão de tela cheia (Fullscreen API + `screen.orientation.lock`) e aviso "gire o celular" em retrato.
 - [ ] **F2-03** · P0 · M — Mira por arrastar: arrasta a partir da bolota, direção = ângulo, distância = força (opcional, mantém os botões).
 - [ ] **F2-04** · P1 · P — Pinça para zoom e dois dedos para mover a câmera.
 - [ ] **F2-05** · P1 · P — Perfil de aparelho (`pointer: coarse` + tamanho): HUD compacto, botões maiores, vibração (`navigator.vibrate`) em explosões.

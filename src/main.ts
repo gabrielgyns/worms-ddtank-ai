@@ -5,6 +5,7 @@ import type { Difficulty } from './domain/ai';
 import type { TeamSetup } from './domain/match';
 import { THEMES, type ThemeId } from './domain/theme';
 import { Game } from './game';
+import { canFullscreen, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
 import { Hud, setupTouch } from './ui/hud';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
@@ -90,6 +91,8 @@ function startReplay(): void {
 }
 
 function launch(g: Game, original: Game = g): void {
+  // no celular, jogar já entra em tela cheia deitada (precisa do clique do usuário, que temos aqui)
+  if (isTouchDevice()) void enterFullscreen();
   game = g;
   demo = null;
   hud.bind(g);
@@ -163,6 +166,12 @@ for (const sel of ['#quit', '#to-menu']) {
     startDemo();
   });
 }
+if (!canFullscreen()) $('#fullscreen').hidden = true;
+$('#fullscreen').addEventListener('click', (e) => {
+  e.stopPropagation();
+  void toggleFullscreen();
+});
+$('#rotate-ok').addEventListener('click', () => document.body.classList.add('portrait-ok'));
 $('#mute').addEventListener('click', (e) => {
   e.stopPropagation();
   $('#mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
@@ -174,6 +183,7 @@ $('#pause-btn').addEventListener('click', (e) => {
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Escape' || e.code === 'KeyP') setPaused(!game?.paused);
+  if (e.code === 'KeyF' && game) void toggleFullscreen();
   if (e.code === 'KeyM') $('#mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
   if ((e.code === 'Enter' || e.code === 'Space') && !game && $('#menu').classList.contains('open')) startGame();
   if (e.code === 'Tab') e.preventDefault();
