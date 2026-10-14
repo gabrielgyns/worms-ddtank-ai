@@ -16,7 +16,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 - [x] **F1-04** · P0 · M — Determinismo: tirar `Math.random()` de qualquer regra; `checksum()` do estado (terreno + bolotas + projéteis + vento). Teste: mesma seed + mesmos comandos ⇒ mesmo checksum.
 - [x] **F1-05** · P1 · P — `Match.snapshot()` / `Match.restore()` (estado completo, terreno comprimido) para ressincronizar e salvar partida.
 - [x] **F1-06** · P1 · M — Replay local: gravar comandos e reassistir; botão "ver jogada de novo" no fim da partida.
-- [ ] **F1-07** · P2 · P — CI no GitHub Actions: typecheck + testes + build.
+- [x] **F1-07** · P2 · P — CI no GitHub Actions: typecheck + testes + build.
 
 ## Fase 2 — Celular
 
