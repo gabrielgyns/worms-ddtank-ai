@@ -191,13 +191,22 @@ window.addEventListener('keydown', (e) => {
 
 // ─── mouse / toque no mundo: clique mira, arrastar move a câmera ───
 let drag: { x: number; y: number; moved: boolean; id: number } | null = null;
+let aimPointer: number | null = null;
 canvas.addEventListener('pointerdown', (e) => {
   sfx.unlock();
-  drag = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId };
   canvas.setPointerCapture(e.pointerId);
+  if (game?.beginAim(e.clientX, e.clientY)) {
+    aimPointer = e.pointerId;
+    return;
+  }
+  drag = { x: e.clientX, y: e.clientY, moved: false, id: e.pointerId };
 });
 canvas.addEventListener('pointermove', (e) => {
   game?.hover(e.clientX, e.clientY);
+  if (aimPointer === e.pointerId) {
+    game?.moveAim(e.clientX, e.clientY);
+    return;
+  }
   if (!drag || drag.id !== e.pointerId || !game) return;
   const dx = e.clientX - drag.x;
   const dy = e.clientY - drag.y;
@@ -207,7 +216,16 @@ canvas.addEventListener('pointermove', (e) => {
   drag.x = e.clientX;
   drag.y = e.clientY;
 });
+canvas.addEventListener('pointercancel', () => {
+  aimPointer = null;
+  drag = null;
+});
 canvas.addEventListener('pointerup', (e) => {
+  if (aimPointer === e.pointerId) {
+    aimPointer = null;
+    game?.endAim();
+    return;
+  }
   if (drag && !drag.moved && game) game.clickAt(e.clientX, e.clientY);
   drag = null;
 });

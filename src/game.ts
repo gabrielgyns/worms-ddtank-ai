@@ -7,7 +7,7 @@ import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
-import { drawCrosshair, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { TerrainView } from './render/terrainView';
 
 /** Liga partida, controladores, câmera, render e som. */
@@ -113,6 +113,51 @@ export class Game {
     if (!this.humanTurn || this.paused || this.match.weapon.mode !== 'target') return;
     const w = this.cam.toWorld(px, py, this.canvas.clientWidth, this.canvas.clientHeight);
     this.pending.target = { x: Math.round(w.x), y: Math.round(w.y) };
+  }
+
+  /** Mira por arrastar (estilingue): direção = ângulo, distância = força. */
+  private dragAim: { power: number } | null = null;
+  private static readonly DRAG_FULL = 170; // px de tela para força 100%
+
+  /** Começa a mirar se o toque/clique foi perto da bolota da vez. */
+  beginAim(px: number, py: number): boolean {
+    const m = this.match;
+    const u = m.active;
+    if (!this.humanTurn || this.paused || !u || m.phase !== 'turn' || m.weapon.mode !== 'charge' || m.charging) return false;
+    const w = this.cam.toWorld(px, py, this.canvas.clientWidth, this.canvas.clientHeight);
+    const reach = Math.max(34, 48 / this.cam.zoom);
+    if (Math.hypot(w.x - u.cx, w.y - u.cy) > reach) return false;
+    this.dragAim = { power: 0 };
+    this.cam.manual = 0;
+    return true;
+  }
+
+  moveAim(px: number, py: number): void {
+    const u = this.match.active;
+    if (!this.dragAim || !u) return;
+    const w = this.cam.toWorld(px, py, this.canvas.clientWidth, this.canvas.clientHeight);
+    const dx = w.x - u.cx;
+    const dy = w.y - u.cy;
+    const dist = Math.hypot(dx, dy) * this.cam.zoom;
+    this.dragAim.power = Math.min(1, dist / Game.DRAG_FULL);
+    if (dist < 12) return;
+    const face: 1 | -1 = Math.abs(dx) < 2 ? u.facing : dx > 0 ? 1 : -1;
+    const target = Math.atan2(-dy, Math.abs(dx));
+    this.pending.face = face;
+    this.pending.aim = target - u.aim;
+  }
+
+  /** Soltou: atira com a força do arrasto (a barra enche até ela, estilo DDTank). */
+  endAim(): void {
+    const d = this.dragAim;
+    this.dragAim = null;
+    if (!d || d.power < 0.08) return;
+    this.pending.charge = 'start';
+    this.pending.chargeLimit = d.power;
+  }
+
+  get aimingByDrag(): boolean {
+    return this.dragAim !== null;
   }
 
   /** Pedido de troca de arma vindo da interface. */
@@ -286,6 +331,7 @@ export class Game {
       drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t });
     }
     if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') drawCrosshair(c, m.active, t);
+    if (this.dragAim && m.active) drawDragPower(c, m.active, this.dragAim.power, z);
     for (const p of m.projectiles) drawProjectile(c, p, t);
     this.fx.draw(c);
     for (const u of m.units) {

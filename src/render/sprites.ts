@@ -483,3 +483,53 @@ export function drawWeaponIcon(c: CanvasRenderingContext2D, id: WeaponId): void 
   }
   c.restore();
 }
+
+/** Seta de força enquanto o jogador arrasta para mirar. */
+export function drawDragPower(c: CanvasRenderingContext2D, u: Unit, power: number, zoom: number): void {
+  const dx = Math.cos(u.aim) * u.facing;
+  const dy = -Math.sin(u.aim);
+  const len = (24 + power * 150) / Math.max(0.6, zoom);
+  const x0 = u.cx + dx * 18;
+  const y0 = u.cy + dy * 18;
+  const x1 = u.cx + dx * (18 + len);
+  const y1 = u.cy + dy * (18 + len);
+  const hue = 110 - power * 110;
+  c.save();
+  c.lineCap = 'round';
+  c.strokeStyle = INK;
+  c.lineWidth = 9;
+  c.beginPath();
+  c.moveTo(x0, y0);
+  c.lineTo(x1, y1);
+  c.stroke();
+  c.strokeStyle = `hsl(${hue} 85% 55%)`;
+  c.lineWidth = 5;
+  c.beginPath();
+  c.moveTo(x0, y0);
+  c.lineTo(x1, y1);
+  c.stroke();
+  // ponta
+  c.translate(x1, y1);
+  c.rotate(Math.atan2(dy, dx));
+  c.fillStyle = `hsl(${hue} 85% 55%)`;
+  c.strokeStyle = INK;
+  c.lineWidth = 2.5;
+  c.beginPath();
+  c.moveTo(10, 0);
+  c.lineTo(-4, -8);
+  c.lineTo(-4, 8);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.restore();
+  c.save();
+  c.font = `${Math.round(15 / Math.max(0.75, zoom))}px ${FONT}`;
+  c.textAlign = 'center';
+  c.lineWidth = 4;
+  c.strokeStyle = INK;
+  const label = `${Math.round(power * 100)}%`;
+  c.strokeText(label, x1 + dx * 22, y1 + dy * 22 + 5);
+  c.fillStyle = '#fff';
+  c.fillText(label, x1 + dx * 22, y1 + dy * 22 + 5);
+  c.restore();
+}
