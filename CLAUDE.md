@@ -21,9 +21,10 @@ npm install
 npm run dev        # servidor local (Vite)
 npm run typecheck  # tsc --noEmit — tem que passar sempre
 npm run build      # typecheck + dist/index.html em arquivo único
+npm test           # Vitest: testes do domínio em test/ (inclui partidas CPU x CPU completas)
 ```
 
-Ainda não há suíte de testes (ver BACKLOG `F1-02`). Até lá, valide mudanças de regra rodando partidas CPU x CPU headless (bundle `src/domain` com esbuild e rode no Node) e confira no navegador.
+Mudou regra de jogo? Rode `npm test` e confira no navegador.
 
 ## Arquitetura
 
