@@ -1,6 +1,8 @@
 import type { Projectile } from '../domain/physics';
 import type { Unit } from '../domain/unit';
 import type { WeaponId } from '../domain/weapons';
+import type { Look } from '../domain/cosmetics';
+import { danceTransform, drawBody, drawEyewear, drawGraveLook, drawHat, drawPineapple } from './cosmetics';
 
 export const INK = '#2a1a12';
 export const FONT = '"Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
@@ -115,7 +117,7 @@ export function drawDynamiteShape(c: CanvasRenderingContext2D, x: number, y: num
   c.restore();
 }
 
-export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time: number): void {
+export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time: number, look?: Look): void {
   const k = p.spec.kind;
   if (k === 'missile') {
     c.save();
@@ -147,7 +149,8 @@ export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time:
     c.stroke();
     c.restore();
   } else if (k === 'grenade') {
-    drawGrenadeShape(c, p.x, p.y, p.rot);
+    if (look?.grenade === 'skin-abacaxi') drawPineapple(c, p.x, p.y, p.rot);
+    else drawGrenadeShape(c, p.x, p.y, p.rot);
   } else if (k === 'dynamite') {
     drawDynamiteShape(c, p.x, p.y, p.rot * 0.3);
     // faísca do pavio
@@ -194,6 +197,8 @@ export interface UnitDrawOpts {
   holding: WeaponId | null;
   hurt: number;
   time: number;
+  /** comemorando a vitória (fim de partida) */
+  celebrate?: boolean;
 }
 
 /** A bolota: corpinho redondo, capacete do time, olhos que seguem a mira. */
@@ -202,6 +207,12 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   const team = u.team;
   c.save();
   c.translate(u.x, u.y);
+  if (o.celebrate) {
+    const d = danceTransform(team.look.dance, t + u.seed * 0.01);
+    c.translate(0, d.dy - 12);
+    c.rotate(d.rot * u.facing);
+    c.translate(0, 12);
+  }
   c.scale(u.facing, 1);
 
   const moving = Math.sin(u.walkPhase);
@@ -231,38 +242,14 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   c.save();
   c.translate(0, -13);
   c.scale(1 - breathe, 1 + breathe);
-  const g = c.createRadialGradient(-4, -6, 2, 0, 0, 15);
-  g.addColorStop(0, team.light);
-  g.addColorStop(1, team.color);
-  c.fillStyle = g;
-  ellipse(c, 0, 0, 11.5, 12.5);
-  c.fill();
-  c.lineWidth = 2.5;
-  c.stroke();
+  drawBody(c, team, team.look);
 
   // barriguinha
   c.fillStyle = 'rgba(255,255,255,0.35)';
   ellipse(c, 2, 5, 6, 4.5);
   c.fill();
 
-  // capacete
-  c.fillStyle = team.dark;
-  c.beginPath();
-  c.arc(0, -1, 12.6, Math.PI * 1.06, Math.PI * 1.94);
-  c.closePath();
-  c.fill();
-  c.lineWidth = 2;
-  c.stroke();
-  roundRect(c, -13, -3.5, 27, 4, 2);
-  c.fill();
-  c.stroke();
-  c.fillStyle = 'rgba(255,255,255,0.3)';
-  c.beginPath();
-  c.ellipse(-4, -8, 4, 2, -0.3, 0, Math.PI * 2);
-  c.fill();
-  // estrelinha do time
-  c.fillStyle = '#ffe066';
-  star(c, 1, -7.5, 3);
+  drawHat(c, team, team.look.hat);
 
   // olhos
   const lookX = Math.cos(u.aim) * 1.3;
@@ -307,6 +294,7 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   if (scared) c.arc(7, 9.5, 1.8, 0, Math.PI * 2);
   else c.arc(7.5, 7.5, 2.2, 0.2, Math.PI - 0.6);
   c.stroke();
+  drawEyewear(c, team.look.eyes);
   c.restore();
 
   // arma
@@ -327,20 +315,12 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   c.restore();
 }
 
-function star(c: CanvasRenderingContext2D, x: number, y: number, r: number): void {
-  c.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5;
-    const rr = i % 2 === 0 ? r : r * 0.45;
-    c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-  }
-  c.closePath();
-  c.fill();
-}
 
 export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean, time: number, zoom: number): void {
   const s = 1 / Math.max(0.75, Math.min(1.3, zoom));
-  const y = u.y - 34;
+  // chapéus altos empurram o rótulo para cima
+  const tall = { 'hat-cartola': 16, 'hat-festa': 16, 'hat-chef': 10, 'hat-crown': 8 }[u.team.look.hat ?? ''] ?? 0;
+  const y = u.y - 34 - tall;
   c.save();
   c.translate(u.x, y);
   c.scale(s, s);
@@ -408,7 +388,7 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.arc(x, y, r, 0, Math.PI * 2);
   c.stroke();
   c.lineWidth = 2;
-  c.strokeStyle = '#ff3b3b';
+  c.strokeStyle = u.team.look.aim === 'aim-gold' ? '#ffd23a' : '#ff3b3b';
   c.beginPath();
   c.arc(x, y, r, 0, Math.PI * 2);
   c.moveTo(x - r - 4, y);
@@ -423,7 +403,8 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.restore();
 }
 
-export function drawGrave(c: CanvasRenderingContext2D, x: number, y: number, color: string): void {
+export function drawGrave(c: CanvasRenderingContext2D, x: number, y: number, color: string, look?: Look): void {
+  if (drawGraveLook(c, x, y, color, look?.grave)) return;
   c.save();
   c.translate(x, y);
   c.lineWidth = 2.5;

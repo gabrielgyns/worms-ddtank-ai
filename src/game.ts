@@ -414,11 +414,12 @@ export class Game {
     for (const u of m.units) {
       if (!u.alive) continue;
       const active = u === m.active && m.phase !== 'over';
-      drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t });
+      const celebrate = m.phase === 'over' && m.winner === u.team;
+      drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate });
     }
     if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') drawCrosshair(c, m.active, t);
     if (this.dragAim && m.active) drawDragPower(c, m.active, this.dragAim.power, z);
-    for (const p of m.projectiles) drawProjectile(c, p, t);
+    for (const p of m.projectiles) drawProjectile(c, p, t, m.units.find((u) => u.id === p.ownerId)?.team.look);
     this.fx.draw(c);
     for (const u of m.units) {
       if (u.alive) drawLabel(c, u, u === m.active && m.phase === 'turn', t, z);

@@ -1,3 +1,4 @@
+import type { Look } from './cosmetics';
 import type { WeaponId } from './weapons';
 
 export type Control = 'human' | 'cpu';
@@ -15,6 +16,8 @@ export interface Team {
   ammo: Map<WeaponId, number>;
   /** arma escolhida por último por este time */
   weapon: WeaponId;
+  /** cosméticos (só visual) */
+  look: Look;
 }
 
 /** Uma "bolota": o soldadinho redondo controlado por um time. */

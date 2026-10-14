@@ -1,5 +1,7 @@
 import type { GameEvent, Match } from '../domain/match';
 import type { Camera } from './camera';
+import type { Look } from '../domain/cosmetics';
+import { trailParticle } from './cosmetics';
 import { HIGH, type Quality } from './quality';
 import { drawGrave, FONT, INK } from './sprites';
 
@@ -25,6 +27,7 @@ interface Grave {
   y: number;
   vy: number;
   color: string;
+  look: Look;
 }
 
 const COMIC = ['BUM!', 'POW!', 'KABUM!', 'BAM!', 'CABRUM!'];
@@ -66,6 +69,7 @@ export class Effects {
     switch (e.type) {
       case 'explosion':
         this.explosion(e.x, e.y, e.r);
+        this.boomStyle(e.x, e.y, e.r, e.by?.team.look.boom);
         break;
       case 'damage': {
         this.hurt.set(e.unit.id, 1.2);
@@ -100,7 +104,7 @@ export class Effects {
         }
         break;
       case 'death':
-        if (!e.unit.drowned) this.graves.push({ x: e.unit.x, y: e.unit.y, vy: -120, color: e.unit.team.color });
+        if (!e.unit.drowned) this.graves.push({ x: e.unit.x, y: e.unit.y, vy: -120, color: e.unit.team.color, look: e.unit.team.look });
         break;
       case 'teleport':
         this.sparkles(e.fromX, e.fromY - 12);
@@ -148,6 +152,32 @@ export class Effects {
         color: Math.random() > 0.5 ? '#c8f7ff' : '#b49bff',
         kind: 'star',
         drag: 2.5,
+      });
+    }
+  }
+
+  /** Explosão cosmética extra (confete, corações). */
+  private boomStyle(x: number, y: number, r: number, boom: string | undefined): void {
+    if (!boom) return;
+    const n = Math.round(r * 0.5 * this.quality.particles);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4;
+      const s = 120 + Math.random() * r * 5;
+      const confetti = boom === 'boom-confetti';
+      this.add({
+        x,
+        y: y - r * 0.3,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        life: 1.4,
+        max: 1.4,
+        size: confetti ? 3 : 6,
+        color: confetti ? `hsl(${Math.random() * 360} 90% 60%)` : Math.random() > 0.5 ? '#ff5a8a' : '#ff9ac0',
+        gravity: confetti ? 260 : -40,
+        drag: 2,
+        kind: confetti ? 'dot' : 'text',
+        text: confetti ? undefined : '❤',
+        stroke: confetti ? undefined : '#7a1d3a',
       });
     }
   }
@@ -245,6 +275,23 @@ export class Effects {
       this.trailClock = 0;
       for (const p of this.m.projectiles) {
         if (p.spec.kind === 'missile' || p.spec.kind === 'cluster') {
+          const owner = this.m.units.find((u) => u.id === p.ownerId);
+          const style = trailParticle(owner?.team.look.trail, this.m.time + p.x * 0.001);
+          if (style) {
+            this.add({
+              x: p.x - p.vx * 0.012,
+              y: p.y - p.vy * 0.012,
+              vx: (Math.random() - 0.5) * 30,
+              vy: (Math.random() - 0.5) * 30,
+              life: 0.9,
+              max: 0.9,
+              size: style.size,
+              color: style.color,
+              kind: style.kind,
+              drag: 1,
+            });
+            continue;
+          }
           this.add({
             x: p.x - p.vx * 0.012,
             y: p.y - p.vy * 0.012,
@@ -328,7 +375,7 @@ export class Effects {
   }
 
   drawGraves(c: CanvasRenderingContext2D): void {
-    for (const g of this.graves) drawGrave(c, g.x, g.y, g.color);
+    for (const g of this.graves) drawGrave(c, g.x, g.y, g.color, g.look);
   }
 
   draw(c: CanvasRenderingContext2D): void {

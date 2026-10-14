@@ -11,6 +11,7 @@ import {
 } from './physics';
 import { DT, type TickInput } from './commands';
 import { decodeMask, encodeMask } from './codec';
+import type { Look } from './cosmetics';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
 import { Unit, type Control, type Team } from './unit';
@@ -19,7 +20,7 @@ import { specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type Weap
 export type Phase = 'turn' | 'retreat' | 'settle' | 'over';
 
 export type GameEvent =
-  | { type: 'explosion'; x: number; y: number; r: number }
+  | { type: 'explosion'; x: number; y: number; r: number; by: Unit | null }
   | { type: 'damage'; unit: Unit; amount: number; by: Unit | null }
   | { type: 'fire'; weapon: WeaponId; unit: Unit }
   | { type: 'bounce'; x: number; y: number }
@@ -38,6 +39,7 @@ export interface TeamSetup {
   dark: string;
   control: Control;
   names: string[];
+  look?: Look;
 }
 
 export interface MatchSetup {
@@ -144,6 +146,7 @@ export class Match implements SimWorld {
         cursor: 0,
         ammo: new Map(WEAPONS.map((w) => [w.id, w.ammo])),
         weapon: 'bazooka',
+        look: ts.look ?? {},
       });
     });
     this.spawnUnits(setup);
@@ -641,7 +644,7 @@ export class Match implements SimWorld {
   explode(x: number, y: number, r: number, dmg: number, ownerId: number): void {
     const attacker = this.units.find((u) => u.id === ownerId) ?? null;
     this.terrain.carve(x, y, r);
-    this.emit({ type: 'explosion', x, y, r });
+    this.emit({ type: 'explosion', x, y, r, by: attacker });
     for (const u of this.units) {
       if (!u.alive) continue;
       const d = blastDamage(r, dmg, x, y, u);

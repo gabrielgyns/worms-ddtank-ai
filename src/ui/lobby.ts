@@ -4,6 +4,7 @@ import { THEMES, type ThemeId } from '../domain/theme';
 import type { LobbyPlayer, LobbyState } from '../net/protocol';
 import type { NetSession } from '../net/session';
 import { loadProfile } from '../progress/profile';
+import { myLook } from './closet';
 
 const UNIT_NAMES = [
   ['Bolota', 'Pipoca', 'Farofa', 'Paçoca'],
@@ -43,14 +44,14 @@ export class Lobby {
     private onStart: () => void,
   ) {
     const fav = loadProfile().color;
-    const me: LobbyPlayer = { name: savedName(), color: fav, ready: session.role === 'host', connected: true };
+    const me: LobbyPlayer = { name: savedName(), color: fav, ready: session.role === 'host', connected: true, look: myLook() };
     this.state = { host: me, guest: null, units: 3, themeId: 'random' };
     const link = session.room.link;
     session.room.myName = me.name;
     if (session.role === 'host') {
       link.on('me', (m) => {
         const color = m.color === this.state.host.color ? this.freeColor(this.state.host.color) : m.color;
-        this.state.guest = { name: m.name.slice(0, 14) || 'Convidado', color, ready: m.ready, connected: true };
+        this.state.guest = { name: m.name.slice(0, 14) || 'Convidado', color, ready: m.ready, connected: true, look: m.look ?? {} };
         this.broadcast();
       });
       link.onAlive((alive) => {
@@ -82,7 +83,7 @@ export class Lobby {
 
   private sendMe(): void {
     const me = this.me;
-    this.session.room.link.send({ t: 'me', name: me.name, color: me.color, ready: me.ready });
+    this.session.room.link.send({ t: 'me', name: me.name, color: me.color, ready: me.ready, look: me.look });
   }
 
   private broadcast(): void {
@@ -103,7 +104,7 @@ export class Lobby {
     const players = [this.state.host, this.state.guest ?? { name: 'Convidado', color: 1, ready: true, connected: true }];
     return players.map((p, i) => {
       const c = TEAM_COLORS[p.color];
-      return { name: p.name, color: c.color, light: c.light, dark: c.dark, control: 'human' as const, names: UNIT_NAMES[i] };
+      return { name: p.name, color: c.color, light: c.light, dark: c.dark, control: 'human' as const, names: UNIT_NAMES[i], look: p.look ?? {} };
     });
   }
 

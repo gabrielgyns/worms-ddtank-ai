@@ -51,7 +51,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 
 - [x] **F5-01** · P0 · M — Motor de conquistas: catálogo declarativo (`id, nome, descrição, raridade, condição, recompensa`) avaliado sobre `GameEvent` e estatísticas acumuladas. Funciona offline (localStorage) e sincroniza com a conta.
 - [x] **F5-02** · P0 · M — Moeda "Bolotins": ganha por partida, vitória, conquista e desafio diário. Saldo no servidor.
-- [ ] **F5-03** · P0 · G — Cosméticos: catálogo + inventário + "vestir". Render lê o visual da bolota em vez de cores fixas.
+- [x] **F5-03** · P0 · G — Cosméticos: catálogo + inventário + "vestir". Render lê o visual da bolota em vez de cores fixas.
 - [ ] **F5-04** · P1 · M — Loja: vitrine rotativa diária, preços em Bolotins, prévia da bolota vestida.
 - [ ] **F5-05** · P2 · M — Baús de conquista (recompensa garantida, sem caixa de sorte paga).
 

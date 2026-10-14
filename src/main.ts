@@ -13,6 +13,7 @@ import { AccountUi } from './ui/account';
 import { FriendsUi } from './ui/friends';
 import { ProfileUi } from './ui/profile';
 import { AchievementsUi, rewardText } from './ui/achievements';
+import { ClosetUi, myLook } from './ui/closet';
 import { evaluate, type MatchMode } from './progress/achievements';
 import { coinsForMatch } from './progress/economy';
 import { progress } from './progress/progress';
@@ -67,7 +68,7 @@ function teams(): TeamSetup[] {
   const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
   const other = TEAM_COLORS[p.color === 1 ? 0 : 1];
   return [
-    { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A },
+    { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook() },
     {
       name: settings.mode === 'cpu' ? 'Robolas' : 'Azulões',
       color: other.color,
@@ -304,7 +305,7 @@ function newMailSetup(myName: string, opponent: string): MatchSetup {
   const [a, b] = [TEAM_COLORS[0], TEAM_COLORS[1]];
   return {
     teams: [
-      { name: myName, color: a.color, light: a.light, dark: a.dark, control: 'human', names: NAMES_A },
+      { name: myName, color: a.color, light: a.light, dark: a.dark, control: 'human', names: NAMES_A, look: myLook() },
       { name: opponent, color: b.color, light: b.light, dark: b.dark, control: 'human', names: NAMES_B },
     ],
     unitsPerTeam: 3,
@@ -318,6 +319,7 @@ function startMail(letter: Letter | null, opponent = mailOpponent): void {
   sfx.unlock();
   const setup = letter ? fromWire(letter.setup) : newMailSetup(savedName(), opponent);
   const myTeam = letter ? letter.to : 0;
+  setup.teams[myTeam] = { ...setup.teams[myTeam], look: myLook() };
   const wire = toWire(setup);
   const driver = new MailDriver(letter, myTeam, (l) => void handoff(l, setup), wire);
   const g = new Game(setup, { difficulty: 'normal', localTeams: [myTeam], driver }, canvas, input, sfx);
@@ -607,6 +609,7 @@ const account = new AccountUi(show);
 const friends = new FriendsUi(show, () => account.open());
 new ProfileUi(show);
 new AchievementsUi(show);
+new ClosetUi(show);
 const wallet = () => ($('#wallet').textContent = `🪙 ${progress().state.coins}`);
 progress().on(wallet);
 wallet();

@@ -1,6 +1,7 @@
 import type { Command, TickInput } from '../domain/commands';
 import type { MatchSnapshot, TeamSetup } from '../domain/match';
 import type { ThemeId } from '../domain/theme';
+import type { Look } from '../domain/cosmetics';
 
 /** Suba quando mudar mensagens ou regras que afetem a simulação. */
 export const PROTOCOL_VERSION = 1;
@@ -19,6 +20,7 @@ export interface LobbyPlayer {
   color: number;
   ready: boolean;
   connected: boolean;
+  look?: Look;
 }
 
 export interface LobbyState {
@@ -41,7 +43,7 @@ export type NetMsg =
   | { t: 'bye' }
   // sala
   | { t: 'lobby'; state: LobbyState }
-  | { t: 'me'; name: string; color: number; ready: boolean }
+  | { t: 'me'; name: string; color: number; ready: boolean; look?: Look }
   | { t: 'start'; setup: WireSetup; guestTeam: number; rejoin?: boolean }
   // partida (lockstep)
   | { t: 'frame'; upTo: number; cmds: Command[] }

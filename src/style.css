@@ -1345,3 +1345,21 @@ button.big:disabled {
   font: 16px var(--font-title);
   font-weight: normal;
 }
+
+/* ───────── visual ───────── */
+.preview {
+  width: 100%;
+  height: 130px;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #a6e4ff, #e9f8ff 70%, #7fd13b 70%, #4e9a2a);
+}
+#closet .card {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+#closet .seg button {
+  flex: 0 1 auto;
+  font-size: 13px;
+  padding: 6px 10px;
+}
