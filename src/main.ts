@@ -281,6 +281,10 @@ canvas.addEventListener(
 setupTouch(input, () => game?.cycleWeapon(1));
 applyProfile(deviceProfile());
 window.addEventListener('resize', () => applyProfile(deviceProfile()));
+// aba em segundo plano: pausa a partida local para não perder a vez sem ver
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && game && !game.isReplay && game.match.phase !== 'over') setPaused(true);
+});
 
 let last = performance.now();
 function loop(now: number): void {

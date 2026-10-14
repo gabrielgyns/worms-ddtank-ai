@@ -1,5 +1,6 @@
 import type { GameEvent, Match } from '../domain/match';
 import type { Camera } from './camera';
+import { HIGH, type Quality } from './quality';
 import { drawGrave, FONT, INK } from './sprites';
 
 interface Particle {
@@ -34,6 +35,7 @@ export class Effects {
   readonly graves: Grave[] = [];
   private trailClock = 0;
   readonly hurt = new Map<number, number>();
+  quality: Quality = HIGH;
 
   constructor(
     private m: Match,
@@ -43,6 +45,7 @@ export class Effects {
   }
 
   private add(p: Partial<Particle> & Pick<Particle, 'x' | 'y'>): void {
+    if (this.parts.length >= this.quality.maxParticles && p.kind !== 'text') return;
     this.parts.push({
       vx: 0,
       vy: 0,
@@ -152,7 +155,7 @@ export class Effects {
     this.cam.shake = Math.min(26, this.cam.shake + r * 0.28);
     this.add({ x, y, life: 0.18, max: 0.18, size: r * 1.3, kind: 'flash', color: '#fffbe0' });
     this.add({ x, y, life: 0.45, max: 0.45, size: r * 0.5, grow: r * 3.2, kind: 'ring', color: '#fff6c8' });
-    const n = Math.round(r * 0.6);
+    const n = Math.round(r * 0.6 * this.quality.particles);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const s = Math.random() * r * 3.5;

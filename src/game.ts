@@ -8,8 +8,9 @@ import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
-import { vibrate } from './platform/device';
+import { deviceProfile, vibrate } from './platform/device';
 
 /** Liga partida, controladores, câmera, render e som. */
 export class Game {
@@ -33,6 +34,8 @@ export class Game {
   private replayIdx = 0;
   /** velocidade da simulação (replay pode ir em 2x, 4x) */
   speed = 1;
+  private quality: Quality = HIGH;
+  private meter = new FrameMeter();
 
   constructor(
     readonly setup: MatchSetup,
@@ -52,6 +55,8 @@ export class Game {
     this.bg = new Background(setup.theme, t.height);
     this.fx = new Effects(this.match, this.cam);
     this.ai = new AiController(difficulty);
+    const p = deviceProfile();
+    this.setQuality(p.touch && p.small ? LOW : HIGH);
     this.wireSound();
     this.match.start();
   }
@@ -172,7 +177,13 @@ export class Game {
     this.hoverWorld = this.cam.toWorld(px, py, this.canvas.clientWidth, this.canvas.clientHeight);
   }
 
+  setQuality(q: Quality): void {
+    this.quality = q;
+    this.fx.quality = q;
+  }
+
   frame(realDt: number): void {
+    if (this.quality !== LOW && this.meter.sample(realDt)) this.setQuality(LOW);
     if (this.paused) {
       this.input.endFrame();
       this.input.takeKeys();
@@ -298,7 +309,7 @@ export class Game {
 
   private render(): void {
     const c = this.canvas.getContext('2d')!;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(this.quality.maxDpr, window.devicePixelRatio || 1);
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
     if (this.canvas.width !== Math.round(w * dpr) || this.canvas.height !== Math.round(h * dpr)) {
