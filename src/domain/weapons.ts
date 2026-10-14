@@ -126,3 +126,19 @@ export const WEAPONS: readonly WeaponDef[] = [
 ];
 
 export const weaponById = (id: WeaponId): WeaponDef => WEAPONS.find((w) => w.id === id)!;
+
+/** Chave estável de cada ProjectileSpec, para salvar projéteis em voo. */
+const SPEC_KEYS = new Map<ProjectileSpec, string>();
+const SPECS_BY_KEY = new Map<string, ProjectileSpec>();
+for (const w of WEAPONS) {
+  if (!w.projectile) continue;
+  SPEC_KEYS.set(w.projectile, w.id);
+  SPECS_BY_KEY.set(w.id, w.projectile);
+  const frag = w.projectile.fragments?.spec;
+  if (frag) {
+    SPEC_KEYS.set(frag, `${w.id}.frag`);
+    SPECS_BY_KEY.set(`${w.id}.frag`, frag);
+  }
+}
+export const specKey = (s: ProjectileSpec): string => SPEC_KEYS.get(s)!;
+export const specByKey = (k: string): ProjectileSpec => SPECS_BY_KEY.get(k)!;

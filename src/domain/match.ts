@@ -10,10 +10,11 @@ import {
   type SimWorld,
 } from './physics';
 import { DT, type TickInput } from './commands';
+import { decodeMask, encodeMask } from './codec';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
 import { Unit, type Control, type Team } from './unit';
-import { WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
+import { specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
 
 export type Phase = 'turn' | 'retreat' | 'settle' | 'over';
 
@@ -45,6 +46,46 @@ export interface MatchSetup {
   theme: Theme;
   seed: number;
   turnTime: number;
+}
+
+/** Estado completo da partida em JSON. Restaura numa Match criada com o mesmo setup. */
+export interface MatchSnapshot {
+  v: 1;
+  tick: number;
+  phase: Phase;
+  wind: number;
+  turnTimer: number;
+  retreatTimer: number;
+  active: number;
+  charging: boolean;
+  power: number;
+  chargeLimit: number;
+  teamCursor: number;
+  settleClock: number;
+  hasFired: boolean;
+  turnNumber: number;
+  winner: number;
+  time: number;
+  rng: number;
+  teams: Array<{ cursor: number; weapon: WeaponId; ammo: Array<[WeaponId, number]> }>;
+  units: Array<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    hp: number;
+    facing: 1 | -1;
+    aim: number;
+    onGround: boolean;
+    alive: boolean;
+    drowned: boolean;
+    walkAccum: number;
+    walkPhase: number;
+    lastPower: number;
+    fallSpeed: number;
+  }>;
+  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number }>;
+  terrain: string;
 }
 
 const RETREAT_TIME = 3;
@@ -188,6 +229,92 @@ export class Match implements SimWorld {
     for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
     h.bytes(this.terrain.solid);
     return h.value;
+  }
+
+  snapshot(): MatchSnapshot {
+    // Infinity não existe em JSON: munição infinita vira -1
+    const inf = (n: number) => (n === Infinity ? -1 : n);
+    return {
+      v: 1,
+      tick: this.tick,
+      phase: this.phase,
+      wind: this.wind,
+      turnTimer: this.turnTimer,
+      retreatTimer: this.retreatTimer,
+      active: this.active?.id ?? -1,
+      charging: this.charging,
+      power: this.power,
+      chargeLimit: this.chargeLimit,
+      teamCursor: this.teamCursor,
+      settleClock: this.settleClock,
+      hasFired: this.hasFired,
+      turnNumber: this.turnNumber,
+      winner: this.winner?.id ?? -1,
+      time: this.time,
+      rng: this.rng.state,
+      teams: this.teams.map((t) => ({ cursor: t.cursor, weapon: t.weapon, ammo: [...t.ammo].map(([id, n]) => [id, inf(n)]) })),
+      units: this.units.map((u) => ({
+        x: u.x,
+        y: u.y,
+        vx: u.vx,
+        vy: u.vy,
+        hp: u.hp,
+        facing: u.facing,
+        aim: u.aim,
+        onGround: u.onGround,
+        alive: u.alive,
+        drowned: u.drowned,
+        walkAccum: u.walkAccum,
+        walkPhase: u.walkPhase,
+        lastPower: u.lastPower,
+        fallSpeed: u.fallSpeed,
+      })),
+      projectiles: this.projectiles.map((p) => ({
+        x: p.x,
+        y: p.y,
+        vx: p.vx,
+        vy: p.vy,
+        spec: specKey(p.spec),
+        fuse: p.fuse ?? null,
+        age: p.age,
+        ownerId: p.ownerId,
+        rot: p.rot,
+      })),
+      terrain: encodeMask(this.terrain.solid),
+    };
+  }
+
+  restore(s: MatchSnapshot): void {
+    this.tick = s.tick;
+    this.phase = s.phase;
+    this.wind = s.wind;
+    this.turnTimer = s.turnTimer;
+    this.retreatTimer = s.retreatTimer;
+    this.active = this.units.find((u) => u.id === s.active) ?? null;
+    this.charging = s.charging;
+    this.power = s.power;
+    this.chargeLimit = s.chargeLimit;
+    this.teamCursor = s.teamCursor;
+    this.settleClock = s.settleClock;
+    this.hasFired = s.hasFired;
+    this.turnNumber = s.turnNumber;
+    this.winner = this.teams.find((t) => t.id === s.winner) ?? null;
+    this.time = s.time;
+    this.rng.state = s.rng;
+    s.teams.forEach((st, i) => {
+      const t = this.teams[i];
+      t.cursor = st.cursor;
+      t.weapon = st.weapon;
+      t.ammo = new Map(st.ammo.map(([id, n]) => [id, n < 0 ? Infinity : n]));
+    });
+    s.units.forEach((su, i) => Object.assign(this.units[i], su));
+    this.projectiles.length = 0;
+    for (const p of s.projectiles) {
+      this.projectiles.push({ ...p, spec: specByKey(p.spec), fuse: p.fuse ?? undefined });
+    }
+    const mask = new Uint8Array(this.terrain.solid.length);
+    decodeMask(s.terrain, mask);
+    this.terrain.replace(mask);
   }
 
   // ───────────────────────── comandos ─────────────────────────

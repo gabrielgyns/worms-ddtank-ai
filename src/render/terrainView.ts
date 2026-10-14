@@ -22,6 +22,7 @@ export class TerrainView {
     this.ctx = this.canvas.getContext('2d')!;
     this.paint();
     terrain.onCarve((x, y, r) => this.carve(x, y, r));
+    terrain.onReset(() => this.paint());
   }
 
   private paint(): void {

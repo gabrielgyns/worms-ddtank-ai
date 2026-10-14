@@ -11,6 +11,7 @@ export interface CarveListener {
 export class Terrain {
   readonly solid: Uint8Array;
   private listeners: CarveListener[] = [];
+  private resetListeners: Array<() => void> = [];
 
   constructor(
     readonly width: number,
@@ -22,6 +23,16 @@ export class Terrain {
 
   onCarve(fn: CarveListener): void {
     this.listeners.push(fn);
+  }
+
+  /** Avisado quando a máscara inteira é trocada (ressincronização, carregar partida). */
+  onReset(fn: () => void): void {
+    this.resetListeners.push(fn);
+  }
+
+  replace(mask: Uint8Array): void {
+    this.solid.set(mask);
+    for (const fn of this.resetListeners) fn();
   }
 
   isSolid(x: number, y: number): boolean {
