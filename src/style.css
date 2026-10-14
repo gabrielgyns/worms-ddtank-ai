@@ -1363,3 +1363,94 @@ button.big:disabled {
   font-size: 13px;
   padding: 6px 10px;
 }
+
+/* ───────── loja ───────── */
+#shop .card {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+.shop-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.shop-sel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 10px;
+}
+.shop-sel b {
+  font: 20px var(--font-title);
+  font-weight: normal;
+}
+.shop-sel small {
+  grid-row: 2;
+  font-weight: 800;
+  opacity: 0.65;
+}
+.shop-sel button {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  padding: 10px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #8ff05a, #4fbf2a);
+  color: #fff;
+  font-size: 16px;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.shop-sel button:disabled {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+.offers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px;
+}
+.offers button {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  font-size: 14px;
+}
+.offers button.on {
+  background: #fff1b8;
+}
+.offers em {
+  font-style: normal;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 13px;
+}
+.offers s {
+  opacity: 0.5;
+}
+.offers i {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  padding: 1px 7px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #ff5a3a;
+  color: #fff;
+  font: 11px var(--font-title);
+  font-style: normal;
+  transform: rotate(6deg);
+}

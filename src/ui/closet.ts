@@ -32,7 +32,7 @@ export function drawPreview(canvas: HTMLCanvasElement, look: Look, colorIdx = lo
   c.save();
   c.translate(w * 0.42, h * 0.82);
   c.scale(s, s);
-  drawUnit(c, u, { active: false, holding: null, hurt: 0, time });
+  drawUnit(c, u, { active: false, holding: null, hurt: 0, time, celebrate: !!look.dance });
   c.restore();
   if (look.grave) {
     c.save();
@@ -41,6 +41,17 @@ export function drawPreview(canvas: HTMLCanvasElement, look: Look, colorIdx = lo
     if (!drawGraveLook(c, 0, 0, col.color, look.grave)) drawGrave(c, 0, 0, col.color);
     c.restore();
   }
+}
+
+/** Anima a prévia enquanto o canvas estiver na página e a tela aberta. */
+export function animatePreview(canvas: HTMLCanvasElement, look: Look, screen: HTMLElement): void {
+  const t0 = performance.now();
+  const frame = (now: number) => {
+    if (!canvas.isConnected || !screen.classList.contains('open')) return;
+    drawPreview(canvas, look, undefined, (now - t0) / 1000);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 }
 
 /** Tela "Visual": vestir o que você tem. */
@@ -75,7 +86,7 @@ export class ClosetUi {
               .join('')
           : '<p class="hint">Você ainda não tem itens. Ganhe em conquistas ou compre na loja com Bolotins!</p>'
       }`;
-    drawPreview(body.querySelector('#closet-preview')!, myLook());
+    animatePreview(body.querySelector('#closet-preview')!, myLook(), $('#closet'));
     body.querySelectorAll<HTMLButtonElement>('[data-slot]').forEach((b) =>
       b.addEventListener('click', () => {
         const item = b.dataset.item || null;
