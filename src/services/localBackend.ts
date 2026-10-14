@@ -1,5 +1,5 @@
 import { store } from './store';
-import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type DailyApi, type DailyRow, type HeadToHead, type StatsRow, type LeaderRow, type ProfileApi, type ProgressSyncApi, type RankingApi, type RemoteProfile, type Result, type SyncedProgress, type User } from './types';
+import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type DailyApi, type DailyRow, type HeadToHead, type SeasonApi, type SeasonRow, type StatsRow, type LeaderRow, type ProfileApi, type ProgressSyncApi, type RankingApi, type RemoteProfile, type Result, type SyncedProgress, type User } from './types';
 
 const NO_SERVER = 'Contas online ainda não estão ligadas neste jogo. Seu progresso fica salvo neste aparelho.';
 
@@ -126,6 +126,18 @@ class NoDaily implements DailyApi {
   }
 }
 
+class NoSeason implements SeasonApi {
+  available(): boolean {
+    return false;
+  }
+  async board(): Promise<SeasonRow[]> {
+    return [];
+  }
+  async claim(): Promise<boolean> {
+    return false;
+  }
+}
+
 export class LocalBackend implements Backend {
   readonly kind = 'local';
   readonly auth = new LocalAuth();
@@ -135,4 +147,5 @@ export class LocalBackend implements Backend {
   readonly progress = new NoSync();
   readonly ranking = new NoRanking();
   readonly daily = new NoDaily();
+  readonly season = new NoSeason();
 }

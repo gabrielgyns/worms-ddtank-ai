@@ -160,6 +160,21 @@ export interface DailyApi {
   board(day: string): Promise<DailyRow[]>;
 }
 
+export interface SeasonRow {
+  id: string;
+  name: string;
+  color: number;
+  games: number;
+  wins: number;
+}
+
+export interface SeasonApi {
+  available(): boolean;
+  board(month: string): Promise<SeasonRow[]>;
+  /** true se foi campeão desse mês (encerrado) e ainda não tinha resgatado */
+  claim(month: string): Promise<boolean>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
@@ -170,4 +185,5 @@ export interface Backend {
   readonly progress: ProgressSyncApi;
   readonly ranking: RankingApi;
   readonly daily: DailyApi;
+  readonly season: SeasonApi;
 }

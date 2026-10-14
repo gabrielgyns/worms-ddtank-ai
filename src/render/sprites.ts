@@ -319,7 +319,7 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
 export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean, time: number, zoom: number): void {
   const s = 1 / Math.max(0.75, Math.min(1.3, zoom));
   // chapéus altos empurram o rótulo para cima
-  const tall = { 'hat-cartola': 16, 'hat-festa': 16, 'hat-chef': 10, 'hat-crown': 8 }[u.team.look.hat ?? ''] ?? 0;
+  const tall = { 'hat-cartola': 16, 'hat-festa': 16, 'hat-chef': 10, 'hat-crown': 8, 'hat-louros': 4 }[u.team.look.hat ?? ''] ?? 0;
   const y = u.y - 34 - tall;
   c.save();
   c.translate(u.x, y);

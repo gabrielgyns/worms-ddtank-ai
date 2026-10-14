@@ -62,3 +62,15 @@ describe('desafio do dia', () => {
     expect(dailyScore({ damage: 0, kills: 0 } as Parameters<typeof dailyScore>[0], false, 40)).toBe(0);
   });
 });
+
+import { daysLeft, previousSeason, seasonName, seasonOf } from '../src/progress/season';
+
+describe('temporadas', () => {
+  it('mês atual, anterior e nome', () => {
+    const d = new Date(Date.UTC(2026, 0, 10));
+    expect(seasonOf(d)).toBe('2026-01');
+    expect(previousSeason(d)).toBe('2025-12');
+    expect(seasonName('2026-10')).toBe('outubro de 2026');
+    expect(daysLeft(new Date(Date.UTC(2026, 9, 31, 12)))).toBe(1);
+  });
+});

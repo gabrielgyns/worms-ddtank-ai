@@ -31,6 +31,7 @@ export const COSMETICS: readonly Cosmetic[] = [
   { id: 'hat-cartola', slot: 'hat', name: 'Cartola', price: 250 },
   { id: 'hat-boia', slot: 'hat', name: 'Boia na cabeça', price: null },
   { id: 'hat-crown', slot: 'hat', name: 'Coroa', price: null },
+  { id: 'hat-louros', slot: 'hat', name: 'Coroa de louros (campeão)', price: null },
   // olhos
   { id: 'eyes-oculos', slot: 'eyes', name: 'Óculos escuros', price: 100 },
   { id: 'eyes-monoculo', slot: 'eyes', name: 'Monóculo', price: 180 },

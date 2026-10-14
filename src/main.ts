@@ -18,6 +18,8 @@ import { ShopUi } from './ui/shop';
 import { RankingUi } from './ui/ranking';
 import { addHistory } from './progress/history';
 import { dailyScore, dailySpec, loadDailyBest, saveDailyAttempt } from './progress/daily';
+import { daysLeft, previousSeason, SEASON_REWARD, seasonName, seasonOf } from './progress/season';
+import { cosmetic } from './domain/cosmetics';
 import { evaluate, type MatchMode } from './progress/achievements';
 import { coinsForMatch } from './progress/economy';
 import { progress } from './progress/progress';
@@ -666,6 +668,46 @@ function startDaily(): void {
   hud.show('Desafio do dia!', '#f2a81e', 1.8);
 }
 $('#daily-btn').addEventListener('click', startDaily);
+
+// ─── temporada ───
+async function checkSeasonReward(): Promise<void> {
+  const b = getBackend();
+  if (!b.season.available()) return;
+  const last = previousSeason();
+  if (await b.season.claim(last)) {
+    progress().give(SEASON_REWARD);
+    hud.show(`Campeão de ${seasonName(last)}! 👑`, '#e0b021', 3);
+  }
+}
+getBackend().auth.onChange((u) => u && void checkSeasonReward());
+ranking.extraTabs.push({
+  id: 'season',
+  label: 'Temporada',
+  render: async (el) => {
+    const b = getBackend();
+    const now = seasonOf();
+    const reward = cosmetic(SEASON_REWARD)?.name ?? 'item exclusivo';
+    const owned = progress().owns(SEASON_REWARD);
+    if (!b.season.available()) {
+      el.innerHTML = `<p class="tag">Temporada de ${seasonName(now)}: quem mais vencer no grupo de amigos ganha <b>${reward}</b>.</p>
+        <p class="hint">Temporadas precisam do servidor do jogo ligado e da sua conta.</p>`;
+      return;
+    }
+    await checkSeasonReward();
+    const rows = await b.season.board(now);
+    const me = b.auth.current()?.id;
+    el.innerHTML = `<p class="tag">Temporada de ${seasonName(now)} · acaba em ${daysLeft()} dia${daysLeft() > 1 ? 's' : ''}</p>
+      <p class="hint">Quem mais vencer no grupo (mín. 3 partidas) ganha <b>${reward}</b>${owned ? ' — você já tem uma! 👑' : ''}.</p>
+      <ol class="board">${rows
+        .map(
+          (r, i) => `<li class="${r.id === me ? 'me' : ''}"><span class="pos">${i === 0 && r.wins > 0 ? '👑' : i + 1}</span>
+          <span class="dot" style="--c:${TEAM_COLORS[r.color]?.color ?? '#999'}"></span><b></b>
+          <span class="score">${r.wins} vit.</span><small>${r.games} jogos</small></li>`,
+        )
+        .join('')}</ol>`;
+    el.querySelectorAll('.board b').forEach((bEl, i) => (bEl.textContent = rows[i].name));
+  },
+});
 ranking.extraTabs.push({
   id: 'stats',
   label: 'Números',

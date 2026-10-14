@@ -140,6 +140,28 @@ export function drawHat(c: CanvasRenderingContext2D, team: Team, hat: string | u
         c.stroke();
       }
       return;
+    case 'hat-louros':
+      c.lineWidth = 1.5;
+      for (const side of [-1, 1]) {
+        for (let i = 0; i < 5; i++) {
+          const a = Math.PI * (0.95 + i * 0.12);
+          const x = Math.cos(a) * 12 * side;
+          const y = -4 + Math.sin(a) * 9;
+          c.save();
+          c.translate(x, y);
+          c.rotate(side * (0.6 - i * 0.25));
+          c.fillStyle = i % 2 ? '#e0b021' : '#ffd23a';
+          ellipse(c, 0, 0, 2.2, 4.2);
+          c.fill();
+          c.stroke();
+          c.restore();
+        }
+      }
+      c.fillStyle = '#ff4a6a';
+      ellipse(c, 0, -13, 2.4, 2.4);
+      c.fill();
+      c.stroke();
+      return;
     case 'hat-crown':
       c.fillStyle = '#ffd23a';
       c.beginPath();
