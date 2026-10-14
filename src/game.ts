@@ -9,6 +9,7 @@ import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { TerrainView } from './render/terrainView';
+import { vibrate } from './platform/device';
 
 /** Liga partida, controladores, câmera, render e som. */
 export class Game {
@@ -61,6 +62,7 @@ export class Game {
       switch (e.type) {
         case 'explosion':
           s.explosion(e.r);
+          if (!s.muted && !this.replay) vibrate(Math.min(120, 20 + e.r));
           break;
         case 'fire':
           s.chargeStop();
@@ -91,6 +93,7 @@ export class Game {
           break;
         case 'damage':
           s.ouch();
+          if (!s.muted && e.unit.team.control === 'human' && !this.replay) vibrate([30, 40, 30]);
           break;
         case 'gameOver':
           s.chargeStop();

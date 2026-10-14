@@ -818,3 +818,23 @@ body.replay #touch {
     animation: none;
   }
 }
+
+/* ───────── perfil de aparelho ───────── */
+.touch-help {
+  display: none;
+}
+body.is-touch .touch-help {
+  display: block;
+}
+body.is-touch .key-help {
+  display: none;
+}
+body.is-touch .weapon i {
+  display: none;
+}
+body.is-touch #game {
+  cursor: default;
+}
+body.is-touch .seg button {
+  min-height: 44px;
+}

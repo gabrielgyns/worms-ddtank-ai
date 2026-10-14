@@ -5,7 +5,7 @@ import type { Difficulty } from './domain/ai';
 import type { TeamSetup } from './domain/match';
 import { THEMES, type ThemeId } from './domain/theme';
 import { Game } from './game';
-import { canFullscreen, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
+import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
 import { Hud, setupTouch } from './ui/hud';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
@@ -279,6 +279,8 @@ canvas.addEventListener(
 );
 
 setupTouch(input, () => game?.cycleWeapon(1));
+applyProfile(deviceProfile());
+window.addEventListener('resize', () => applyProfile(deviceProfile()));
 
 let last = performance.now();
 function loop(now: number): void {
