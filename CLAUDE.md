@@ -44,6 +44,7 @@ src/
   net/       multiplayer: Transport (PeerJS/BroadcastChannel), Link (protocolo tipado),
              NetSession (lockstep: o host é o relógio e carimba as entradas com o tick)
   platform/  tela cheia, orientação, perfil de aparelho, vibração
+  services/  contas e progresso: Backend local (localStorage) ou Supabase (env VITE_SUPABASE_*)
   render/    desenho em Canvas; só lê o estado
   ui/        HUD e controles de toque em DOM
   core/      math (Rng seedado), input, áudio
@@ -66,6 +67,12 @@ src/
 - Estilo: TypeScript estrito, sem `any`. Comente o porquê, não o quê.
 - Dados de conteúdo (armas, temas, futuros cosméticos e conquistas) são **catálogos declarativos**, não lógica espalhada.
 - Visual: cartoon vetorial com contorno grosso (`INK = #2a1a12`), fonte de título Lilita One, corpo Nunito. Tudo desenhado por código.
+
+## Servidor (Supabase)
+
+Migrações em `supabase/migrations/` (toda tabela com RLS; escrita sensível só por funções `security definer`).
+Testadas no PGlite em `test/sql/` com um stub do `auth`. Guia de configuração: [docs/servidor.md](docs/servidor.md).
+Sem as variáveis `VITE_SUPABASE_*`, o jogo roda 100% local.
 
 ## Deploy
 
