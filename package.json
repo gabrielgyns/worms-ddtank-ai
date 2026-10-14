@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.6.9",
+    "@supabase/supabase-js": "^2.117.3",
     "peerjs": "^1.5.4"
   }
 }

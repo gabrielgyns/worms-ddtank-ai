@@ -1064,3 +1064,66 @@ button.big:disabled {
   text-transform: none;
   font-size: 16px;
 }
+
+/* ───────── menu e telas de conta ───────── */
+.menu-top {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: -6px;
+}
+.chip {
+  padding: 5px 12px;
+  border: 2.5px solid var(--ink);
+  border-radius: 999px;
+  background: #f3e6cf;
+  font-size: 14px;
+  box-shadow: 0 2px 0 var(--ink);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+.stack > button {
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #f3e6cf;
+  font-size: 16px;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.stack .lbl {
+  font: 13px var(--font-title);
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+.stack input[type='email'] {
+  letter-spacing: 0;
+  text-transform: none;
+  font: 600 15px var(--font-body);
+  text-align: left;
+}
+.hint {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+.notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #e5f6d8;
+  font-weight: 800;
+  font-size: 14px;
+}
+.card > button.back {
+  padding: 9px 12px;
+}

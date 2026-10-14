@@ -26,6 +26,10 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # públicas por design (anon key); configure em Settings → Secrets and variables → Actions → Variables
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
         with:
           enablement: true

@@ -9,6 +9,7 @@ import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDev
 import { Hud, setupTouch } from './ui/hud';
 import { OnlineUi } from './ui/online';
 import { Lobby } from './ui/lobby';
+import { AccountUi } from './ui/account';
 import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
 import { decodeLetter, encodeLetter, letterFromUrl, letterLink, MailDriver, type Letter } from './net/mail';
@@ -516,6 +517,8 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   });
 }
 const online = new OnlineUi({ show, onRoom });
+new AccountUi(show);
+document.querySelectorAll<HTMLElement>('[data-back]').forEach((b) => b.addEventListener('click', () => show('menu')));
 show('menu');
 startDemo();
 void openLetterFromUrl().then((opened) => opened || online.autoJoin());
