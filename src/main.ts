@@ -192,6 +192,7 @@ function startOnline(setup: MatchSetup): void {
     sfx,
   );
   session.game = g;
+  session.onResync = () => hud.show('Sincronizado de novo ✔', '#5aa86a', 1.2);
   launch(g);
 }
 
