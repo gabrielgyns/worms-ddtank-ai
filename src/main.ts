@@ -8,6 +8,9 @@ import { Game } from './game';
 import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
 import { Hud, setupTouch } from './ui/hud';
 import { OnlineUi } from './ui/online';
+import { fromWire, NetSession, toWire } from './net/session';
+import type { Room } from './net/room';
+import type { MatchSetup } from './domain/match';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -24,7 +27,7 @@ function startDemo(): void {
   const cpuTeams = teams().map((t) => ({ ...t, control: 'cpu' as const }));
   demo = new Game(
     { teams: cpuTeams, unitsPerTeam: 3, theme: THEMES[ids[Math.floor(Math.random() * ids.length)]], seed: (Math.random() * 2 ** 31) | 0, turnTime: 30 },
-    'dificil',
+    { difficulty: 'dificil' },
     canvas,
     input,
     new Sfx(),
@@ -75,7 +78,7 @@ function startGame(): void {
         seed: (Math.random() * 2 ** 31) | 0,
         turnTime: 30,
       },
-      settings.difficulty,
+      { difficulty: settings.difficulty },
       canvas,
       input,
       sfx,
@@ -88,7 +91,7 @@ let finished: Game | null = null;
 
 function startReplay(): void {
   if (!finished) return;
-  launch(new Game(finished.setup, settings.difficulty, canvas, input, sfx, [...finished.log]), finished);
+  launch(new Game(finished.setup, { difficulty: settings.difficulty, replay: [...finished.log] }, canvas, input, sfx), finished);
 }
 
 function launch(g: Game, original: Game = g): void {
@@ -106,9 +109,17 @@ function launch(g: Game, original: Game = g): void {
       $('#over-title').textContent = e.winner ? `${e.winner.name} venceu!` : 'Empate!';
       $('#over-title').style.color = e.winner?.color ?? '#fff';
       const human = e.winner?.control === 'human';
+      const onlineGame = g.online && session !== null;
+      $('#again').textContent = onlineGame && session!.role === 'guest' ? 'Esperando revanche…' : 'Revanche!';
+      ($('#again') as HTMLButtonElement).disabled = onlineGame && session!.role === 'guest';
+      const localWin = e.winner ? g.isLocal(e.winner.id) : false;
       $('#over-sub').textContent = g.isReplay
         ? 'Fim do replay.'
-        : settings.mode === 'cpu'
+        : onlineGame
+          ? localWin
+            ? 'Você venceu! 🎉'
+            : 'Não foi dessa vez… revanche?'
+          : settings.mode === 'cpu'
           ? human
             ? 'Você amassou os robôs! 🎉'
             : 'Os robôs levaram essa… revanche?'
@@ -120,8 +131,82 @@ function launch(g: Game, original: Game = g): void {
   show(null);
 }
 
+// ─── online ───
+let session: NetSession | null = null;
+
+function onRoom(room: Room): void {
+  session = new NetSession(room);
+  room.link.on('start', (m) => startOnline(fromWire(m.setup)));
+  renderLobby();
+}
+
+function renderLobby(): void {
+  const body = $('#lobby-body');
+  body.innerHTML = '';
+  if (!session) return;
+  if (session.role === 'host') {
+    const b = document.createElement('button');
+    b.className = 'big';
+    b.textContent = 'Começar partida!';
+    b.addEventListener('click', hostStart);
+    body.append(b);
+  } else {
+    const p = document.createElement('p');
+    p.className = 'status';
+    p.textContent = 'Esperando o host começar a partida…';
+    body.append(p);
+  }
+}
+
+function onlineSetup(): MatchSetup {
+  const ids = Object.keys(THEMES) as ThemeId[];
+  const themeId = settings.theme === 'random' ? ids[Math.floor(Math.random() * ids.length)] : settings.theme;
+  return {
+    teams: [
+      { name: 'Laranjinhas', color: '#ff8a3d', light: '#ffc89a', dark: '#c4531a', control: 'human', names: NAMES_A },
+      { name: 'Azulões', color: '#3d9bff', light: '#a6d4ff', dark: '#1d5fb8', control: 'human', names: NAMES_B },
+    ],
+    unitsPerTeam: settings.units,
+    theme: THEMES[themeId],
+    seed: (Math.random() * 2 ** 31) | 0,
+    turnTime: 30,
+  };
+}
+
+function hostStart(): void {
+  if (!session || session.role !== 'host') return;
+  const setup = onlineSetup();
+  session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: 1 });
+  startOnline(setup);
+}
+
+function startOnline(setup: MatchSetup): void {
+  if (!session) return;
+  sfx.unlock();
+  session.reset();
+  const g = new Game(
+    setup,
+    { difficulty: 'normal', localTeams: [session.role === 'host' ? 0 : 1], driver: session.driver() },
+    canvas,
+    input,
+    sfx,
+  );
+  session.game = g;
+  launch(g);
+}
+
+function leaveOnline(): void {
+  online.leave(false);
+  session = null;
+}
+
 function setPaused(p: boolean): void {
   if (!game || game.match.phase === 'over') return;
+  if (game.online) {
+    // partida em rede não para: só mostra/esconde o menu
+    show(p ? 'pause' : null);
+    return;
+  }
   game.paused = p;
   show(p ? 'pause' : null);
 }
@@ -144,7 +229,7 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
 });
 
 $('#play').addEventListener('click', startGame);
-$('#again').addEventListener('click', startGame);
+$('#again').addEventListener('click', () => (session ? hostStart() : startGame()));
 $('#watch').addEventListener('click', startReplay);
 $('#replay-speed').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -161,6 +246,7 @@ $('#replay-exit').addEventListener('click', (e) => {
 $('#resume').addEventListener('click', () => setPaused(false));
 for (const sel of ['#quit', '#to-menu']) {
   $(sel).addEventListener('click', () => {
+    if (session) leaveOnline();
     game = null;
     document.body.classList.remove('playing');
     show('menu');
@@ -285,7 +371,7 @@ applyProfile(deviceProfile());
 window.addEventListener('resize', () => applyProfile(deviceProfile()));
 // aba em segundo plano: pausa a partida local para não perder a vez sem ver
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && game && !game.isReplay && game.match.phase !== 'over') setPaused(true);
+  if (document.hidden && game && !game.online && !game.isReplay && game.match.phase !== 'over') setPaused(true);
 });
 
 let last = performance.now();
@@ -311,8 +397,16 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('./sw.js').catch(() => undefined);
   });
 }
-const online = new OnlineUi({ show, onRoom: () => undefined });
+const online = new OnlineUi({ show, onRoom });
 show('menu');
 startDemo();
 online.autoJoin();
 requestAnimationFrame(loop);
+
+// gancho para testes automatizados e depuração no console
+declare global {
+  interface Window {
+    __bolotas?: { game: Game | null; session: NetSession | null };
+  }
+}
+Object.defineProperty(window, '__bolotas', { get: () => ({ game, session }) });

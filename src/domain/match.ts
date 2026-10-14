@@ -334,6 +334,7 @@ export class Match implements SimWorld {
     if (i.face !== undefined) this.face(i.face);
     if (i.walk !== undefined) this.walk(i.walk, DT);
     if (i.aim !== undefined) this.aimBy(i.aim);
+    if (i.aimTo !== undefined && this.active) this.aimBy(i.aimTo - this.active.aim);
     if (i.jump !== undefined) this.jump(i.jump === 'back');
     if (i.charge === 'start') this.startCharge(i.chargeLimit ?? 1);
     if (i.charge === 'release') this.releaseCharge();

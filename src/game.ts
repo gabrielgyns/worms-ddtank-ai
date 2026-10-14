@@ -12,6 +12,27 @@ import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
 
+/**
+ * De onde vêm as entradas de cada tick quando não é o jogo local padrão
+ * (rede). `next` devolver null significa "ainda não pode avançar".
+ */
+export interface TickDriver {
+  beforeFrame?(g: Game): void;
+  next(g: Game): TickInput | null;
+  afterStep?(g: Game, input: TickInput, tick: number): void;
+  afterFrame?(g: Game): void;
+  /** ticks extras para alcançar o host quando ficou para trás */
+  catchUp?(g: Game): number;
+}
+
+export interface GameOptions {
+  difficulty: Difficulty;
+  replay?: readonly Command[];
+  /** times controlados neste aparelho (padrão: todos os humanos) */
+  localTeams?: number[];
+  driver?: TickDriver;
+}
+
 /** Liga partida, controladores, câmera, render e som. */
 export class Game {
   readonly match: Match;
@@ -36,16 +57,20 @@ export class Game {
   speed = 1;
   private quality: Quality = HIGH;
   private meter = new FrameMeter();
+  private localTeams: Set<number> | null;
+  private driver: TickDriver | null;
 
   constructor(
     readonly setup: MatchSetup,
-    difficulty: Difficulty,
+    opts: GameOptions,
     private canvas: HTMLCanvasElement,
     private input: Input,
     private sfx: Sfx,
-    replay?: readonly Command[],
   ) {
-    this.replay = replay ?? null;
+    this.replay = opts.replay ?? null;
+    this.localTeams = opts.localTeams ? new Set(opts.localTeams) : null;
+    this.driver = opts.driver ?? null;
+    const difficulty = opts.difficulty;
     this.match = new Match(setup);
     const t = this.match.terrain;
     this.cam = new Camera(t.width, t.height);
@@ -112,8 +137,21 @@ export class Game {
     return this.replay !== null;
   }
 
+  /** partida em rede (o tempo não para: não dá para pausar) */
+  get online(): boolean {
+    return this.driver !== null;
+  }
+
+  /** Este time é jogado por alguém neste aparelho? */
+  isLocal(teamId: number): boolean {
+    const team = this.match.teams[teamId];
+    if (!team || team.control !== 'human') return false;
+    return this.localTeams ? this.localTeams.has(teamId) : true;
+  }
+
   get humanTurn(): boolean {
-    return !this.replay && this.match.activeTeam?.control === 'human';
+    const team = this.match.activeTeam;
+    return !this.replay && !!team && this.isLocal(team.id);
   }
 
   /** Clique no mundo (coordenadas de tela). */
@@ -150,9 +188,8 @@ export class Game {
     this.dragAim.power = Math.min(1, dist / Game.DRAG_FULL);
     if (dist < 12) return;
     const face: 1 | -1 = Math.abs(dx) < 2 ? u.facing : dx > 0 ? 1 : -1;
-    const target = Math.atan2(-dy, Math.abs(dx));
     this.pending.face = face;
-    this.pending.aim = target - u.aim;
+    this.pending.aimTo = Math.atan2(-dy, Math.abs(dx));
   }
 
   /** Soltou: atira com a força do arrasto (a barra enche até ela, estilo DDTank). */
@@ -191,16 +228,45 @@ export class Game {
       return;
     }
     this.acc += Math.min(0.1, realDt) * this.speed;
-    while (this.acc >= DT) {
-      this.acc -= DT;
-      this.step(DT);
-      this.input.endFrame();
+    const d = this.driver;
+    d?.beforeFrame?.(this);
+    const extra = d?.catchUp?.(this) ?? 0;
+    let steps = 0;
+    while (this.acc >= DT || steps < extra) {
+      const input = d ? d.next(this) : this.localInput();
+      if (input === null) {
+        // rede: esperando o host — não acumula atraso
+        this.acc = Math.min(this.acc, DT);
+        break;
+      }
+      if (this.acc >= DT) this.acc -= DT;
+      const tick = this.match.tick;
+      this.step(input);
+      d?.afterStep?.(this, input, tick);
+      steps++;
+      if (!d) this.input.endFrame();
     }
+    d?.afterFrame?.(this);
+    // fora da vez deste aparelho: descarta teclas e cliques para não dispararem na próxima vez
+    if (!this.humanTurn) this.drainInput();
     this.render();
   }
 
-  private step(dt: number): void {
-    this.time += dt;
+  private drainInput(): void {
+    this.pending = {};
+    this.dragAim = null;
+    this.input.takeKeys();
+    this.input.endFrame();
+  }
+
+  /** Entrada do humano deste aparelho (consome teclas e cliques pendentes). */
+  humanInput(): TickInput {
+    const i = this.humanControl();
+    this.input.endFrame();
+    return i;
+  }
+
+  private localInput(): TickInput {
     const m = this.match;
     let input: TickInput = NO_INPUT;
     if (this.replay) {
@@ -211,7 +277,13 @@ export class Game {
       }
     } else if (this.humanTurn) input = this.humanControl();
     else if (m.activeTeam) input = this.ai.decide(m);
+    return input;
+  }
 
+  private step(input: TickInput): void {
+    const dt = DT;
+    this.time += dt;
+    const m = this.match;
     const wasCharging = m.charging;
     if (!isEmptyInput(input)) this.log.push({ tick: m.tick, input });
     m.step(input);

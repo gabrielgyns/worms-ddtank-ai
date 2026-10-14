@@ -68,7 +68,7 @@ export class Hud {
     }
     game.match.on((e) => {
       if (e.type === 'turnStart') {
-        const human = e.unit.team.control === 'human';
+        const human = game.isLocal(e.unit.team.id) && !game.isReplay;
         this.show(human ? `Sua vez, ${e.unit.name}!` : `Vez de ${e.unit.name}`, e.unit.team.color);
       } else if (e.type === 'gameOver') {
         this.show(e.winner ? `${e.winner.name} venceu!` : 'Empate!', e.winner?.color ?? '#999', 99);

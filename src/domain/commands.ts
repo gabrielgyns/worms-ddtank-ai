@@ -14,6 +14,8 @@ export interface TickInput {
   walk?: 1 | -1;
   /** variação do ângulo de mira neste tick, em radianos */
   aim?: number;
+  /** ângulo de mira absoluto (mira por arrastar; seguro na rede) */
+  aimTo?: number;
   jump?: 'front' | 'back';
   charge?: 'start' | 'release';
   /** limite de força ao carregar (usado pela CPU) */

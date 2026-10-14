@@ -41,10 +41,13 @@ src/
     ai.ts        CPU: simula tiros com a MESMA stepProjectile do jogo
     unit.ts      Unit (bolota) e Team
     theme.ts     paletas dos cenários (só dados)
+  net/       multiplayer: Transport (PeerJS/BroadcastChannel), Link (protocolo tipado),
+             NetSession (lockstep: o host é o relógio e carimba as entradas com o tick)
+  platform/  tela cheia, orientação, perfil de aparelho, vibração
   render/    desenho em Canvas; só lê o estado
   ui/        HUD e controles de toque em DOM
   core/      math (Rng seedado), input, áudio
-  game.ts    cola tudo: loop de passo fixo 60 Hz, controladores, câmera, som
+  game.ts    cola tudo: loop de passo fixo 60 Hz, TickDriver (local/replay/rede), câmera, som
   main.ts    menus, telas, partida demo atrás do menu
 ```
 
