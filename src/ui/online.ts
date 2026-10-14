@@ -84,10 +84,24 @@ export class OnlineUi {
       this.hooks.show('online');
       this.error(ERROR_TEXT[reason] ?? `Não deu para conectar (${reason}).`);
     });
-    room.transport.onConnect(() => {
+    room.link.onFail((reason) => {
       if (this.room !== room) return;
+      this.leave(false);
+      this.hooks.show('online');
+      this.error(ERROR_TEXT[reason] ?? reason);
+    });
+    let announced = false;
+    const connected = () => {
+      if (this.room !== room || announced) return;
+      announced = true;
       this.status(room.role === 'host' ? 'Alguém entrou na sala!' : 'Conectado!', true);
       this.hooks.onRoom(room);
+    };
+    room.link.on('hello', connected);
+    room.link.on('welcome', (m) => m.ok && connected());
+    room.link.onAlive((alive) => {
+      if (this.room !== room || !announced) return;
+      this.status(alive ? 'Conectado!' : 'O outro jogador caiu… esperando voltar.', alive);
     });
     this.hooks.show('lobby');
   }

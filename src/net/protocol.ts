@@ -1,0 +1,59 @@
+import type { Command, TickInput } from '../domain/commands';
+import type { MatchSnapshot, TeamSetup } from '../domain/match';
+import type { ThemeId } from '../domain/theme';
+
+/** Suba quando mudar mensagens ou regras que afetem a simulação. */
+export const PROTOCOL_VERSION = 1;
+
+/** MatchSetup em forma de JSON (tema por id). */
+export interface WireSetup {
+  teams: TeamSetup[];
+  unitsPerTeam: number;
+  themeId: ThemeId;
+  seed: number;
+  turnTime: number;
+}
+
+export interface LobbyPlayer {
+  name: string;
+  color: number;
+  ready: boolean;
+  connected: boolean;
+}
+
+export interface LobbyState {
+  host: LobbyPlayer;
+  guest: LobbyPlayer | null;
+  units: number;
+  themeId: ThemeId | 'random';
+}
+
+/**
+ * Mensagens entre host e convidado.
+ * O host é o relógio da partida: decide em que tick cada entrada é aplicada.
+ */
+export type NetMsg =
+  // conexão
+  | { t: 'hello'; v: number; pid: string; name: string }
+  | { t: 'welcome'; v: number; ok: boolean; reason?: string }
+  | { t: 'ping'; at: number }
+  | { t: 'pong'; at: number }
+  | { t: 'bye' }
+  // sala
+  | { t: 'lobby'; state: LobbyState }
+  | { t: 'me'; name: string; color: number; ready: boolean }
+  | { t: 'start'; setup: WireSetup; guestTeam: number }
+  // partida (lockstep)
+  | { t: 'frame'; upTo: number; cmds: Command[] }
+  | { t: 'input'; input: TickInput }
+  | { t: 'sum'; turn: number; tick: number; sum: number }
+  | { t: 'resyncReq' }
+  | { t: 'resync'; snap: MatchSnapshot; log: Command[] }
+  // diversão
+  | { t: 'emote'; id: string; team: number };
+
+export type MsgOf<T extends NetMsg['t']> = Extract<NetMsg, { t: T }>;
+
+export function isNetMsg(x: unknown): x is NetMsg {
+  return typeof x === 'object' && x !== null && typeof (x as { t?: unknown }).t === 'string';
+}
