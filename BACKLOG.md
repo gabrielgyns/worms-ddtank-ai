@@ -26,7 +26,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 - [x] **F2-04** · P1 · P — Pinça para zoom e dois dedos para mover a câmera.
 - [x] **F2-05** · P1 · P — Perfil de aparelho (`pointer: coarse` + tamanho): HUD compacto, botões maiores, vibração (`navigator.vibrate`) em explosões.
 - [x] **F2-06** · P1 · P — Desempenho em celular fraco: limitar partículas, DPR máx. 1,5, pausar fundo quando parado.
-- [ ] **F2-07** · P2 · M — App nas lojas via Capacitor (só se o PWA não bastar).
+- [x] **F2-07** · P2 · M — App nas lojas via Capacitor (só se o PWA não bastar).
 
 ## Fase 3 — Multiplayer online
 

@@ -1,0 +1,7 @@
+{
+  "appId": "com.gabrielgyns.bolotas",
+  "appName": "Bolotas em Guerra",
+  "webDir": "dist",
+  "backgroundColor": "#5ec8ff",
+  "android": { "allowMixedContent": false }
+}

@@ -9,12 +9,19 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run build && cap sync android && cap open android",
+    "cap:ios": "npm run build && cap sync ios && cap open ios"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.9",
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^3.2.7"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.6.9"
   }
 }
