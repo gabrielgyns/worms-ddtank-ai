@@ -12,6 +12,8 @@ import {
   type PresenceApi,
   type PresenceStatus,
   type MatchReport,
+  type DailyApi,
+  type DailyRow,
   type HeadToHead,
   type LeaderRow,
   type RankingApi,
@@ -355,6 +357,26 @@ class SupabaseRanking implements RankingApi {
   }
 }
 
+class SupabaseDaily implements DailyApi {
+  constructor(
+    private sb: SupabaseClient,
+    private auth: SupabaseAuth,
+  ) {}
+  available(): boolean {
+    return this.auth.current() !== null;
+  }
+  async submit(day: string, score: number, won: boolean): Promise<Result> {
+    if (!this.auth.current()) return ok;
+    const { error } = await this.sb.rpc('submit_daily', { p_day: day, p_score: score, p_won: won });
+    return msg(error);
+  }
+  async board(day: string): Promise<DailyRow[]> {
+    const { data } = await this.sb.rpc('daily_board', { p_day: day });
+    const rows = (data ?? []) as Array<{ user_id: string; name: string; color: number; score: number; won: boolean; attempts: number }>;
+    return rows.map((r) => ({ id: r.user_id, name: r.name, color: r.color, score: r.score, won: r.won, attempts: r.attempts }));
+  }
+}
+
 export class SupabaseBackend implements Backend {
   readonly kind = 'supabase';
   readonly sb: SupabaseClient;
@@ -364,6 +386,7 @@ export class SupabaseBackend implements Backend {
   readonly profile: SupabaseProfile;
   readonly progress: SupabaseProgress;
   readonly ranking: SupabaseRanking;
+  readonly daily: SupabaseDaily;
   constructor() {
     this.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     this.auth = new SupabaseAuth(this.sb);
@@ -372,5 +395,6 @@ export class SupabaseBackend implements Backend {
     this.profile = new SupabaseProfile(this.sb, this.auth);
     this.progress = new SupabaseProgress(this.sb, this.auth);
     this.ranking = new SupabaseRanking(this.sb, this.auth);
+    this.daily = new SupabaseDaily(this.sb, this.auth);
   }
 }

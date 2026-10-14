@@ -125,7 +125,10 @@
         </div>
 
         <button id="play" class="big">JOGAR!</button>
-        <button id="online-btn" class="big alt">🌐 Jogar online</button>
+        <div class="menu-row">
+          <button id="online-btn" class="big alt">🌐 Jogar online</button>
+          <button id="daily-btn" class="big daily">⭐ Desafio do dia</button>
+        </div>
 
         <details class="help">
           <summary>Como jogar</summary>
@@ -268,6 +271,7 @@
       <div class="card small">
         <h2 id="over-title"></h2>
         <p id="over-sub"></p>
+        <p id="over-daily" class="daily-result" hidden></p>
         <div id="over-coins" class="coins-box" hidden></div>
         <ul id="over-unlocks" class="achs" hidden></ul>
         <button id="again" class="big">Revanche!</button>

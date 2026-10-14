@@ -17,6 +17,7 @@ import { ClosetUi, myLook } from './ui/closet';
 import { ShopUi } from './ui/shop';
 import { RankingUi } from './ui/ranking';
 import { addHistory } from './progress/history';
+import { dailyScore, dailySpec, loadDailyBest, saveDailyAttempt } from './progress/daily';
 import { evaluate, type MatchMode } from './progress/achievements';
 import { coinsForMatch } from './progress/economy';
 import { progress } from './progress/progress';
@@ -158,6 +159,17 @@ function recordResult(g: Game, tracker: MatchTracker): void {
     unlocksEl.append(li);
   }
   unlocksEl.hidden = fresh.length === 0;
+  // desafio do dia
+  const dailyEl = $('#over-daily');
+  dailyEl.hidden = g !== dailyGame;
+  if (g === dailyGame) {
+    const score = dailyScore(s, won, g.match.turnNumber);
+    const r = saveDailyAttempt(score, won);
+    if (r.first) p.addCoins(50);
+    dailyEl.textContent = `⭐ Desafio do dia: ${score} pts${r.record ? ' — recorde seu!' : ''}${r.first ? ' (+50 🪙 pela primeira do dia)' : ''}`;
+    void getBackend().daily.submit(dailySpec().day, score, won);
+  }
+
   addHistory({
     at: Date.now(),
     mode,
@@ -623,7 +635,64 @@ new ProfileUi(show);
 new AchievementsUi(show);
 new ClosetUi(show);
 new ShopUi(show);
-new RankingUi(show);
+const ranking = new RankingUi(show);
+
+// ─── desafio do dia ───
+let dailyGame: Game | null = null;
+function startDaily(): void {
+  sfx.unlock();
+  const spec = dailySpec();
+  const p = loadProfile();
+  const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
+  const other = TEAM_COLORS[p.color === 5 ? 3 : 5];
+  const g = new Game(
+    {
+      teams: [
+        { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook() },
+        { name: 'Desafio', color: other.color, light: other.light, dark: other.dark, control: 'cpu', names: ['Gigante', 'Brutus', 'Tanque'] },
+      ],
+      unitsPerTeam: 3,
+      theme: THEMES[spec.themeId],
+      seed: spec.seed,
+      turnTime: 30,
+    },
+    { difficulty: 'dificil' },
+    canvas,
+    input,
+    sfx,
+  );
+  dailyGame = g;
+  launch(g);
+  hud.show('Desafio do dia!', '#f2a81e', 1.8);
+}
+$('#daily-btn').addEventListener('click', startDaily);
+ranking.extraTabs.push({
+  id: 'daily',
+  label: 'Hoje',
+  render: async (el) => {
+    const spec = dailySpec();
+    const mine = loadDailyBest(spec.day);
+    const b = getBackend();
+    const rows = b.daily.available() ? await b.daily.board(spec.day) : [];
+    const me = b.auth.current()?.id;
+    const list = rows.length
+      ? `<ol class="board">${rows
+          .map(
+            (r, i) => `<li class="${r.id === me ? 'me' : ''}"><span class="pos">${i === 0 ? '🥇' : i + 1}</span>
+            <span class="dot" style="--c:${TEAM_COLORS[r.color]?.color ?? '#999'}"></span><b></b>
+            <span class="score">${r.score}</span><small>${r.won ? 'venceu' : 'perdeu'} · ${r.attempts} tentativa${r.attempts > 1 ? 's' : ''}</small></li>`,
+          )
+          .join('')}</ol>`
+      : '';
+    el.innerHTML = `<p class="tag">Mesmo mapa e mesmos ventos para todo mundo hoje. Vale a sua melhor tentativa.</p>
+      <p class="daily-result">Sua melhor hoje: ${mine ? `${mine.score} pts` : '—'}</p>
+      ${list || (b.daily.available() ? '<p class="hint">Ninguém do seu grupo jogou hoje ainda.</p>' : '<p class="hint">Com o servidor ligado, aqui aparece o placar dos seus amigos.</p>')}
+      <button id="rank-daily-play">⭐ Jogar o desafio</button>`;
+    // nomes por textContent (vêm de outros jogadores)
+    el.querySelectorAll('.board b').forEach((bEl, i) => (bEl.textContent = rows[i].name));
+    el.querySelector('#rank-daily-play')?.addEventListener('click', startDaily);
+  },
+});
 const wallet = () => ($('#wallet').textContent = `🪙 ${progress().state.coins}`);
 progress().on(wallet);
 wallet();

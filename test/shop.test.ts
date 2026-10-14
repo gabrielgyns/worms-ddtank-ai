@@ -48,3 +48,17 @@ describe('baús de conquista', () => {
     expect(p.openChest(['hat-chef'])).toEqual({ item: null, coins: 400 });
   });
 });
+
+import { dailyScore, dailySpec } from '../src/progress/daily';
+
+describe('desafio do dia', () => {
+  it('mesmo dia, mesmo desafio', () => {
+    expect(dailySpec('2026-10-15')).toEqual(dailySpec('2026-10-15'));
+    expect(dailySpec('2026-10-15').seed).not.toBe(dailySpec('2026-10-16').seed);
+  });
+  it('pontuação premia dano, eliminação e vitória', () => {
+    const s = { damage: 180, kills: 2 } as Parameters<typeof dailyScore>[0];
+    expect(dailyScore(s, true, 10)).toBe(180 + 100 + 300 - 50);
+    expect(dailyScore({ damage: 0, kills: 0 } as Parameters<typeof dailyScore>[0], false, 40)).toBe(0);
+  });
+});

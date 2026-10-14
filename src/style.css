@@ -1558,3 +1558,26 @@ button.big:disabled {
   grid-row: 1 / span 2;
   grid-column: 4;
 }
+
+/* ───────── desafio do dia ───────── */
+.menu-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.menu-row .big {
+  flex: 1 1 200px;
+  margin-top: 0;
+  font-size: 20px;
+}
+button.big.daily {
+  background: linear-gradient(180deg, #ffe066, #f2a81e);
+}
+.daily-result {
+  margin: 0;
+  padding: 8px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #fff1b8;
+  font: 18px var(--font-title);
+}

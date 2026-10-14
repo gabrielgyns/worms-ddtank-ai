@@ -131,6 +131,21 @@ export interface RankingApi {
   headToHead(friendId: string): Promise<HeadToHead | null>;
 }
 
+export interface DailyRow {
+  id: string;
+  name: string;
+  color: number;
+  score: number;
+  won: boolean;
+  attempts: number;
+}
+
+export interface DailyApi {
+  available(): boolean;
+  submit(day: string, score: number, won: boolean): Promise<Result>;
+  board(day: string): Promise<DailyRow[]>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
@@ -140,4 +155,5 @@ export interface Backend {
   readonly profile: ProfileApi;
   readonly progress: ProgressSyncApi;
   readonly ranking: RankingApi;
+  readonly daily: DailyApi;
 }
