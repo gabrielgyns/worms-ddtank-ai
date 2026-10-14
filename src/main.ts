@@ -12,8 +12,11 @@ import { Lobby } from './ui/lobby';
 import { AccountUi } from './ui/account';
 import { FriendsUi } from './ui/friends';
 import { ProfileUi } from './ui/profile';
+import { AchievementsUi, rewardText } from './ui/achievements';
+import { evaluate, type MatchMode } from './progress/achievements';
+import { progress } from './progress/progress';
 import { MatchTracker } from './progress/tracker';
-import { addMatchToStats, loadProfile } from './progress/profile';
+import { addMatchToStats, loadProfile, loadStats } from './progress/profile';
 import { getBackend } from './services';
 import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
@@ -118,13 +121,37 @@ function myTeamIn(g: Game): number | null {
 
 /** Fim de partida: soma nas estatísticas e relata ao servidor. */
 function recordResult(g: Game, tracker: MatchTracker): void {
+  const unlocksEl = $('#over-unlocks');
+  unlocksEl.hidden = true;
+  unlocksEl.innerHTML = '';
   const me = myTeamIn(g);
   if (me === null) return;
   const won = g.match.winner?.id === me;
   const s = tracker.teams[me];
   addMatchToStats(s, won);
-  const mode = g === mailGame ? 'mail' : g.online ? 'online' : null;
-  if (!mode) return;
+
+  // conquistas
+  const mode: MatchMode = g === mailGame ? 'mail' : g.online ? 'online' : g.match.teams.some((t) => t.control === 'cpu') ? 'cpu' : 'local';
+  const p = progress();
+  const fresh = evaluate(
+    { stats: s, won, mode, difficulty: mode === 'cpu' ? settings.difficulty : null, unitsPerTeam: g.setup.unitsPerTeam, career: loadStats() },
+    p.state.unlocked,
+  );
+  for (const a of fresh) {
+    p.unlock(a.id);
+    if (a.reward.coins) p.addCoins(a.reward.coins);
+    if (a.reward.item) p.give(a.reward.item);
+    const li = document.createElement('li');
+    li.className = 'ach done';
+    li.innerHTML = `<span class="medal">🏆</span><span class="txt"><b></b><small></small></span><span class="rw"></span>`;
+    li.querySelector('b')!.textContent = a.name;
+    li.querySelector('small')!.textContent = a.desc;
+    li.querySelector('.rw')!.textContent = rewardText(a);
+    unlocksEl.append(li);
+  }
+  unlocksEl.hidden = fresh.length === 0;
+
+  if (mode !== 'mail' && mode !== 'online') return;
   void getBackend().profile.reportMatch({
     key: `${g.setup.seed}-${mode === 'online' ? (session?.room.code ?? 'x') : 'carta'}`,
     mode,
@@ -562,6 +589,19 @@ const online = new OnlineUi({ show, onRoom });
 const account = new AccountUi(show);
 const friends = new FriendsUi(show, () => account.open());
 new ProfileUi(show);
+new AchievementsUi(show);
+
+// progresso: com conta, mescla com o servidor e espelha cada mudança
+{
+  let pushTimer: ReturnType<typeof setTimeout> | undefined;
+  progress().onSave = (st) => {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => void getBackend().progress.push(st), 1500);
+  };
+  getBackend().auth.onChange((u) => {
+    if (u) void getBackend().progress.pull().then((remote) => progress().merge(remote));
+  });
+}
 
 // ─── presença e convites ───
 const backend = getBackend();

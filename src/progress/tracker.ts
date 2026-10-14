@@ -23,6 +23,10 @@ export interface TeamMatchStats {
   againstWind: boolean;
   /** bolotas próprias perdidas */
   lost: number;
+  /** dano recebido de inimigos */
+  damageTaken: number;
+  /** chegou a ter 1 bolota viva contra 4 ou mais inimigos */
+  underdog: boolean;
 }
 
 const empty = (): TeamMatchStats => ({
@@ -38,6 +42,8 @@ const empty = (): TeamMatchStats => ({
   weapons: {},
   againstWind: false,
   lost: 0,
+  damageTaken: 0,
+  underdog: false,
 });
 
 /**
@@ -69,6 +75,14 @@ export class MatchTracker {
     this.turnKills = 0;
   }
 
+  private checkUnderdog(): void {
+    const alive = this.m.teams.map((t) => t.units.filter((u) => u.alive).length);
+    alive.forEach((n, i) => {
+      const enemies = alive.reduce((s, x, j) => (j === i ? s : s + x), 0);
+      if (n === 1 && enemies >= 4) this.teams[i].underdog = true;
+    });
+  }
+
   private onEvent(e: GameEvent): void {
     switch (e.type) {
       case 'turnStart':
@@ -89,6 +103,7 @@ export class MatchTracker {
         if (e.by.team === e.unit.team) s.selfDamage += e.amount;
         else {
           s.damage += e.amount;
+          this.teams[e.unit.team.id].damageTaken += e.amount;
           this.turnHit.add(e.unit.id);
           s.longestShot = Math.max(s.longestShot, Math.round(Math.abs(e.unit.x - this.shooterX)));
           const windAgainst = Math.sign(this.m.wind) === -Math.sign(e.unit.x - this.shooterX) && Math.abs(this.m.wind) >= 8;
@@ -104,6 +119,7 @@ export class MatchTracker {
           if (e.unit.drowned) s.drowns++;
           this.turnKills++;
         }
+        this.checkUnderdog();
         break;
       }
       case 'gameOver':

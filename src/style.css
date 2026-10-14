@@ -1247,3 +1247,71 @@ button.big:disabled {
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
 }
+
+/* ───────── conquistas ───────── */
+#achievements .card {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+.achs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.ach {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  opacity: 0.6;
+}
+.ach.done {
+  opacity: 1;
+  background: #fff6d6;
+}
+.ach .medal {
+  font-size: 22px;
+}
+.ach .txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ach .txt b {
+  font: 16px var(--font-title);
+  font-weight: normal;
+}
+.ach .txt small {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.ach .rw {
+  font: 14px var(--font-title);
+  white-space: nowrap;
+}
+.rarity-facil {
+  color: #2f8a12;
+}
+.rarity-media {
+  color: #1d5fb8;
+}
+.rarity-dificil {
+  color: #a3330a;
+}
+.rarity-lendaria {
+  color: #8a4bd6;
+}
+#over-unlocks .ach {
+  opacity: 1;
+  background: #fff6d6;
+  animation: pop-card 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}

@@ -1,5 +1,5 @@
 import { store } from './store';
-import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type ProfileApi, type RemoteProfile, type Result, type User } from './types';
+import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type ProfileApi, type ProgressSyncApi, type RemoteProfile, type Result, type SyncedProgress, type User } from './types';
 
 const NO_SERVER = 'Contas online ainda não estão ligadas neste jogo. Seu progresso fica salvo neste aparelho.';
 
@@ -86,10 +86,21 @@ class LocalProfile implements ProfileApi {
   }
 }
 
+/** No modo local o progresso já mora no aparelho; nada a sincronizar. */
+class NoSync implements ProgressSyncApi {
+  async pull(): Promise<SyncedProgress | null> {
+    return null;
+  }
+  async push(): Promise<Result> {
+    return ok;
+  }
+}
+
 export class LocalBackend implements Backend {
   readonly kind = 'local';
   readonly auth = new LocalAuth();
   readonly friends = new NoFriends();
   readonly presence = new NoPresence();
   readonly profile = new LocalProfile();
+  readonly progress = new NoSync();
 }

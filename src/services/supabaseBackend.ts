@@ -13,6 +13,8 @@ import {
   type PresenceStatus,
   type MatchReport,
   type ProfileApi,
+  type ProgressSyncApi,
+  type SyncedProgress,
   type RemoteProfile,
   type Result,
   type User,
@@ -276,6 +278,39 @@ class SupabaseProfile implements ProfileApi {
   }
 }
 
+class SupabaseProgress implements ProgressSyncApi {
+  constructor(
+    private sb: SupabaseClient,
+    private auth: SupabaseAuth,
+  ) {}
+
+  async pull(): Promise<SyncedProgress | null> {
+    const me = this.auth.current();
+    if (!me) return null;
+    const { data } = await this.sb
+      .from('progress')
+      .select('coins, unlocked, owned, equipped, updated_at')
+      .eq('user_id', me.id)
+      .maybeSingle<{ coins: number; unlocked: Record<string, number>; owned: string[]; equipped: Record<string, string>; updated_at: number }>();
+    if (!data) return null;
+    return { coins: data.coins, unlocked: data.unlocked, owned: data.owned, equipped: data.equipped, updatedAt: Number(data.updated_at) };
+  }
+
+  async push(p: SyncedProgress): Promise<Result> {
+    const me = this.auth.current();
+    if (!me) return ok;
+    const { error } = await this.sb.from('progress').upsert({
+      user_id: me.id,
+      coins: p.coins,
+      unlocked: p.unlocked,
+      owned: p.owned,
+      equipped: p.equipped,
+      updated_at: p.updatedAt,
+    });
+    return msg(error);
+  }
+}
+
 export class SupabaseBackend implements Backend {
   readonly kind = 'supabase';
   readonly sb: SupabaseClient;
@@ -283,11 +318,13 @@ export class SupabaseBackend implements Backend {
   readonly friends: SupabaseFriends;
   readonly presence: SupabasePresence;
   readonly profile: SupabaseProfile;
+  readonly progress: SupabaseProgress;
   constructor() {
     this.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     this.auth = new SupabaseAuth(this.sb);
     this.friends = new SupabaseFriends(this.sb, this.auth);
     this.presence = new SupabasePresence(this.sb, this.auth);
     this.profile = new SupabaseProfile(this.sb, this.auth);
+    this.progress = new SupabaseProgress(this.sb, this.auth);
   }
 }

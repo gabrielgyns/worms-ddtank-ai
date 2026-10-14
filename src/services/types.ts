@@ -93,6 +93,20 @@ export interface ProfileApi {
   reportMatch(r: MatchReport): Promise<Result>;
 }
 
+/** Espelho do progresso no servidor (formato igual ao do aparelho). */
+export interface SyncedProgress {
+  coins: number;
+  unlocked: Record<string, number>;
+  owned: string[];
+  equipped: Record<string, string>;
+  updatedAt: number;
+}
+
+export interface ProgressSyncApi {
+  pull(): Promise<SyncedProgress | null>;
+  push(p: SyncedProgress): Promise<Result>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
@@ -100,4 +114,5 @@ export interface Backend {
   readonly friends: FriendsApi;
   readonly presence: PresenceApi;
   readonly profile: ProfileApi;
+  readonly progress: ProgressSyncApi;
 }
