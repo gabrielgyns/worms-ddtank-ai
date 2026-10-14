@@ -667,6 +667,32 @@ function startDaily(): void {
 }
 $('#daily-btn').addEventListener('click', startDaily);
 ranking.extraTabs.push({
+  id: 'stats',
+  label: 'Números',
+  render: async (el) => {
+    const b = getBackend();
+    const pct = (a: number, t: number) => (t ? `${Math.round((a / t) * 100)}%` : '—');
+    let rows: Array<{ name: string; games: number; wins: number; damage: number; kills: number; shots: number; hits: number; longestShot: number; me: boolean }>;
+    if (b.ranking.available()) {
+      const me = b.auth.current()?.id;
+      rows = (await b.ranking.stats()).map((r) => ({ ...r, me: r.id === me }));
+    } else {
+      const s = loadStats();
+      rows = [{ name: loadProfile().name, ...s, me: true }];
+    }
+    el.innerHTML = `<div class="table-wrap"><table class="nums">
+      <thead><tr><th>Jogador</th><th>Vitórias</th><th>Dano</th><th>Elim.</th><th>Precisão</th><th>Maior tiro</th></tr></thead>
+      <tbody>${rows
+        .map(
+          (r) => `<tr class="${r.me ? 'me' : ''}"><td></td><td>${r.wins}/${r.games}</td><td>${r.damage}</td><td>${r.kills}</td>
+          <td>${pct(r.hits, r.shots)}</td><td>${Math.round(r.longestShot / 10)} m</td></tr>`,
+        )
+        .join('')}</tbody></table></div>
+      <p class="hint">${b.ranking.available() ? 'Partidas online e por link de você e seus amigos.' : 'Suas partidas neste aparelho. Com o servidor ligado, compara com os amigos.'}</p>`;
+    el.querySelectorAll('tbody td:first-child').forEach((td, i) => (td.textContent = rows[i].name));
+  },
+});
+ranking.extraTabs.push({
   id: 'daily',
   label: 'Hoje',
   render: async (el) => {

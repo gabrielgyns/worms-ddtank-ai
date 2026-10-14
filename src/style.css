@@ -1581,3 +1581,76 @@ button.big.daily {
   background: #fff1b8;
   font: 18px var(--font-title);
 }
+
+/* ───────── números ───────── */
+.table-wrap {
+  overflow-x: auto;
+}
+.nums {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.nums th {
+  font: 12px var(--font-title);
+  text-align: left;
+  padding: 4px 6px;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.nums td {
+  padding: 6px;
+  border-top: 2px solid #e8dcc8;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.nums tr.me td {
+  background: #fff1b8;
+}
+.bars,
+.recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bars li {
+  display: grid;
+  grid-template-columns: 110px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.bars i {
+  height: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--orange) var(--p), #e8dcc8 var(--p));
+}
+.bars b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.recent li {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 0 6px;
+  align-items: center;
+}
+.recent li span {
+  grid-row: 1 / span 2;
+}
+.recent b {
+  font: 15px var(--font-title);
+  font-weight: normal;
+}
+.recent small {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.65;
+}

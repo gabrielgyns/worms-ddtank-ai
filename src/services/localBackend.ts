@@ -1,5 +1,5 @@
 import { store } from './store';
-import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type DailyApi, type DailyRow, type HeadToHead, type LeaderRow, type ProfileApi, type ProgressSyncApi, type RankingApi, type RemoteProfile, type Result, type SyncedProgress, type User } from './types';
+import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type DailyApi, type DailyRow, type HeadToHead, type StatsRow, type LeaderRow, type ProfileApi, type ProgressSyncApi, type RankingApi, type RemoteProfile, type Result, type SyncedProgress, type User } from './types';
 
 const NO_SERVER = 'Contas online ainda não estão ligadas neste jogo. Seu progresso fica salvo neste aparelho.';
 
@@ -102,6 +102,9 @@ class NoSync implements ProgressSyncApi {
 class NoRanking implements RankingApi {
   available(): boolean {
     return false;
+  }
+  async stats(): Promise<StatsRow[]> {
+    return [];
   }
   async leaderboard(): Promise<LeaderRow[]> {
     return [];

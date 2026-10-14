@@ -125,8 +125,22 @@ export interface HeadToHead {
   draws: number;
 }
 
+export interface StatsRow {
+  id: string;
+  name: string;
+  color: number;
+  games: number;
+  wins: number;
+  damage: number;
+  kills: number;
+  shots: number;
+  hits: number;
+  longestShot: number;
+}
+
 export interface RankingApi {
   available(): boolean;
+  stats(): Promise<StatsRow[]>;
   leaderboard(period: 'all' | 'week'): Promise<LeaderRow[]>;
   headToHead(friendId: string): Promise<HeadToHead | null>;
 }

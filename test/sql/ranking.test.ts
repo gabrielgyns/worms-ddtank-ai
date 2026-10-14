@@ -47,3 +47,23 @@ describe('migração: ranking', () => {
     expect(none.wins).toBe(0);
   });
 });
+
+describe('migração: estatísticas', () => {
+  it('soma a carreira de cada um do grupo', async () => {
+    const db = await freshDb();
+    const a = await newUser(db, 'Ana');
+    const b = await newUser(db, 'Beto');
+    await friends(db, a, b);
+    await play(db, a, b, 's1');
+    await play(db, a, b, 's2');
+    const rows = await as<{ name: string; games: number; wins: number; damage: number; shots: number; hits: number }>(
+      db,
+      b,
+      'select name, games, wins, damage, shots, hits from friends_stats()',
+    );
+    expect(rows).toEqual([
+      { name: 'Ana', games: 2, wins: 2, damage: 20, shots: 2, hits: 2 },
+      { name: 'Beto', games: 2, wins: 0, damage: 20, shots: 2, hits: 2 },
+    ]);
+  });
+});

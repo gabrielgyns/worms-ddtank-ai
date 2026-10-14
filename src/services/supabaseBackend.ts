@@ -15,6 +15,7 @@ import {
   type DailyApi,
   type DailyRow,
   type HeadToHead,
+  type StatsRow,
   type LeaderRow,
   type RankingApi,
   type ProfileApi,
@@ -345,6 +346,33 @@ class SupabaseRanking implements RankingApi {
   ) {}
   available(): boolean {
     return this.auth.current() !== null;
+  }
+  async stats(): Promise<StatsRow[]> {
+    const { data } = await this.sb.rpc('friends_stats');
+    const rows = (data ?? []) as Array<{
+      user_id: string;
+      name: string;
+      color: number;
+      games: number;
+      wins: number;
+      damage: number;
+      kills: number;
+      shots: number;
+      hits: number;
+      longest_shot: number;
+    }>;
+    return rows.map((r) => ({
+      id: r.user_id,
+      name: r.name,
+      color: r.color,
+      games: r.games,
+      wins: r.wins,
+      damage: r.damage,
+      kills: r.kills,
+      shots: r.shots,
+      hits: r.hits,
+      longestShot: r.longest_shot,
+    }));
   }
   async leaderboard(period: 'all' | 'week'): Promise<LeaderRow[]> {
     const { data } = await this.sb.rpc('friends_leaderboard', { period });

@@ -2,6 +2,8 @@ import { TEAM_COLORS } from '../domain/teamColors';
 import { weaponById } from '../domain/weapons';
 import { favoriteWeapon, loadProfile, loadStats, saveProfile, type Profile } from '../progress/profile';
 import { getBackend } from '../services';
+import { WEAPONS } from '../domain/weapons';
+import { loadHistory } from '../progress/history';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -35,6 +37,29 @@ export class ProfileUi {
     this.show('profile');
   }
 
+  private weaponBars(w: Partial<Record<string, number>>): string {
+    const total = Object.values(w).reduce<number>((a, n) => a + (n ?? 0), 0);
+    if (!total) return '';
+    const rows = WEAPONS.filter((x) => w[x.id])
+      .sort((a, b) => (w[b.id] ?? 0) - (w[a.id] ?? 0))
+      .map((x) => {
+        const n = w[x.id] ?? 0;
+        return `<li><span>${x.name}</span><i style="--p:${Math.round((n / total) * 100)}%"></i><b>${n}</b></li>`;
+      })
+      .join('');
+    return `<span class="lbl">Uso das armas</span><ul class="bars">${rows}</ul>`;
+  }
+
+  private recent(): string {
+    const h = loadHistory().slice(0, 8);
+    if (!h.length) return '';
+    const icon = { win: '🏆', loss: '💥', draw: '🤝' } as const;
+    const mode = { cpu: 'CPU', local: 'local', online: 'online', mail: 'por link' } as const;
+    return `<span class="lbl">Últimas partidas</span><ul class="recent">${h
+      .map((e) => `<li><span>${icon[e.result]}</span><b>${esc(e.opponent)}</b><small>${mode[e.mode]} · ${e.damage} de dano</small></li>`)
+      .join('')}</ul>`;
+  }
+
   private render(): void {
     const p = loadProfile();
     const s = loadStats();
@@ -58,7 +83,9 @@ export class ProfileUi {
         <div><dt>Maior tiro</dt><dd>${Math.round(s.longestShot / 10)} m</dd></div>
         <div><dt>Arma favorita</dt><dd>${fav ? weaponById(fav).name : '—'}</dd></div>
         <div id="pf-rating" hidden><dt>Rating online</dt><dd></dd></div>
-      </dl>`;
+      </dl>
+      ${this.weaponBars(s.weapons)}
+      ${this.recent()}`;
     void getBackend()
       .profile.rating()
       .then((r) => {
