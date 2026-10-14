@@ -146,6 +146,14 @@
           <button id="join-room">Entrar</button>
         </div>
         <label class="check"><input type="checkbox" id="local-net" /> Testar em duas abas deste navegador</label>
+        <div class="mail-box">
+          <b>Sem pressa? Partida por link</b>
+          <span>Cada um joga a sua vez quando puder e manda o link pelo WhatsApp.</span>
+          <div class="join-row">
+            <input id="mail-opponent" maxlength="14" placeholder="Nome do oponente" autocomplete="off" />
+            <button id="mail-create">Começar</button>
+          </div>
+        </div>
         <p id="online-error" class="error" hidden></p>
         <button id="online-back">Voltar</button>
       </div>
@@ -163,6 +171,20 @@
         <p id="lobby-status" class="status"></p>
         <div id="lobby-body"></div>
         <button id="lobby-leave">Sair da sala</button>
+      </div>
+    </div>
+
+    <div id="mail" class="screen">
+      <div class="card small">
+        <h2>Sua vez foi!</h2>
+        <p id="mail-text" class="tag"></p>
+        <div class="share-row">
+          <input id="mail-link" readonly />
+          <button id="mail-copy">Copiar</button>
+          <button id="mail-share" hidden>Enviar</button>
+        </div>
+        <p id="mail-warn" class="error" hidden></p>
+        <button id="mail-menu">Voltar ao menu</button>
       </div>
     </div>
 

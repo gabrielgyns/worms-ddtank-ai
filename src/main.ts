@@ -11,6 +11,9 @@ import { OnlineUi } from './ui/online';
 import { Lobby } from './ui/lobby';
 import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
+import { decodeLetter, encodeLetter, letterFromUrl, letterLink, MailDriver, type Letter } from './net/mail';
+import { TEAM_COLORS } from './domain/teamColors';
+import { savedName } from './ui/lobby';
 import type { Room } from './net/room';
 import type { MatchSetup } from './domain/match';
 
@@ -108,6 +111,11 @@ function launch(g: Game, original: Game = g): void {
     setTimeout(() => {
       if (game !== g) return;
       finished = original;
+      // partida por link que acabou na minha jogada: primeiro mandar o link
+      if (g === mailGame && mailPending) {
+        show('mail');
+        return;
+      }
       $('#over-title').textContent = e.winner ? `${e.winner.name} venceu!` : 'Empate!';
       $('#over-title').style.color = e.winner?.color ?? '#fff';
       const human = e.winner?.control === 'human';
@@ -198,6 +206,75 @@ function netWatch(): void {
   if (session.role === 'guest' && session.abandoned) game.match.forfeit(0);
 }
 
+// ─── partida por link (correspondência) ───
+let mailOpponent = 'Convidado';
+/** partida atual é por link? e há um link esperando para ser enviado? */
+let mailGame: Game | null = null;
+let mailPending = false;
+
+function newMailSetup(myName: string, opponent: string): MatchSetup {
+  const ids = Object.keys(THEMES) as ThemeId[];
+  const [a, b] = [TEAM_COLORS[0], TEAM_COLORS[1]];
+  return {
+    teams: [
+      { name: myName, color: a.color, light: a.light, dark: a.dark, control: 'human', names: NAMES_A },
+      { name: opponent, color: b.color, light: b.light, dark: b.dark, control: 'human', names: NAMES_B },
+    ],
+    unitsPerTeam: 3,
+    theme: THEMES[ids[Math.floor(Math.random() * ids.length)]],
+    seed: (Math.random() * 2 ** 31) | 0,
+    turnTime: 45,
+  };
+}
+
+function startMail(letter: Letter | null, opponent = mailOpponent): void {
+  sfx.unlock();
+  const setup = letter ? fromWire(letter.setup) : newMailSetup(savedName(), opponent);
+  const myTeam = letter ? letter.to : 0;
+  const wire = toWire(setup);
+  const driver = new MailDriver(letter, myTeam, (l) => void handoff(l, setup), wire);
+  const g = new Game(setup, { difficulty: 'normal', localTeams: [myTeam], driver }, canvas, input, sfx);
+  if (letter?.snap) g.match.restore(letter.snap);
+  mailOpponent = setup.teams[1 - myTeam].name;
+  mailGame = g;
+  mailPending = false;
+  launch(g);
+  if (letter) hud.show(`Jogada de ${setup.teams[1 - myTeam].name}`, setup.teams[1 - myTeam].color, 2);
+}
+
+async function handoff(l: Letter, setup: MatchSetup): Promise<void> {
+  const link = letterLink(await encodeLetter(l));
+  const ended = game?.match.phase === 'over';
+  try {
+    localStorage.setItem('bolotas-last-letter', link);
+  } catch {
+    // sem storage
+  }
+  const other = setup.teams[l.to].name;
+  $('#mail h2').textContent = ended ? 'Fim de jogo!' : 'Sua vez foi!';
+  $('#mail-text').textContent = ended
+    ? `Mande este link para ${other} ver como acabou.`
+    : `Mande este link para ${other}. Quando ${other} jogar, vai te mandar um link de volta.`;
+  ($('#mail-link') as HTMLInputElement).value = link;
+  $('#mail-share').hidden = !('share' in navigator);
+  mailPending = true;
+  if (!ended) show('mail');
+}
+
+async function openLetterFromUrl(): Promise<boolean> {
+  const code = letterFromUrl();
+  if (!code) return false;
+  history.replaceState(null, '', location.pathname + location.search);
+  const letter = await decodeLetter(code);
+  if (!letter) {
+    show('menu');
+    hud.show('Link inválido ou de outra versão do jogo', '#c33', 3);
+    return true;
+  }
+  startMail(letter);
+  return true;
+}
+
 function leaveOnline(): void {
   online.leave(false);
   session = null;
@@ -233,7 +310,11 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
 });
 
 $('#play').addEventListener('click', startGame);
-$('#again').addEventListener('click', () => (session ? hostStart() : startGame()));
+$('#again').addEventListener('click', () => {
+  if (session) hostStart();
+  else if (game && game === mailGame) startMail(null);
+  else startGame();
+});
 $('#watch').addEventListener('click', startReplay);
 $('#replay-speed').addEventListener('click', (e) => {
   e.stopPropagation();
@@ -437,7 +518,32 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 const online = new OnlineUi({ show, onRoom });
 show('menu');
 startDemo();
-online.autoJoin();
+void openLetterFromUrl().then((opened) => opened || online.autoJoin());
+$('#mail-create').addEventListener('click', () => {
+  const name = ($('#mail-opponent') as HTMLInputElement).value.trim().slice(0, 14);
+  startMail(null, name || 'Convidado');
+});
+$('#mail-opponent').addEventListener('keydown', (e) => e.stopPropagation());
+$('#mail-copy').addEventListener('click', async () => {
+  const el = $('#mail-link') as HTMLInputElement;
+  try {
+    await navigator.clipboard.writeText(el.value);
+    $('#mail-copy').textContent = 'Copiado!';
+    setTimeout(() => ($('#mail-copy').textContent = 'Copiar'), 1500);
+  } catch {
+    el.select();
+  }
+});
+$('#mail-share').addEventListener('click', () => {
+  const url = ($('#mail-link') as HTMLInputElement).value;
+  void navigator.share?.({ title: 'Bolotas em Guerra', text: 'Sua vez! 💣', url }).catch(() => undefined);
+});
+$('#mail-menu').addEventListener('click', () => {
+  game = null;
+  document.body.classList.remove('playing');
+  show('menu');
+  startDemo();
+});
 requestAnimationFrame(loop);
 
 // gancho para testes automatizados e depuração no console
