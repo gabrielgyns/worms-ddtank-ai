@@ -99,6 +99,7 @@ export interface SyncedProgress {
   unlocked: Record<string, number>;
   owned: string[];
   equipped: Record<string, string>;
+  chestsOpened: number;
   updatedAt: number;
 }
 

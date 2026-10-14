@@ -289,11 +289,25 @@ class SupabaseProgress implements ProgressSyncApi {
     if (!me) return null;
     const { data } = await this.sb
       .from('progress')
-      .select('coins, unlocked, owned, equipped, updated_at')
+      .select('coins, unlocked, owned, equipped, chests_opened, updated_at')
       .eq('user_id', me.id)
-      .maybeSingle<{ coins: number; unlocked: Record<string, number>; owned: string[]; equipped: Record<string, string>; updated_at: number }>();
+      .maybeSingle<{
+        coins: number;
+        unlocked: Record<string, number>;
+        owned: string[];
+        equipped: Record<string, string>;
+        chests_opened: number;
+        updated_at: number;
+      }>();
     if (!data) return null;
-    return { coins: data.coins, unlocked: data.unlocked, owned: data.owned, equipped: data.equipped, updatedAt: Number(data.updated_at) };
+    return {
+      coins: data.coins,
+      unlocked: data.unlocked,
+      owned: data.owned,
+      equipped: data.equipped,
+      chestsOpened: data.chests_opened,
+      updatedAt: Number(data.updated_at),
+    };
   }
 
   async push(p: SyncedProgress): Promise<Result> {
@@ -305,6 +319,7 @@ class SupabaseProgress implements ProgressSyncApi {
       unlocked: p.unlocked,
       owned: p.owned,
       equipped: p.equipped,
+      chests_opened: p.chestsOpened,
       updated_at: p.updatedAt,
     });
     return msg(error);

@@ -27,3 +27,24 @@ describe('loja', () => {
     expect(p.buy('hat-chef', 10)).toBe(false);
   });
 });
+
+describe('baús de conquista', () => {
+  it('um baú a cada 3 conquistas, sempre com item novo', () => {
+    const p = new Progress();
+    expect(p.chestsAvailable).toBe(0);
+    for (const id of ['a', 'b', 'c']) p.unlock(id);
+    expect(p.chestsAvailable).toBe(1);
+    const r = p.openChest(['hat-chef', 'hat-pirata'], () => 0)!;
+    expect(r.item).toBe('hat-chef');
+    expect(r.coins).toBe(100);
+    expect(p.owns('hat-chef')).toBe(true);
+    expect(p.chestsAvailable).toBe(0);
+    expect(p.openChest(['hat-pirata'])).toBeNull();
+  });
+  it('quem já tem tudo ganha moedas', () => {
+    const p = new Progress();
+    p.give('hat-chef');
+    for (const id of ['a', 'b', 'c']) p.unlock(id);
+    expect(p.openChest(['hat-chef'])).toEqual({ item: null, coins: 400 });
+  });
+});

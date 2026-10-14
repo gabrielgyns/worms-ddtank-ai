@@ -8,11 +8,17 @@ export interface ProgressState {
   owned: string[];
   /** encaixe → item vestido */
   equipped: Record<string, string>;
+  /** baús de conquista já abertos */
+  chestsOpened: number;
   /** para mesclar com o servidor: maior versão ganha */
   updatedAt: number;
 }
 
-const EMPTY: ProgressState = { coins: 0, unlocked: {}, owned: [], equipped: {}, updatedAt: 0 };
+/** Estado novo a cada chamada: nada de arrays compartilhados entre instâncias. */
+const empty = (): ProgressState => ({ coins: 0, unlocked: {}, owned: [], equipped: {}, chestsOpened: 0, updatedAt: 0 });
+
+/** Um baú a cada tantas conquistas. */
+export const ACHIEVEMENTS_PER_CHEST = 3;
 
 type Listener = (s: ProgressState) => void;
 
@@ -27,7 +33,7 @@ export class Progress {
   onSave: ((s: ProgressState) => void) | null = null;
 
   constructor() {
-    this.s = { ...EMPTY, ...store.get<Partial<ProgressState>>('progress', {}) };
+    this.s = { ...empty(), ...store.get<Partial<ProgressState>>('progress', {}) };
   }
 
   get state(): Readonly<ProgressState> {
@@ -57,6 +63,7 @@ export class Progress {
       unlocked: { ...remote.unlocked, ...this.s.unlocked },
       owned: [...new Set([...remote.owned, ...this.s.owned])],
       equipped: { ...newer.equipped },
+      chestsOpened: Math.max(remote.chestsOpened ?? 0, this.s.chestsOpened),
       updatedAt: Math.max(remote.updatedAt, this.s.updatedAt),
     };
     this.commit();
@@ -102,6 +109,27 @@ export class Progress {
     if (item === null) delete this.s.equipped[slot];
     else if (this.owns(item)) this.s.equipped[slot] = item;
     this.commit();
+  }
+
+  /** Baús esperando para abrir. */
+  get chestsAvailable(): number {
+    return Math.floor(Object.keys(this.s.unlocked).length / ACHIEVEMENTS_PER_CHEST) - this.s.chestsOpened;
+  }
+
+  /**
+   * Abre um baú: sempre dá um item que você ainda não tem (da loja) e moedas.
+   * Se já tiver tudo, vira moedas. `pick` escolhe entre os candidatos.
+   */
+  openChest(candidates: string[], pick: (n: number) => number = (n) => Math.floor(Math.random() * n)): { item: string | null; coins: number } | null {
+    if (this.chestsAvailable <= 0) return null;
+    const pool = candidates.filter((c) => !this.owns(c));
+    const item = pool.length ? pool[pick(pool.length)] : null;
+    const coins = item ? 100 : 400;
+    this.s.chestsOpened++;
+    if (item) this.s.owned.push(item);
+    this.s.coins += coins;
+    this.commit();
+    return { item, coins };
   }
 
   equipped(slot: string): string | null {

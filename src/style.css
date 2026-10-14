@@ -1454,3 +1454,43 @@ button.big:disabled {
   font-style: normal;
   transform: rotate(6deg);
 }
+
+.chest {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #ffe9a8;
+  text-align: left;
+}
+.chest-icon {
+  font-size: 30px;
+}
+.chest .txt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.chest b {
+  font: 17px var(--font-title);
+  font-weight: normal;
+}
+.chest small {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.chest button {
+  padding: 8px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--accent);
+  font-size: 16px;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.chest-reveal {
+  animation: pop-card 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
