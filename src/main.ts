@@ -229,6 +229,13 @@ function loop(now: number): void {
 }
 
 void document.fonts?.ready.then(() => undefined);
+
+// PWA: só registra quando servido por http(s) — abrir o arquivo direto (file://) continua funcionando
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => undefined);
+  });
+}
 show('menu');
 startDemo();
 requestAnimationFrame(loop);
