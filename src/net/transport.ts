@@ -10,6 +10,8 @@ export interface Transport {
   onError(fn: (reason: string) => void): void;
   /** o outro lado (re)conectou — no host, um convidado chegou */
   onConnect(fn: () => void): void;
+  /** convidado: tenta reconectar depois de perder o contato */
+  reconnect(): void;
   close(): void;
 }
 

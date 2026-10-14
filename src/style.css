@@ -910,3 +910,19 @@ button.big.alt {
 .status.ok {
   color: #2f8a12;
 }
+
+/* ───────── rede ───────── */
+#net-warn {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: #ffe1d6;
+  color: #9a2a0a;
+  font: 16px var(--font-title);
+  white-space: nowrap;
+  box-shadow: 0 3px 0 var(--ink);
+}

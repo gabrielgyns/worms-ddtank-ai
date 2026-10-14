@@ -339,6 +339,21 @@ export class Match implements SimWorld {
     if (i.charge === 'start') this.startCharge(i.chargeLimit ?? 1);
     if (i.charge === 'release') this.releaseCharge();
     if (i.target !== undefined) this.fireAt(i.target.x, i.target.y);
+    if (i.forfeit !== undefined) this.forfeit(i.forfeit);
+  }
+
+  /** O time desistiu (ou caiu de vez): todas as bolotas dele saem do jogo. */
+  forfeit(teamId: number): void {
+    if (this.phase === 'over') return;
+    const team = this.teams[teamId];
+    if (!team) return;
+    for (const u of team.units) {
+      u.alive = false;
+      u.hp = 0;
+    }
+    this.projectiles.length = 0;
+    this.charging = false;
+    this.nextTurn();
   }
 
   private canAct(): boolean {

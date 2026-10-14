@@ -42,6 +42,9 @@ export class LocalTransport implements Transport {
   onConnect(fn: () => void): void {
     this.connectFns.push(fn);
   }
+  reconnect(): void {
+    if (this.role === 'guest') this.ch.postMessage({ from: this.me, role: this.role, knock: true });
+  }
   close(): void {
     this.ch.close();
   }

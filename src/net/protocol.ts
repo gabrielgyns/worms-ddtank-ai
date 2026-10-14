@@ -42,7 +42,7 @@ export type NetMsg =
   // sala
   | { t: 'lobby'; state: LobbyState }
   | { t: 'me'; name: string; color: number; ready: boolean }
-  | { t: 'start'; setup: WireSetup; guestTeam: number }
+  | { t: 'start'; setup: WireSetup; guestTeam: number; rejoin?: boolean }
   // partida (lockstep)
   | { t: 'frame'; upTo: number; cmds: Command[] }
   | { t: 'input'; input: TickInput }

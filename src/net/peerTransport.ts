@@ -76,6 +76,10 @@ export class PeerTransport implements Transport {
   onConnect(fn: () => void): void {
     this.connectFns.push(fn);
   }
+  reconnect(): void {
+    if (this.peer.disconnected) this.peer.reconnect();
+    else this.dial();
+  }
   close(): void {
     this.closed = true;
     this.conn?.close();

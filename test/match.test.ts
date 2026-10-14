@@ -31,3 +31,14 @@ describe('Match', () => {
     expect(m.weapon.id).toBe('grenade');
   });
 });
+
+describe('abandono', () => {
+  it('forfeit encerra a partida com o outro time vencendo', () => {
+    const m = newMatch(6);
+    m.start();
+    for (let i = 0; i < 200 && m.phase !== 'turn'; i++) m.step({});
+    m.step({ forfeit: 1 });
+    expect(m.phase).toBe('over');
+    expect(m.winner?.id).toBe(0);
+  });
+});

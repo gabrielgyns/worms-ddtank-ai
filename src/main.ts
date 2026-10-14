@@ -8,7 +8,7 @@ import { Game } from './game';
 import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
 import { Hud, setupTouch } from './ui/hud';
 import { OnlineUi } from './ui/online';
-import { fromWire, NetSession, toWire } from './net/session';
+import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
 import type { Room } from './net/room';
 import type { MatchSetup } from './domain/match';
 
@@ -136,7 +136,11 @@ let session: NetSession | null = null;
 
 function onRoom(room: Room): void {
   session = new NetSession(room);
-  room.link.on('start', (m) => startOnline(fromWire(m.setup)));
+  room.link.on('start', (m) => {
+    // reconexão: a partida já está aberta, só falta o estado (vem no resync)
+    if (m.rejoin && session?.game && session.game.setup.seed === m.setup.seed && game === session.game) return;
+    startOnline(fromWire(m.setup));
+  });
   renderLobby();
 }
 
@@ -184,6 +188,7 @@ function startOnline(setup: MatchSetup): void {
   if (!session) return;
   sfx.unlock();
   session.reset();
+  if (session.role === 'host') session.guestTeam = 1;
   const g = new Game(
     setup,
     { difficulty: 'normal', localTeams: [session.role === 'host' ? 0 : 1], driver: session.driver() },
@@ -194,6 +199,23 @@ function startOnline(setup: MatchSetup): void {
   session.game = g;
   session.onResync = () => hud.show('Sincronizado de novo ✔', '#5aa86a', 1.2);
   launch(g);
+}
+
+/** Mostra "esperando oponente" e encerra por abandono depois de ABANDON_AFTER. */
+function netWatch(): void {
+  const warn = $('#net-warn');
+  if (!game?.online || !session || game !== session.game || game.match.phase === 'over') {
+    warn.hidden = true;
+    return;
+  }
+  const lost = session.room.link.lostFor;
+  warn.hidden = lost < 1.5;
+  if (!warn.hidden) {
+    const left = Math.max(0, Math.ceil(ABANDON_AFTER - lost));
+    warn.textContent = `Conexão perdida… esperando o outro jogador (${left}s)`;
+  }
+  // o convidado não recebe mais o relógio do host: encerra localmente
+  if (session.role === 'guest' && session.abandoned) game.match.forfeit(0);
 }
 
 function leaveOnline(): void {
@@ -382,6 +404,7 @@ function loop(now: number): void {
   if (game) {
     game.frame(dt);
     hud.update(dt);
+    netWatch();
   } else {
     demo?.frame(dt);
     input.endFrame();

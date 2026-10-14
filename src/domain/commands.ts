@@ -22,6 +22,8 @@ export interface TickInput {
   chargeLimit?: number;
   /** alvo de armas de clique (ataque aéreo, teletransporte) */
   target?: { x: number; y: number };
+  /** time que abandonou a partida (desconectou por tempo demais) */
+  forfeit?: number;
 }
 
 /** Um comando com o tick em que foi aplicado. */

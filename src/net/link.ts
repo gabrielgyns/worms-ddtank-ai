@@ -17,6 +17,9 @@ export class Link {
   private timer: ReturnType<typeof setInterval>;
   rtt = 0;
   alive = false;
+  /** quando o contato caiu (performance.now), ou null se está vivo */
+  lostAt: number | null = null;
+  private lastRedial = 0;
   /** aperto de mão concluído */
   ready = false;
   private aliveFns: Array<(alive: boolean) => void> = [];
@@ -50,8 +53,14 @@ export class Link {
     });
     this.on('bye', () => this.setAlive(false));
     this.timer = setInterval(() => {
-      this.send({ t: 'ping', at: performance.now() });
-      if (this.alive && performance.now() - this.lastSeen > DEAD_AFTER) this.setAlive(false);
+      const now = performance.now();
+      this.send({ t: 'ping', at: now });
+      if (this.alive && now - this.lastSeen > DEAD_AFTER) this.setAlive(false);
+      // convidado sem contato: liga de novo a cada 3 s
+      if (role === 'guest' && this.lostAt !== null && now - this.lastRedial > 3000) {
+        this.lastRedial = now;
+        transport.reconnect();
+      }
     }, PING_EVERY);
     addEventListener('pagehide', this.onLeave);
   }
@@ -66,6 +75,7 @@ export class Link {
   private setAlive(a: boolean): void {
     if (this.alive === a) return;
     this.alive = a;
+    this.lostAt = a ? null : performance.now();
     for (const fn of this.aliveFns) fn(a);
   }
 
@@ -77,6 +87,11 @@ export class Link {
     const list = this.handlers.get(type) ?? [];
     list.push(fn as (m: NetMsg) => void);
     this.handlers.set(type, list);
+  }
+
+  /** Segundos sem contato com o outro lado (0 se conectado). */
+  get lostFor(): number {
+    return this.lostAt === null ? 0 : (performance.now() - this.lostAt) / 1000;
   }
 
   onAlive(fn: (alive: boolean) => void): void {

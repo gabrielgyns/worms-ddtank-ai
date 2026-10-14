@@ -43,7 +43,15 @@ export class OnlineUi {
 
   /** Abriu o jogo por um link de convite? Entra direto. */
   autoJoin(): boolean {
-    const code = codeFromUrl();
+    let code = codeFromUrl();
+    if (!code) {
+      // recarregou a página no meio de uma sala como convidado
+      try {
+        code = sessionStorage.getItem('bolotas-guest-room');
+      } catch {
+        code = null;
+      }
+    }
     if (!code) return false;
     history.replaceState(null, '', location.pathname + location.search);
     this.join(code);
@@ -69,6 +77,11 @@ export class OnlineUi {
   private join(code: string): void {
     this.leave(false);
     const room = Room.join(this.kind(), code);
+    try {
+      sessionStorage.setItem('bolotas-guest-room', code);
+    } catch {
+      // sem storage: só não volta sozinho se recarregar
+    }
     this.enter(room);
     this.status('Entrando na sala…');
   }
@@ -130,6 +143,11 @@ export class OnlineUi {
   }
 
   leave(toMenu = true): void {
+    try {
+      sessionStorage.removeItem('bolotas-guest-room');
+    } catch {
+      // nada
+    }
     this.room?.close();
     this.room = null;
     if (toMenu) this.hooks.show('menu');

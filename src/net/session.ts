@@ -15,6 +15,8 @@ export function fromWire(w: WireSetup): MatchSetup {
 
 /** Atraso-alvo do convidado em ticks: absorve variação de rede sem travar. */
 const GUEST_BUFFER = 4;
+/** Sem contato por mais que isso durante a partida = abandono. */
+export const ABANDON_AFTER = 60;
 
 /**
  * Lockstep por turno.
@@ -29,6 +31,8 @@ const GUEST_BUFFER = 4;
  */
 export class NetSession {
   game: Game | null = null;
+  guestTeam = 1;
+  private forfeitSent = false;
   // host
   private remoteQueue: TickInput[] = [];
   private outCmds: Command[] = [];
@@ -49,6 +53,14 @@ export class NetSession {
     if (room.role === 'host') {
       link.on('input', (m) => this.remoteQueue.push(m.input));
       link.on('resyncReq', () => this.sendResync());
+      // convidado voltou no meio da partida: manda o setup e o estado atual
+      link.on('hello', () => {
+        const g = this.game;
+        if (!g || g.match.phase === 'over') return;
+        link.send({ t: 'start', setup: toWire(g.setup), guestTeam: this.guestTeam, rejoin: true });
+        this.remoteQueue = [];
+        this.sendResync();
+      });
     } else {
       link.on('frame', (m) => this.onFrame(m));
       link.on('sum', (m) => {
@@ -72,6 +84,12 @@ export class NetSession {
     this.lastTurn = 0;
     this.hostSums.clear();
     this.mySums.clear();
+    this.forfeitSent = false;
+  }
+
+  /** O outro jogador sumiu tempo demais? */
+  get abandoned(): boolean {
+    return this.room.link.lostFor > ABANDON_AFTER;
   }
 
   /** Host: manda o estado completo para o convidado. */
@@ -131,6 +149,10 @@ export class NetSession {
     return {
       next: (g) => {
         const team = g.match.activeTeam;
+        if (this.abandoned && !this.forfeitSent && g.match.phase !== 'over') {
+          this.forfeitSent = true;
+          return { forfeit: this.guestTeam };
+        }
         if (!team) return NO_INPUT;
         if (g.isLocal(team.id)) return g.humanInput();
         // vez do convidado: aplica uma entrada recebida por tick
