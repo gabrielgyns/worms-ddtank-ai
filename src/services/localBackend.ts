@@ -1,5 +1,5 @@
 import { store } from './store';
-import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type Result, type User } from './types';
+import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type Result, type User } from './types';
 
 const NO_SERVER = 'Contas online ainda não estão ligadas neste jogo. Seu progresso fica salvo neste aparelho.';
 
@@ -59,8 +59,24 @@ class NoFriends implements FriendsApi {
   }
 }
 
+class NoPresence implements PresenceApi {
+  available(): boolean {
+    return false;
+  }
+  setStatus(): void {}
+  status(): PresenceStatus | null {
+    return null;
+  }
+  onChange(): void {}
+  async invite(): Promise<Result> {
+    return fail(NO_SERVER);
+  }
+  onInvite(): void {}
+}
+
 export class LocalBackend implements Backend {
   readonly kind = 'local';
   readonly auth = new LocalAuth();
   readonly friends = new NoFriends();
+  readonly presence = new NoPresence();
 }

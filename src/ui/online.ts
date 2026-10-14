@@ -58,11 +58,13 @@ export class OnlineUi {
     return true;
   }
 
-  private create(): void {
+  /** Cria uma sala (host) e devolve o código. */
+  create(): string {
     this.leave(false);
     const room = Room.create(this.kind());
     this.enter(room);
     this.status('Esperando alguém entrar… mande o link!');
+    return room.code;
   }
 
   private joinTyped(): void {
@@ -74,7 +76,7 @@ export class OnlineUi {
     this.join(code);
   }
 
-  private join(code: string): void {
+  join(code: string): void {
     this.leave(false);
     const room = Room.join(this.kind(), code);
     try {

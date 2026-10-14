@@ -49,9 +49,28 @@ export interface FriendsApi {
   remove(id: string): Promise<Result>;
 }
 
+export type PresenceStatus = 'online' | 'playing';
+
+export interface Invite {
+  fromId: string;
+  fromName: string;
+  room: string;
+}
+
+export interface PresenceApi {
+  available(): boolean;
+  setStatus(s: PresenceStatus): void;
+  /** quem está online agora (id → status) */
+  status(id: string): PresenceStatus | null;
+  onChange(fn: () => void): void;
+  invite(friendId: string, room: string): Promise<Result>;
+  onInvite(fn: (inv: Invite) => void): void;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
   readonly auth: AuthApi;
   readonly friends: FriendsApi;
+  readonly presence: PresenceApi;
 }

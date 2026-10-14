@@ -1,6 +1,19 @@
-import { createClient, type SupabaseClient, type User as SbUser } from '@supabase/supabase-js';
+import { createClient, type RealtimeChannel, type SupabaseClient, type User as SbUser } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
-import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type Result, type User } from './types';
+import {
+  fail,
+  ok,
+  type AuthApi,
+  type Backend,
+  type Friend,
+  type FriendRequestResult,
+  type FriendsApi,
+  type Invite,
+  type PresenceApi,
+  type PresenceStatus,
+  type Result,
+  type User,
+} from './types';
 
 function toUser(u: SbUser | null | undefined): User | null {
   if (!u) return null;
@@ -131,14 +144,103 @@ class SupabaseFriends implements FriendsApi {
   }
 }
 
+/**
+ * Presença via Realtime: um canal global onde cada jogador logado "aparece"
+ * com seu status, e uma caixa de entrada pessoal para convites.
+ */
+class SupabasePresence implements PresenceApi {
+  private global: RealtimeChannel | null = null;
+  private inbox: RealtimeChannel | null = null;
+  private state = new Map<string, PresenceStatus>();
+  private mine: PresenceStatus = 'online';
+  private name = 'Jogador';
+  private changeFns: Array<() => void> = [];
+  private inviteFns: Array<(i: Invite) => void> = [];
+
+  constructor(
+    private sb: SupabaseClient,
+    private auth: SupabaseAuth,
+  ) {
+    auth.onChange((u) => void this.connect(u));
+  }
+
+  private async connect(u: User | null): Promise<void> {
+    if (this.global) await this.sb.removeChannel(this.global);
+    if (this.inbox) await this.sb.removeChannel(this.inbox);
+    this.global = this.inbox = null;
+    this.state.clear();
+    this.emit();
+    if (!u) return;
+    const { data } = await this.sb.from('profiles').select('name').eq('id', u.id).single<{ name: string }>();
+    this.name = data?.name ?? 'Jogador';
+
+    const global = this.sb.channel('presenca', { config: { presence: { key: u.id } } });
+    global
+      .on('presence', { event: 'sync' }, () => {
+        this.state.clear();
+        const st = global.presenceState<{ status: PresenceStatus }>();
+        for (const [id, metas] of Object.entries(st)) {
+          const playing = metas.some((m) => m.status === 'playing');
+          this.state.set(id, playing ? 'playing' : 'online');
+        }
+        this.emit();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') void global.track({ status: this.mine });
+      });
+    this.global = global;
+
+    const inbox = this.sb.channel(`convites:${u.id}`);
+    inbox
+      .on('broadcast', { event: 'invite' }, ({ payload }) => {
+        const inv = payload as Invite;
+        if (typeof inv?.room === 'string') for (const fn of this.inviteFns) fn(inv);
+      })
+      .subscribe();
+    this.inbox = inbox;
+  }
+
+  private emit(): void {
+    for (const fn of this.changeFns) fn();
+  }
+
+  available(): boolean {
+    return this.auth.current() !== null;
+  }
+  setStatus(s: PresenceStatus): void {
+    this.mine = s;
+    void this.global?.track({ status: s });
+  }
+  status(id: string): PresenceStatus | null {
+    return this.state.get(id) ?? null;
+  }
+  onChange(fn: () => void): void {
+    this.changeFns.push(fn);
+  }
+  async invite(friendId: string, room: string): Promise<Result> {
+    const me = this.auth.current();
+    if (!me) return fail('Entre na sua conta.');
+    const ch = this.sb.channel(`convites:${friendId}`);
+    await new Promise<void>((resolve) => ch.subscribe((s) => (s === 'SUBSCRIBED' || s === 'CHANNEL_ERROR' || s === 'TIMED_OUT') && resolve()));
+    const r = await ch.send({ type: 'broadcast', event: 'invite', payload: { fromId: me.id, fromName: this.name, room } satisfies Invite });
+    await this.sb.removeChannel(ch);
+    return r === 'ok' ? ok : fail('Não deu para mandar o convite.');
+  }
+  onInvite(fn: (i: Invite) => void): void {
+    this.inviteFns.push(fn);
+  }
+}
+
 export class SupabaseBackend implements Backend {
   readonly kind = 'supabase';
   readonly sb: SupabaseClient;
   readonly auth: SupabaseAuth;
   readonly friends: SupabaseFriends;
+  readonly presence: SupabasePresence;
   constructor() {
     this.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     this.auth = new SupabaseAuth(this.sb);
     this.friends = new SupabaseFriends(this.sb, this.auth);
+    this.presence = new SupabasePresence(this.sb, this.auth);
   }
 }

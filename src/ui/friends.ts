@@ -35,6 +35,9 @@ export class FriendsUi {
     private openAccount: () => void,
   ) {
     $('#friends-btn').addEventListener('click', () => void this.open());
+    getBackend().presence.onChange(() => {
+      if ($('#friends').classList.contains('open')) void this.render();
+    });
     getBackend().auth.onChange(() => {
       if (this.pendingCode && getBackend().friends.available()) void this.addCode(this.pendingCode);
       if ($('#friends').classList.contains('open')) void this.render();
@@ -83,8 +86,13 @@ export class FriendsUi {
     }
     body.innerHTML = '<p class="hint">Carregando…</p>';
     const [code, list] = await Promise.all([b.friends.myCode(), b.friends.list()]);
+    const presence = b.presence;
+    const badge = (f: Friend) => {
+      const s = f.status === 'accepted' ? presence.status(f.id) : null;
+      return s === 'playing' ? '<span class="online">jogando</span>' : s === 'online' ? '<span class="online">● online</span>' : '';
+    };
     const row = (f: Friend, actions: string) => `
-      <li><span class="dot" style="--c:${TEAM_COLORS[f.color]?.color ?? '#999'}"></span><b>${esc(f.name)}</b>
+      <li><span class="dot" style="--c:${TEAM_COLORS[f.color]?.color ?? '#999'}"></span><b>${esc(f.name)}</b>${badge(f)}
       <span class="actions">${actions}</span></li>`;
     const incoming = list.filter((f) => f.status === 'incoming');
     const friends = list.filter((f) => f.status === 'accepted');
@@ -103,7 +111,7 @@ export class FriendsUi {
       ${notice}
       ${incoming.length ? `<span class="lbl">Pedidos para você</span><ul class="people">${incoming.map((f) => row(f, `<button data-act="accept" data-id="${f.id}">Aceitar</button><button data-act="remove" data-id="${f.id}">Recusar</button>`)).join('')}</ul>` : ''}
       <span class="lbl">Amigos (${friends.length})</span>
-      ${friends.length ? `<ul class="people">${friends.map((f) => row(f, `${this.extraActions?.(f) ?? ''}<button data-act="remove" data-id="${f.id}" title="Remover">✕</button>`)).join('')}</ul>` : '<p class="hint">Mande seu link para alguém e comece a lista!</p>'}
+      ${friends.length ? `<ul class="people">${friends.map((f) => row(f, `${presence.status(f.id) === 'online' ? `<button data-act="invite" data-id="${f.id}">Convidar</button>` : ''}${this.extraActions?.(f) ?? ''}<button data-act="remove" data-id="${f.id}" title="Remover">✕</button>`)).join('')}</ul>` : '<p class="hint">Mande seu link para alguém e comece a lista!</p>'}
       ${outgoing.length ? `<span class="lbl">Esperando resposta</span><ul class="people">${outgoing.map((f) => row(f, `<button data-act="remove" data-id="${f.id}">Cancelar</button>`)).join('')}</ul>` : ''}`;
 
     const add = body.querySelector<HTMLInputElement>('#fr-add')!;

@@ -11,6 +11,7 @@ import { OnlineUi } from './ui/online';
 import { Lobby } from './ui/lobby';
 import { AccountUi } from './ui/account';
 import { FriendsUi } from './ui/friends';
+import { getBackend } from './services';
 import { EMOTES, emoteText } from './domain/emotes';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
 import { decodeLetter, encodeLetter, letterFromUrl, letterLink, MailDriver, type Letter } from './net/mail';
@@ -69,6 +70,7 @@ function teams(): TeamSetup[] {
 }
 
 function show(id: string | null): void {
+  if (id === 'menu') getBackend().presence.setStatus('online');
   for (const el of document.querySelectorAll<HTMLElement>('.screen')) el.classList.toggle('open', el.id === id);
 }
 
@@ -102,6 +104,7 @@ function startReplay(): void {
 }
 
 function launch(g: Game, original: Game = g): void {
+  getBackend().presence.setStatus(g.isReplay ? 'online' : 'playing');
   // no celular, jogar já entra em tela cheia deitada (precisa do clique do usuário, que temos aqui)
   if (isTouchDevice()) void enterFullscreen();
   game = g;
@@ -520,6 +523,37 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 const online = new OnlineUi({ show, onRoom });
 const account = new AccountUi(show);
 const friends = new FriendsUi(show, () => account.open());
+
+// ─── presença e convites ───
+const backend = getBackend();
+friends.onAction = (act, f) => {
+  if (act !== 'invite') return;
+  const code = online.room?.role === 'host' ? online.room.code : online.create();
+  void backend.presence.invite(f.id, code).then((r) => {
+    if (!r.ok) hud.show(r.error, '#c33', 2.5);
+  });
+};
+backend.presence.onInvite((inv) => {
+  const t = $('#toast');
+  t.innerHTML = '';
+  const text = document.createElement('span');
+  text.textContent = `${inv.fromName} te chamou para jogar!`;
+  const yes = document.createElement('button');
+  yes.textContent = 'Entrar';
+  const no = document.createElement('button');
+  no.textContent = 'Agora não';
+  no.className = 'no';
+  t.append(text, yes, no);
+  t.hidden = false;
+  const close = () => (t.hidden = true);
+  yes.addEventListener('click', () => {
+    close();
+    if (game && !game.isReplay) return;
+    online.join(inv.room);
+  });
+  no.addEventListener('click', close);
+  setTimeout(close, 20000);
+});
 document.querySelectorAll<HTMLElement>('[data-back]').forEach((b) => b.addEventListener('click', () => show('menu')));
 show('menu');
 startDemo();
