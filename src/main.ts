@@ -8,6 +8,7 @@ import { Game } from './game';
 import { applyProfile, canFullscreen, deviceProfile, enterFullscreen, isTouchDevice, toggleFullscreen } from './platform/device';
 import { Hud, setupTouch } from './ui/hud';
 import { OnlineUi } from './ui/online';
+import { Lobby } from './ui/lobby';
 import { ABANDON_AFTER, fromWire, NetSession, toWire } from './net/session';
 import type { Room } from './net/room';
 import type { MatchSetup } from './domain/match';
@@ -133,53 +134,27 @@ function launch(g: Game, original: Game = g): void {
 
 // ─── online ───
 let session: NetSession | null = null;
+let lobby: Lobby | null = null;
 
 function onRoom(room: Room): void {
   session = new NetSession(room);
+  lobby = new Lobby(session, $('#lobby-body'), hostStart);
   room.link.on('start', (m) => {
     // reconexão: a partida já está aberta, só falta o estado (vem no resync)
     if (m.rejoin && session?.game && session.game.setup.seed === m.setup.seed && game === session.game) return;
     startOnline(fromWire(m.setup));
   });
-  renderLobby();
-}
-
-function renderLobby(): void {
-  const body = $('#lobby-body');
-  body.innerHTML = '';
-  if (!session) return;
-  if (session.role === 'host') {
-    const b = document.createElement('button');
-    b.className = 'big';
-    b.textContent = 'Começar partida!';
-    b.addEventListener('click', hostStart);
-    body.append(b);
-  } else {
-    const p = document.createElement('p');
-    p.className = 'status';
-    p.textContent = 'Esperando o host começar a partida…';
-    body.append(p);
-  }
-}
-
-function onlineSetup(): MatchSetup {
-  const ids = Object.keys(THEMES) as ThemeId[];
-  const themeId = settings.theme === 'random' ? ids[Math.floor(Math.random() * ids.length)] : settings.theme;
-  return {
-    teams: [
-      { name: 'Laranjinhas', color: '#ff8a3d', light: '#ffc89a', dark: '#c4531a', control: 'human', names: NAMES_A },
-      { name: 'Azulões', color: '#3d9bff', light: '#a6d4ff', dark: '#1d5fb8', control: 'human', names: NAMES_B },
-    ],
-    unitsPerTeam: settings.units,
-    theme: THEMES[themeId],
-    seed: (Math.random() * 2 ** 31) | 0,
-    turnTime: 30,
-  };
 }
 
 function hostStart(): void {
-  if (!session || session.role !== 'host') return;
-  const setup = onlineSetup();
+  if (!session || session.role !== 'host' || !lobby) return;
+  const setup: MatchSetup = {
+    teams: lobby.teams(),
+    unitsPerTeam: lobby.state.units,
+    theme: THEMES[lobby.themeId()],
+    seed: (Math.random() * 2 ** 31) | 0,
+    turnTime: 30,
+  };
   session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: 1 });
   startOnline(setup);
 }
@@ -221,6 +196,7 @@ function netWatch(): void {
 function leaveOnline(): void {
   online.leave(false);
   session = null;
+  lobby = null;
 }
 
 function setPaused(p: boolean): void {

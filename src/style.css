@@ -926,3 +926,86 @@ button.big.alt {
   white-space: nowrap;
   box-shadow: 0 3px 0 var(--ink);
 }
+
+/* ───────── lobby ───────── */
+.lobby-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px 12px;
+  text-align: left;
+}
+.lobby-grid .lbl {
+  font: 13px var(--font-title);
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+.lobby-grid input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  font: 18px var(--font-title);
+  color: var(--ink);
+}
+.lobby-grid .seg button {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.lobby-grid .seg button:disabled {
+  cursor: default;
+}
+.lobby-grid .seg button:disabled:not(.on) {
+  opacity: 0.5;
+}
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.swatch {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--ink);
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 2px 0 var(--ink);
+}
+.swatch.on {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.swatch:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+.other {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.other em {
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+.dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--c);
+  flex: none;
+}
+button.big:disabled {
+  filter: grayscale(0.8);
+  opacity: 0.6;
+  cursor: default;
+}
+@media (max-width: 420px) {
+  .lobby-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

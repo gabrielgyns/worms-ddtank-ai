@@ -35,7 +35,7 @@ Itens concretos, agrupados pelas fases do [ROADMAP](ROADMAP.md).
 - [x] **F3-03** · P0 · M — Lockstep por turno: só o dono do turno envia comandos; o outro aplica com pequeno atraso de buffer (~100 ms) para ficar suave.
 - [x] **F3-04** · P0 · M — Checksum no fim do turno; se divergir, o dono do turno manda `resync`.
 - [x] **F3-05** · P1 · M — Reconexão (voltar para a mesma sala), "aguardando oponente", abandono = derrota após 60 s.
-- [ ] **F3-06** · P1 · P — Lobby da sala: escolher time/cor, cenário, bolotas por time, botão "pronto".
+- [x] **F3-06** · P1 · P — Lobby da sala: escolher time/cor, cenário, bolotas por time, botão "pronto".
 - [ ] **F3-07** · P1 · P — Emotes e frases rápidas ("Boa!", "Ops…", "Revanche?") com balão sobre a bolota.
 - [ ] **F3-08** · P2 · G — Turno assíncrono (estilo "Words with Friends"): joga sua vez quando puder, recebe aviso quando for sua vez.
 
