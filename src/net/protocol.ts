@@ -14,6 +14,7 @@ export interface WireSetup {
   seed: number;
   turnTime: number;
   crates?: boolean;
+  suddenDeath?: number;
 }
 
 export interface LobbyPlayer {

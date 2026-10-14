@@ -56,6 +56,8 @@ export class Game {
   /** velocidade da simulação (replay pode ir em 2x, 4x) */
   speed = 1;
   private quality: Quality = HIGH;
+  /** nível da água desenhado (sobe suave até o da regra) */
+  private waterDrawY = 0;
   private meter = new FrameMeter();
   private localTeams: Set<number> | null;
   private driver: TickDriver | null;
@@ -412,7 +414,10 @@ export class Game {
     const x0 = Math.floor(left / 16) * 16;
     const terr = m.terrain;
 
-    drawWater(c, m.theme, terr.waterY, x0, right, bottom, t, false);
+    if (!this.waterDrawY || this.waterDrawY < terr.waterY) this.waterDrawY = terr.waterY;
+    this.waterDrawY += (terr.waterY - this.waterDrawY) * 0.03;
+    const wy = this.waterDrawY;
+    drawWater(c, m.theme, wy, x0, right, bottom, t, false);
     c.drawImage(this.terrainView.canvas, 0, 0);
     this.fx.drawGraves(c);
     for (const crate of m.crates) drawCrate(c, crate, t);
@@ -450,7 +455,7 @@ export class Game {
       c.fill();
     }
 
-    drawWater(c, m.theme, terr.waterY, x0, right, bottom, t, true);
+    drawWater(c, m.theme, wy, x0, right, bottom, t, true);
     c.restore();
     c.restore();
   }

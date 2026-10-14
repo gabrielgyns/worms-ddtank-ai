@@ -16,7 +16,8 @@ export class Terrain {
   constructor(
     readonly width: number,
     readonly height: number,
-    readonly waterY: number,
+    /** nível da água; sobe na morte súbita */
+    public waterY: number,
   ) {
     this.solid = new Uint8Array(width * height);
   }

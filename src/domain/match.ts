@@ -32,6 +32,8 @@ export type GameEvent =
   | { type: 'jump'; unit: Unit }
   | { type: 'select'; weapon: WeaponId }
   | { type: 'crateDrop'; crate: Crate }
+  | { type: 'suddenDeath' }
+  | { type: 'waterRise'; y: number }
   | { type: 'cratePick'; crate: Crate; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
 
@@ -53,7 +55,12 @@ export interface MatchSetup {
   turnTime: number;
   /** caixas caindo do céu (padrão: sim) */
   crates?: boolean;
+  /** turno em que começa a morte súbita (0 = nunca; padrão 20) */
+  suddenDeath?: number;
 }
+
+/** Quanto a água sobe por turno na morte súbita. */
+export const WATER_RISE = 28;
 
 /** Estado completo da partida em JSON. Restaura numa Match criada com o mesmo setup. */
 export interface MatchSnapshot {
@@ -95,6 +102,7 @@ export interface MatchSnapshot {
   terrain: string;
   crates: Crate[];
   nextCrateId: number;
+  waterY: number;
 }
 
 const RETREAT_TIME = 3;
@@ -115,6 +123,7 @@ export class Match implements SimWorld {
   private nextCrateId = 1;
   /** caixas ligadas nesta partida */
   readonly cratesOn: boolean;
+  readonly suddenDeathAt: number;
   readonly theme: Theme;
   readonly rng: Rng;
   readonly turnTime: number;
@@ -143,6 +152,7 @@ export class Match implements SimWorld {
     this.rng = new Rng(setup.seed);
     this.turnTime = setup.turnTime;
     this.cratesOn = setup.crates ?? true;
+    this.suddenDeathAt = setup.suddenDeath ?? 20;
     this.terrain = new Terrain(2800, 1400, 1330);
     this.terrain.generate(this.rng);
 
@@ -230,7 +240,7 @@ export class Match implements SimWorld {
    */
   checksum(): number {
     const h = new Hasher();
-    h.int(this.tick).str(this.phase).int(this.wind).int(this.turnNumber).int(this.rng.state);
+    h.int(this.tick).str(this.phase).int(this.wind).int(this.turnNumber).int(this.rng.state).num(this.terrain.waterY);
     h.num(this.turnTimer).num(this.retreatTimer).num(this.power).int(this.charging ? 1 : 0);
     h.int(this.active?.id ?? -1);
     for (const t of this.teams) {
@@ -299,6 +309,7 @@ export class Match implements SimWorld {
       terrain: encodeMask(this.terrain.solid),
       crates: this.crates.map((c) => ({ ...c })),
       nextCrateId: this.nextCrateId,
+      waterY: this.terrain.waterY,
     };
   }
 
@@ -333,6 +344,7 @@ export class Match implements SimWorld {
     this.crates.length = 0;
     for (const c of s.crates ?? []) this.crates.push({ ...c });
     this.nextCrateId = s.nextCrateId ?? 1;
+    if (s.waterY !== undefined) this.terrain.waterY = s.waterY;
     const mask = new Uint8Array(this.terrain.solid.length);
     decodeMask(s.terrain, mask);
     this.terrain.replace(mask);
@@ -552,6 +564,14 @@ export class Match implements SimWorld {
     } while (!unit.alive);
 
     this.turnNumber++;
+    // morte súbita: a água sobe um pouco a cada turno
+    if (this.suddenDeathAt > 0 && this.turnNumber >= this.suddenDeathAt) {
+      if (this.turnNumber === this.suddenDeathAt) this.emit({ type: 'suddenDeath' });
+      else {
+        this.terrain.waterY -= WATER_RISE;
+        this.emit({ type: 'waterRise', y: this.terrain.waterY });
+      }
+    }
     this.active = unit;
     this.wind = Math.round(this.rng.range(-10, 10));
     if (this.cratesOn && this.turnNumber > 1 && this.rng.next() < CRATE_CHANCE) this.dropCrate();

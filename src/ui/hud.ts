@@ -70,6 +70,8 @@ export class Hud {
       if (e.type === 'turnStart') {
         const human = game.isLocal(e.unit.team.id) && !game.isReplay;
         this.show(human ? `Sua vez, ${e.unit.name}!` : `Vez de ${e.unit.name}`, e.unit.team.color);
+      } else if (e.type === 'suddenDeath') {
+        this.show('Morte súbita! A água vai subir 🌊', '#3d6fd8', 2.6);
       } else if (e.type === 'gameOver') {
         this.show(e.winner ? `${e.winner.name} venceu!` : 'Empate!', e.winner?.color ?? '#999', 99);
       }

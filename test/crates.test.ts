@@ -49,3 +49,24 @@ describe('caixas', () => {
     expect(m.cratesOn).toBe(true);
   });
 });
+
+describe('morte súbita', () => {
+  it('a água sobe a cada turno depois do turno marcado', async () => {
+    const { Match } = await import('../src/domain/match');
+    const { THEMES } = await import('../src/domain/theme');
+    const { cpuTeam } = await import('./helpers');
+    const m = new Match({ teams: [cpuTeam('A'), cpuTeam('B')], unitsPerTeam: 2, theme: THEMES.neve, seed: 5, turnTime: 1, suddenDeath: 3 });
+    const start = m.terrain.waterY;
+    const events: string[] = [];
+    m.on((e) => events.push(e.type));
+    m.start();
+    for (let i = 0; i < 60 * 60 && m.turnNumber < 6 && m.phase !== 'over'; i++) m.step({});
+    expect(events).toContain('suddenDeath');
+    expect(m.terrain.waterY).toBeLessThan(start);
+    const snap = JSON.parse(JSON.stringify(m.snapshot()));
+    const b = new Match({ teams: [cpuTeam('A'), cpuTeam('B')], unitsPerTeam: 2, theme: THEMES.neve, seed: 5, turnTime: 1, suddenDeath: 3 });
+    b.restore(snap);
+    expect(b.terrain.waterY).toBe(m.terrain.waterY);
+    expect(b.checksum()).toBe(m.checksum());
+  }, 30_000);
+});
