@@ -22,3 +22,20 @@ describe('Bolotins', () => {
     expect(coinsForMatch(stats(), true, 'cpu', 'facil').total).toBe(35);
   });
 });
+
+import { rivals, type HistoryEntry } from '../src/progress/history';
+
+describe('cara a cara local', () => {
+  it('agrupa por adversário humano e ignora CPU', () => {
+    const h: HistoryEntry[] = [
+      { at: 3, mode: 'online', opponent: 'Esposa', result: 'loss', damage: 0 },
+      { at: 2, mode: 'mail', opponent: 'Esposa', result: 'win', damage: 0 },
+      { at: 1, mode: 'cpu', opponent: 'CPU', result: 'win', damage: 0 },
+      { at: 4, mode: 'online', opponent: 'Primo', result: 'win', damage: 0 },
+    ];
+    expect(rivals(h)).toEqual([
+      { opponent: 'Primo', wins: 1, losses: 0, draws: 0, last: 4 },
+      { opponent: 'Esposa', wins: 1, losses: 1, draws: 0, last: 3 },
+    ]);
+  });
+});

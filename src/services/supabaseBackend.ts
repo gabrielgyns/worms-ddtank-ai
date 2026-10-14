@@ -12,6 +12,9 @@ import {
   type PresenceApi,
   type PresenceStatus,
   type MatchReport,
+  type HeadToHead,
+  type LeaderRow,
+  type RankingApi,
   type ProfileApi,
   type ProgressSyncApi,
   type SyncedProgress,
@@ -333,6 +336,25 @@ class SupabaseProgress implements ProgressSyncApi {
   }
 }
 
+class SupabaseRanking implements RankingApi {
+  constructor(
+    private sb: SupabaseClient,
+    private auth: SupabaseAuth,
+  ) {}
+  available(): boolean {
+    return this.auth.current() !== null;
+  }
+  async leaderboard(period: 'all' | 'week'): Promise<LeaderRow[]> {
+    const { data } = await this.sb.rpc('friends_leaderboard', { period });
+    const rows = (data ?? []) as Array<{ user_id: string; name: string; color: number; rating: number; games: number; wins: number }>;
+    return rows.map((r) => ({ id: r.user_id, name: r.name, color: r.color, rating: r.rating, games: r.games, wins: r.wins }));
+  }
+  async headToHead(friendId: string): Promise<HeadToHead | null> {
+    const { data } = await this.sb.rpc('head_to_head', { friend: friendId });
+    return ((data ?? []) as HeadToHead[])[0] ?? null;
+  }
+}
+
 export class SupabaseBackend implements Backend {
   readonly kind = 'supabase';
   readonly sb: SupabaseClient;
@@ -341,6 +363,7 @@ export class SupabaseBackend implements Backend {
   readonly presence: SupabasePresence;
   readonly profile: SupabaseProfile;
   readonly progress: SupabaseProgress;
+  readonly ranking: SupabaseRanking;
   constructor() {
     this.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     this.auth = new SupabaseAuth(this.sb);
@@ -348,5 +371,6 @@ export class SupabaseBackend implements Backend {
     this.presence = new SupabasePresence(this.sb, this.auth);
     this.profile = new SupabaseProfile(this.sb, this.auth);
     this.progress = new SupabaseProgress(this.sb, this.auth);
+    this.ranking = new SupabaseRanking(this.sb, this.auth);
   }
 }

@@ -15,6 +15,8 @@ import { ProfileUi } from './ui/profile';
 import { AchievementsUi, rewardText } from './ui/achievements';
 import { ClosetUi, myLook } from './ui/closet';
 import { ShopUi } from './ui/shop';
+import { RankingUi } from './ui/ranking';
+import { addHistory } from './progress/history';
 import { evaluate, type MatchMode } from './progress/achievements';
 import { coinsForMatch } from './progress/economy';
 import { progress } from './progress/progress';
@@ -132,6 +134,8 @@ function recordResult(g: Game, tracker: MatchTracker): void {
   const won = g.match.winner?.id === me;
   const s = tracker.teams[me];
   addMatchToStats(s, won);
+  const opponentTeam = g.match.teams.find((t) => t.id !== me);
+  const isCpu = opponentTeam?.control === 'cpu';
 
   // conquistas e moedas
   const coinsEl = $('#over-coins');
@@ -154,6 +158,13 @@ function recordResult(g: Game, tracker: MatchTracker): void {
     unlocksEl.append(li);
   }
   unlocksEl.hidden = fresh.length === 0;
+  addHistory({
+    at: Date.now(),
+    mode,
+    opponent: isCpu ? `CPU (${settings.difficulty})` : (opponentTeam?.name ?? '?'),
+    result: g.match.winner ? (won ? 'win' : 'loss') : 'draw',
+    damage: s.damage,
+  });
 
   const pay = mode === 'local' ? null : coinsForMatch(s, won, mode, mode === 'cpu' ? settings.difficulty : null);
   coinsEl.hidden = !pay;
@@ -612,6 +623,7 @@ new ProfileUi(show);
 new AchievementsUi(show);
 new ClosetUi(show);
 new ShopUi(show);
+new RankingUi(show);
 const wallet = () => ($('#wallet').textContent = `🪙 ${progress().state.coins}`);
 progress().on(wallet);
 wallet();

@@ -110,6 +110,27 @@ export interface ProgressSyncApi {
   push(p: SyncedProgress): Promise<Result>;
 }
 
+export interface LeaderRow {
+  id: string;
+  name: string;
+  color: number;
+  rating: number;
+  games: number;
+  wins: number;
+}
+
+export interface HeadToHead {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+export interface RankingApi {
+  available(): boolean;
+  leaderboard(period: 'all' | 'week'): Promise<LeaderRow[]>;
+  headToHead(friendId: string): Promise<HeadToHead | null>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
@@ -118,4 +139,5 @@ export interface Backend {
   readonly presence: PresenceApi;
   readonly profile: ProfileApi;
   readonly progress: ProgressSyncApi;
+  readonly ranking: RankingApi;
 }

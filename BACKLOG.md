@@ -78,7 +78,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 ## Fase 6 — Competição
 
 - [x] **F6-01** · P0 · M — Rating entre amigos (Glicko-2 ou Elo simples) calculado no servidor ao fim de partida online.
-- [ ] **F6-02** · P0 · M — Ranking de amigos: geral, semanal e cara a cara (histórico contra cada amigo).
+- [x] **F6-02** · P0 · M — Ranking de amigos: geral, semanal e cara a cara (histórico contra cada amigo).
 - [ ] **F6-03** · P1 · M — Desafio diário: mesma seed para todos, placar de amigos (dano, turnos, precisão).
 - [ ] **F6-04** · P1 · P — Estatísticas: vitórias, dano total, precisão, arma favorita, maior tiro.
 - [ ] **F6-05** · P2 · M — Temporadas mensais com cosmético exclusivo para o top do grupo.
