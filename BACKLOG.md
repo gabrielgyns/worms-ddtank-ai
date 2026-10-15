@@ -97,6 +97,14 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 
 ---
 
+## Fase 8 — Celular de verdade (futuro)
+
+> Foco atual é o PC (ROADMAP D14). Nada aqui começa antes de o PC estar redondo.
+
+- [ ] **F8-01** · P1 · P — Levantar os bugs do celular na V1 (aparelho, navegador, o que acontece), com print ou vídeo.
+- [ ] **F8-02** · P1 · M — Protótipo para decidir: web consertada x Capacitor x motor nativo (Godot/Unity). Critério principal: dá para jogar online contra o PC sem duas físicas diferentes?
+- [ ] **F8-03** · P2 · G — Implementar o caminho escolhido.
+
 ## Banco de ideias
 
 Ideias soltas para avaliar. Promova para uma fase quando fizer sentido.

@@ -10,6 +10,8 @@ Planejado de trás para frente: primeiro o destino, depois o que precisa existir
 
 Todas as fases abaixo estão entregues (itens marcados no [BACKLOG](BACKLOG.md)). A versão de antes da V1 ficou guardada no branch `v0`. Daqui para frente, o banco de ideias do BACKLOG é a fila.
 
+**Foco agora: PC.** No celular a V1 ficou com bugs. Em vez de remendar a versão web para toque, o celular vira trabalho futuro, possivelmente nativo (ver D14 e a Fase 8). O jogo continua abrindo no celular, mas sem garantia.
+
 ## Do destino para trás
 
 | Para ter… | …precisa antes de |
@@ -66,6 +68,10 @@ Deixar o código pronto para rede e publicar numa URL.
 ### Fase 7 — Conteúdo contínuo ✅
 Novas armas, modos (co-op contra chefão, 2x2, missões), editor de mapas. Ver banco de ideias no BACKLOG.
 
+### Fase 8 — Celular de verdade (futuro, não iniciada)
+- Levantar os bugs do celular na V1 (lista no BACKLOG `F8-01`).
+- Decidir entre web consertada, casca nativa (Capacitor) ou motor nativo (Godot/Unity), pesando o online entre PC e celular (D14).
+
 ## Decisões técnicas recomendadas
 
 Registro das escolhas e do porquê. Atualize quando mudar.
@@ -85,3 +91,4 @@ Registro das escolhas e do porquê. Atualize quando mudar.
 | D11 | Migrações SQL testadas no **PGlite** com stub do `auth` | Regras de RLS e funções `security definer` ficam cobertas por testes que rodam no CI, sem Docker. |
 | D12 | Missões são **partidas normais** com setup especial (spawns fixos, munição, vento, time `dummy`) | Nenhuma regra nova de jogo: a mesma `Match` roda missão, CPU e online. Solubilidade conferida por força bruta com a física real. |
 | D13 | Melhor lance = **foto do estado no começo da vez + comandos da vez** | Determinismo de novo: não gravamos vídeo da partida inteira; só reproduzimos a vez certa quando pedem, e aí gravamos o canvas. A foto é tirada entre ticks, nunca no meio de um. |
+| D14 | **PC primeiro**; celular fica para depois, talvez nativo | A versão web no celular ficou com bugs. Antes de investir nela, avaliar um cliente nativo (Godot, Unity ou outro). Dica para essa avaliação: o domínio em TypeScript (determinístico, lockstep) é o contrato. Um cliente nativo precisa simular igual ou falar com o mesmo protocolo, então reescrever a física em outra linguagem quebra o online entre PC e celular. Caminhos que mantêm a regra única: casca nativa sobre o mesmo código (Capacitor, que já existe), ou levar o domínio junto (JS embutido). |
