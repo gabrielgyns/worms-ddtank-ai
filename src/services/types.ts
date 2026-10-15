@@ -1,3 +1,4 @@
+import type { Flags } from '../domain/flags';
 /**
  * Serviços "de conta" do jogo. Duas implementações:
  * - local: guarda tudo neste aparelho (funciona sem configuração);
@@ -175,6 +176,13 @@ export interface SeasonApi {
   claim(month: string): Promise<boolean>;
 }
 
+/** Feature flags: todo mundo lê, só o admin muda. */
+export interface FlagsApi {
+  load(): Promise<Flags>;
+  isAdmin(): Promise<boolean>;
+  set(key: string, on: boolean): Promise<Result>;
+}
+
 export interface Backend {
   /** 'supabase' quando há servidor configurado */
   readonly kind: 'local' | 'supabase';
@@ -186,4 +194,5 @@ export interface Backend {
   readonly ranking: RankingApi;
   readonly daily: DailyApi;
   readonly season: SeasonApi;
+  readonly flags: FlagsApi;
 }

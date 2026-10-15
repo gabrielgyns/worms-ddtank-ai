@@ -1,3 +1,5 @@
+import type { Flags } from '../domain/flags';
+import type { FlagsApi } from './types';
 import { store } from './store';
 import { fail, ok, type AuthApi, type Backend, type Friend, type FriendRequestResult, type FriendsApi, type PresenceApi, type PresenceStatus, type DailyApi, type DailyRow, type HeadToHead, type SeasonApi, type SeasonRow, type StatsRow, type LeaderRow, type ProfileApi, type ProgressSyncApi, type RankingApi, type RemoteProfile, type Result, type SyncedProgress, type User } from './types';
 
@@ -138,6 +140,20 @@ class NoSeason implements SeasonApi {
   }
 }
 
+/** Sem servidor: os flags valem só neste aparelho; o painel abre com #admin no endereço. */
+class LocalFlags implements FlagsApi {
+  async load(): Promise<Flags> {
+    return store.get<Flags>('flags', {});
+  }
+  async isAdmin(): Promise<boolean> {
+    return location.hash === '#admin';
+  }
+  async set(key: string, on: boolean): Promise<Result> {
+    store.set('flags', { ...store.get<Flags>('flags', {}), [key]: on });
+    return ok;
+  }
+}
+
 export class LocalBackend implements Backend {
   readonly kind = 'local';
   readonly auth = new LocalAuth();
@@ -148,4 +164,5 @@ export class LocalBackend implements Backend {
   readonly ranking = new NoRanking();
   readonly daily = new NoDaily();
   readonly season = new NoSeason();
+  readonly flags = new LocalFlags();
 }

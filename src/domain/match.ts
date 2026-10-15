@@ -91,6 +91,10 @@ export interface MatchSetup {
   props?: { barrels: number[]; mines: number[] };
   /** rei da colina: pontos para vencer (sem isso, só vence eliminando) */
   hill?: number;
+  /** armas desligadas pelo admin: ninguém tem munição delas */
+  disabledWeapons?: WeaponId[];
+  /** itens de turno desligados pelo admin */
+  disabledItems?: ItemId[];
 }
 
 /** Raio da colina e pontos padrão. */
@@ -251,12 +255,17 @@ export class Match implements SimWorld {
         control: ts.control,
         units: [],
         cursor: 0,
-        ammo: new Map(WEAPONS.map((w) => [w.id, ts.ammo ? (ts.ammo[w.id] ?? 0) : w.ammo])),
+        ammo: new Map(WEAPONS.map((w) => [w.id, setup.disabledWeapons?.includes(w.id) ? 0 : ts.ammo ? (ts.ammo[w.id] ?? 0) : w.ammo])),
         weapon: 'bazooka',
         look: ts.look ?? {},
         side: ts.side ?? i,
         boss: !!ts.boss,
-        items: new Map(ITEMS.map((it) => [it.id, ts.items ? (ts.items[it.id] ?? 0) : ts.boss || ts.control === 'dummy' ? 0 : ITEMS_START[it.id]])),
+        items: new Map(
+          ITEMS.map((it) => [
+            it.id,
+            setup.disabledItems?.includes(it.id) ? 0 : ts.items ? (ts.items[it.id] ?? 0) : ts.boss || ts.control === 'dummy' ? 0 : ITEMS_START[it.id],
+          ]),
+        ),
       });
     });
     this.windFixed = setup.wind ?? null;

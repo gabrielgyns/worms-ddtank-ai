@@ -1,6 +1,6 @@
 import type { Input, Action } from '../core/input';
 import type { Game } from '../game';
-import { WEAPONS } from '../domain/weapons';
+import { WEAPONS, type WeaponId } from '../domain/weapons';
 import { ITEMS, type ItemId } from '../domain/items';
 import { drawWeaponIcon } from '../render/sprites';
 
@@ -79,6 +79,9 @@ export class Hud {
     const boss = game.match.units.find((u) => u.team.boss);
     this.bossMax = boss ? boss.hp : 0;
     this.bossBar.hidden = !boss;
+    // o que o admin desligou nem aparece na barra
+    for (const [id, b] of this.buttons) b.el.hidden = !!game.setup.disabledWeapons?.includes(id as WeaponId);
+    for (const [id, b] of this.itemButtons) b.el.hidden = !!game.setup.disabledItems?.includes(id);
     // rei da colina: um placar por lado
     const hill = game.match.hill;
     this.hillBar.hidden = !hill;

@@ -44,6 +44,9 @@ import { store } from './services/store';
 import { loadPrefs, type Prefs } from './progress/prefs';
 import { PrefsUi } from './ui/prefs';
 import { a11y } from './render/a11y';
+import { disabledWeapons, isOn, type Flags } from './domain/flags';
+import { ITEMS } from './domain/items';
+import { AdminUi } from './ui/admin';
 import { highlightCommands } from './domain/highlight';
 import { ClipRecorder, shareClip } from './ui/clip';
 
@@ -70,6 +73,14 @@ function startDemo(): void {
   demo.match.on((e) => {
     if (e.type === 'gameOver') setTimeout(() => !game && startDemo(), 3000);
   });
+}
+
+/** feature flags do admin (cache local até o servidor responder) */
+let flags: Flags = store.get<Flags>('flagsCache', {});
+/** O que os flags desligam numa partida que eu crio. */
+function flagSetup(): Pick<MatchSetup, 'disabledWeapons' | 'disabledItems'> {
+  const items = ITEMS.filter((i) => !isOn(flags, `item:${i.id}`)).map((i) => i.id);
+  return { disabledWeapons: disabledWeapons(flags), disabledItems: items };
 }
 
 /** preferências do aparelho (volume, turno, CPU, acessibilidade) */
@@ -159,6 +170,7 @@ function startGame(): void {
         suddenDeath: settings.sudden,
         bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
         hill: settings.hill && settings.mode !== 'boss' ? HILL_POINTS : undefined,
+        ...flagSetup(),
       },
       { difficulty: settings.difficulty },
       canvas,
@@ -401,7 +413,8 @@ function hostStart(): void {
     turnTime: prefs.turnTime,
     bossHp: lobby.state.mode === 'boss' ? bossHpFor(lobby.state.units * 2) : undefined,
     map: lobby.map(),
-    hill: lobby.state.hill && lobby.state.mode !== 'boss' ? HILL_POINTS : undefined,
+    hill: lobby.state.hill && isOn(flags, 'mode:hill') && lobby.state.mode !== 'boss' ? HILL_POINTS : undefined,
+    ...flagSetup(),
   };
   const guestTeams = lobby.guestTeams();
   session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: guestTeams[0], guestTeams });
@@ -864,6 +877,7 @@ function startCustom(map: string, theme: ThemeId): void {
         map,
         bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
         hill: settings.hill && settings.mode !== 'boss' ? HILL_POINTS : undefined,
+        ...flagSetup(),
       },
       { difficulty: settings.difficulty },
       canvas,
@@ -873,6 +887,48 @@ function startCustom(map: string, theme: ThemeId): void {
   );
 }
 const editor = new EditorUi(show, startCustom);
+
+// ─── feature flags ───
+/** Esconde do menu o que o admin desligou. */
+function applyFlags(): void {
+  const modeKeys = ['cpu', 'pvp', 'duo', 'boss'] as const;
+  for (const md of modeKeys) {
+    const b = document.querySelector<HTMLElement>(`[data-opt="mode"] [data-v="${md}"]`);
+    if (b) b.hidden = !isOn(flags, `mode:${md}`);
+  }
+  if (!isOn(flags, `mode:${settings.mode}`)) {
+    const first = modeKeys.find((md) => isOn(flags, `mode:${md}`));
+    if (first) document.querySelector<HTMLButtonElement>(`[data-opt="mode"] [data-v="${first}"]`)?.click();
+  }
+  const hillRow = document.querySelector<HTMLElement>('[data-opt="hill"]')?.closest<HTMLElement>('.opt');
+  if (hillRow) hillRow.hidden = !isOn(flags, 'mode:hill');
+  if (!isOn(flags, 'mode:hill')) settings.hill = false;
+  const hide: Array<[string, string]> = [
+    ['#online-btn', 'mode:online'],
+    ['.mail-box', 'mode:mail'],
+    ['#missions-btn', 'screen:missions'],
+    ['#daily-btn', 'screen:daily'],
+    ['#editor-btn', 'screen:editor'],
+    ['#shop-btn', 'screen:shop'],
+    ['#tutorial-btn', 'screen:tutorial'],
+  ];
+  for (const [sel, key] of hide) {
+    const el = document.querySelector<HTMLElement>(sel);
+    if (el) el.hidden = !isOn(flags, key);
+  }
+  if (!isOn(flags, 'screen:tutorial')) $('#tut-offer').hidden = true;
+  lobby?.render();
+}
+function setFlags(f: Flags): void {
+  flags = f;
+  store.set('flagsCache', f);
+  applyFlags();
+}
+applyFlags();
+void getBackend().flags.load().then(setFlags);
+const admin = new AdminUi(show, () => flags, setFlags);
+getBackend().auth.onChange(() => void admin.refresh());
+void admin.refresh();
 
 // ─── ajustes ───
 new PrefsUi(show, (p) => {

@@ -2001,3 +2001,38 @@ input.vol {
 #hill-bar .pts i.on {
   background: var(--c);
 }
+
+/* `hidden` vence qualquer display de componente (flags do admin escondem botões) */
+[hidden] {
+  display: none !important;
+}
+
+/* ───────── admin ───────── */
+#admin h3 {
+  margin: 8px 0 2px;
+  font: 18px var(--font-title);
+}
+.flags {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 6px;
+}
+.flag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #f1d9d4;
+  font-weight: 800;
+  cursor: pointer;
+}
+.flag.on {
+  background: #d7f0cf;
+}
+.flag input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2f8a12;
+}

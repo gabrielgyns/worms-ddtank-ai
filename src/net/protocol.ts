@@ -2,6 +2,8 @@ import type { Command, TickInput } from '../domain/commands';
 import type { MatchSnapshot, TeamSetup } from '../domain/match';
 import type { ThemeId } from '../domain/theme';
 import type { Look } from '../domain/cosmetics';
+import type { ItemId } from '../domain/items';
+import type { WeaponId } from '../domain/weapons';
 
 /** Suba quando mudar mensagens ou regras que afetem a simulação. */
 export const PROTOCOL_VERSION = 3;
@@ -19,6 +21,8 @@ export interface WireSetup {
   objects?: boolean;
   map?: string;
   hill?: number;
+  disabledWeapons?: WeaponId[];
+  disabledItems?: ItemId[];
 }
 
 export interface LobbyPlayer {

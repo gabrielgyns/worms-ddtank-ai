@@ -127,7 +127,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 
 ## Fase 11 — Administração
 
-- [ ] **F11-01** · P1 · M — Painel de admin com feature flags: ligar/desligar armas, modos e itens para todo mundo. Só o dono acessa.
+- [x] **F11-01** · P1 · M — Painel de admin com feature flags: ligar/desligar armas, modos e itens para todo mundo. Só o dono acessa.
 
 ## Fase 8 — Celular de verdade (futuro)
 

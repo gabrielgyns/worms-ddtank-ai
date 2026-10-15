@@ -28,3 +28,17 @@ O perfil nasce por gatilho no cadastro. Se alguém se cadastrou antes de as migr
 ## 3. Testes das regras
 
 As migrações são testadas num Postgres em memória (PGlite) com um stub do `auth` do Supabase: `npm test` roda `test/sql/`.
+
+## Painel de admin (feature flags)
+
+O painel 🛠️ Admin liga e desliga armas, itens, modos e telas para todo mundo. Só aparece para admin, e a segurança está no banco: a função `set_flag` recusa quem não está na tabela `admins`.
+
+1. Rode a migração `20261015000010_feature_flags.sql` no SQL Editor.
+2. Descubra o seu id: entre no jogo com a sua conta e, no Supabase, abra **Authentication → Users** e copie o *User UID*.
+3. No SQL Editor:
+   ```sql
+   insert into public.admins (user_id) values ('COLE-O-SEU-USER-UID-AQUI');
+   ```
+4. Recarregue o jogo: o botão 🛠️ Admin aparece no menu.
+
+Sem servidor, o painel abre com `#admin` no fim do endereço e os flags valem só naquele aparelho.

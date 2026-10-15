@@ -1,3 +1,5 @@
+import type { Flags } from '../domain/flags';
+import type { FlagsApi } from './types';
 import { createClient, type RealtimeChannel, type SupabaseClient, type User as SbUser } from '@supabase/supabase-js';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './config';
 import {
@@ -427,6 +429,32 @@ class SupabaseSeason implements SeasonApi {
   }
 }
 
+class SupabaseFlags implements FlagsApi {
+  constructor(
+    private sb: SupabaseClient,
+    private auth: SupabaseAuth,
+  ) {}
+
+  async load(): Promise<Flags> {
+    const { data, error } = await this.sb.from('feature_flags').select('key, enabled');
+    if (error || !data) return {};
+    const out: Flags = {};
+    for (const r of data as Array<{ key: string; enabled: boolean }>) out[r.key] = r.enabled;
+    return out;
+  }
+
+  async isAdmin(): Promise<boolean> {
+    if (!this.auth.current()) return false;
+    const { data } = await this.sb.rpc('is_admin');
+    return data === true;
+  }
+
+  async set(key: string, on: boolean): Promise<Result> {
+    const { error } = await this.sb.rpc('set_flag', { flag: key, on_: on });
+    return msg(error);
+  }
+}
+
 export class SupabaseBackend implements Backend {
   readonly kind = 'supabase';
   readonly sb: SupabaseClient;
@@ -438,6 +466,7 @@ export class SupabaseBackend implements Backend {
   readonly ranking: SupabaseRanking;
   readonly daily: SupabaseDaily;
   readonly season: SupabaseSeason;
+  readonly flags: SupabaseFlags;
   constructor() {
     this.sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, detectSessionInUrl: true } });
     this.auth = new SupabaseAuth(this.sb);
@@ -448,5 +477,6 @@ export class SupabaseBackend implements Backend {
     this.ranking = new SupabaseRanking(this.sb, this.auth);
     this.daily = new SupabaseDaily(this.sb, this.auth);
     this.season = new SupabaseSeason(this.sb, this.auth);
+    this.flags = new SupabaseFlags(this.sb, this.auth);
   }
 }

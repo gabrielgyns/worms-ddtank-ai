@@ -1,3 +1,5 @@
+import { isOn, type Flags } from '../domain/flags';
+import { store } from '../services/store';
 import { BOSS_TEAM, type TeamSetup } from '../domain/match';
 import { TEAM_COLORS } from '../domain/teamColors';
 import { THEMES, type ThemeId } from '../domain/theme';
@@ -167,7 +169,9 @@ export class Lobby {
       .map((t) => `<button data-theme="${t}" class="${this.state.themeId === t ? 'on' : ''}" ${host ? '' : 'disabled'}>${t === 'random' ? 'Surpresa' : THEMES[t].name}</button>`)
       .join('');
     const modeName = { duel: 'Duelo', boss: 'Juntos vs Chefão 👑', duo: '2x2 (dupla em cada PC) 👫' };
+    const flags = store.get<Flags>('flagsCache', {});
     const modes = (['duel', 'duo', 'boss'] as const)
+      .filter((md) => md === 'duel' || isOn(flags, `mode:${md}`))
       .map((md) => `<button data-mode="${md}" class="${(this.state.mode ?? 'duel') === md ? 'on' : ''}" ${host ? '' : 'disabled'}>${modeName[md]}</button>`)
       .join('');
     const units = [2, 3, 4].map((n) => `<button data-units="${n}" class="${this.state.units === n ? 'on' : ''}" ${host ? '' : 'disabled'}>${n}</button>`).join('');
@@ -181,8 +185,8 @@ export class Lobby {
         <div class="other">${otherLine}</div>
         <span class="lbl">Modo</span>
         <div class="seg">${modes}</div>
-        <span class="lbl">Objetivo</span>
-        <div class="seg">
+        <span class="lbl" ${isOn(flags, 'mode:hill') ? '' : 'hidden'}>Objetivo</span>
+        <div class="seg" ${isOn(flags, 'mode:hill') ? '' : 'hidden'}>
           <button data-hill="0" class="${this.state.hill ? '' : 'on'}" ${host ? '' : 'disabled'}>Eliminar todos</button>
           <button data-hill="1" class="${this.state.hill ? 'on' : ''}" ${host ? '' : 'disabled'}>Rei da colina ⛰️</button>
         </div>
