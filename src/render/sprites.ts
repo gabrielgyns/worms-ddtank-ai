@@ -170,6 +170,14 @@ export function drawHeldWeapon(c: CanvasRenderingContext2D, id: WeaponId): void 
       c.stroke();
       break;
     }
+    case 'girder':
+      roundRect(c, -2, -4, 26, 8, 1.5);
+      c.fillStyle = '#9aa3ad';
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#5c636e';
+      for (let i = 0; i < 4; i++) c.fillRect(1 + i * 6, -1, 2, 2);
+      break;
     case 'bat':
       c.fillStyle = '#c98a4a';
       c.beginPath();
@@ -543,6 +551,23 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.restore();
 }
 
+/** Prévia da viga onde o mouse está: verde cabe, vermelha não. */
+export function drawGirderGhost(c: CanvasRenderingContext2D, x: number, y: number, angle: number, len: number, thick: number, ok: boolean): void {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+  c.globalAlpha = 0.6;
+  c.fillStyle = ok ? '#bfe8c4' : '#f2a0a0';
+  c.strokeStyle = ok ? '#2f8a12' : '#c0392b';
+  c.lineWidth = 2.5;
+  c.setLineDash([6, 4]);
+  c.beginPath();
+  c.rect(-len / 2, -thick / 2, len, thick);
+  c.fill();
+  c.stroke();
+  c.restore();
+}
+
 /** Marca do míssil teleguiado: X verde girando. */
 export function drawHomingMark(c: CanvasRenderingContext2D, x: number, y: number, time: number): void {
   c.save();
@@ -678,6 +703,12 @@ export function drawWeaponIcon(c: CanvasRenderingContext2D, id: WeaponId): void 
     case 'banana':
       c.scale(1.5, 1.5);
       drawBananaShape(c, 0, 1, -0.3);
+      break;
+    case 'girder':
+      c.rotate(-0.4);
+      c.scale(1.2, 1.2);
+      c.translate(-11, 0);
+      drawHeldWeapon(c, id);
       break;
     case 'homing':
     case 'bat':

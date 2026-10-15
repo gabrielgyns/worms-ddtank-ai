@@ -5,13 +5,13 @@ import { BossAi } from './domain/boss';
 import { DT, isEmptyInput, NO_INPUT, type Command, type TickInput } from './domain/commands';
 import { Match, type MatchSetup } from './domain/match';
 import { HighlightRecorder, type Highlight } from './domain/highlight';
-import { WEAPONS, weaponKeyCodes, type WeaponId } from './domain/weapons';
+import { GIRDER, WEAPONS, weaponKeyCodes, type WeaponId } from './domain/weapons';
 import { ITEMS, type ItemId } from './domain/items';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { a11y, TEAM_MARK } from './render/a11y';
-import { drawHomingMark, drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawGirderGhost, drawHomingMark, drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -128,6 +128,9 @@ export class Game {
           break;
         case 'bounce':
           s.bounce();
+          break;
+        case 'girder':
+          s.pickup();
           break;
         case 'bat':
           s.explosion(10);
@@ -545,7 +548,10 @@ export class Game {
     // mira de alvo (ataque aéreo / teletransporte)
     // marca do teleguiado (só quem joga neste aparelho vê)
     if (m.homingTarget && this.humanTurn && m.weapon.projectile?.homing) drawHomingMark(c, m.homingTarget.x, m.homingTarget.y, t);
-    if (this.hoverWorld && this.humanTurn && m.phase === 'turn' && m.weapon.mode === 'target') {
+    if (this.hoverWorld && this.humanTurn && m.phase === 'turn' && m.weapon.id === 'girder') {
+      const { x, y } = this.hoverWorld;
+      drawGirderGhost(c, x, y, m.girderAngle(), GIRDER.len, GIRDER.thick, m.girderFits(x, y));
+    } else if (this.hoverWorld && this.humanTurn && m.phase === 'turn' && m.weapon.mode === 'target') {
       const { x, y } = this.hoverWorld;
       c.strokeStyle = '#fff';
       c.lineWidth = 3;

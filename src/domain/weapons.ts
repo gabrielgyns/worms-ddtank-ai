@@ -35,6 +35,7 @@ export type WeaponId =
   | 'banana'
   | 'homing'
   | 'bat'
+  | 'girder'
   | 'boss-meteoro'
   | 'boss-rajada'
   | 'boss-pisao';
@@ -204,7 +205,19 @@ export const WEAPONS: readonly WeaponDef[] = [
     mode: 'melee',
     maxSpeed: 0,
   },
+  {
+    id: 'girder',
+    name: 'Viga',
+    hint: '↑↓ gira, clique perto de você para construir uma ponte ou muro de metal. Encerra a vez.',
+    key: 'G',
+    ammo: 2,
+    mode: 'target',
+    maxSpeed: 0,
+  },
 ];
+
+/** Viga: tamanho e até onde dá para construir a partir da bolota. */
+export const GIRDER = { len: 110, thick: 12, range: 320 };
 
 /** Taco: alcance à frente da bolota, dano e força da tacada. */
 export const BAT = { reach: 30, damage: 22, launch: 640 };

@@ -31,6 +31,41 @@ export class Terrain {
     this.listeners.push(fn);
   }
 
+  private buildListeners: Array<(x0: number, y0: number, x1: number, y1: number) => void> = [];
+
+  /** Avisado quando aparece terreno novo (viga), com o retângulo que mudou. */
+  onBuild(fn: (x0: number, y0: number, x1: number, y1: number) => void): void {
+    this.buildListeners.push(fn);
+  }
+
+  /**
+   * Viga de metal girada: preenche só o que é ar. Devolve as células que
+   * a viga ocupa (para checar se cobriria alguém antes de construir).
+   */
+  beamCells(cx: number, cy: number, angle: number, len: number, thick: number): number[] {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const ext = Math.ceil(len / 2 + thick);
+    const out: number[] = [];
+    for (let y = Math.max(0, Math.floor(cy - ext)); y <= Math.min(this.height - 1, Math.ceil(cy + ext)); y++) {
+      for (let x = Math.max(0, Math.floor(cx - ext)); x <= Math.min(this.width - 1, Math.ceil(cx + ext)); x++) {
+        const dx = x - cx;
+        const dy = y - cy;
+        // coordenadas no sistema da viga
+        const along = dx * cos + dy * sin;
+        const across = -dx * sin + dy * cos;
+        if (Math.abs(along) <= len / 2 && Math.abs(across) <= thick / 2) out.push(y * this.width + x);
+      }
+    }
+    return out;
+  }
+
+  addBeam(cx: number, cy: number, angle: number, len: number, thick: number): void {
+    for (const i of this.beamCells(cx, cy, angle, len, thick)) if (this.solid[i] === AIR) this.solid[i] = METAL;
+    const ext = len / 2 + thick;
+    for (const fn of this.buildListeners) fn(cx - ext, cy - ext, cx + ext, cy + ext);
+  }
+
   /** Avisado quando a máscara inteira é trocada (ressincronização, carregar partida). */
   onReset(fn: () => void): void {
     this.resetListeners.push(fn);

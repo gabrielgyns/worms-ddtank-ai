@@ -110,7 +110,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F9-07** · P1 · M — Ovelha andante e bomba banana. — ovelha anda pela `stepProjectile` (sobe degrau, pula parede, detona com Espaço); banana com 5 fragmentos.
 - [x] **F9-08** · P1 · M — Modo 2x2 (local, contra CPU e online). — 4 times em 2 lados, vez alternada; online cada aparelho controla uma dupla (`guestTeams`).
 - [x] **F9-09** · P2 · M — Míssil teleguiado e taco de beisebol. — teleguiado: clique marca, curva depois de 0,45 s (`stepProjectile`); taco: modo `melee`.
-- [ ] **F9-10** · P2 · M — Viga: construir pontes e muros.
+- [x] **F9-10** · P2 · M — Viga: construir pontes e muros. — metal indestrutível, ângulo pela mira, prévia verde/vermelha; encerra a vez.
 - [ ] **F9-11** · P2 · G — Modo rei da colina.
 - [ ] **F9-12** · P2 · M — Balanceamento por simulação: CPU x CPU em massa por arma, relatório e ajustes.
 

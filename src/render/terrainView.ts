@@ -33,6 +33,7 @@ export class TerrainView {
     this.paint();
     terrain.onCarve((x, y, r) => this.carve(x, y, r));
     terrain.onReset(() => this.paint());
+    terrain.onBuild((x0, y0, x1, y1) => this.repaintMetal(x0 - 3, y0 - 3, x1 + 3, y1 + 3));
   }
 
   private paint(): void {

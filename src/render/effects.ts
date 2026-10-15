@@ -144,6 +144,9 @@ export class Effects {
         this.sparkles(e.crate.x, e.crate.y - 10);
         break;
       }
+      case 'girder':
+        this.sparkles(e.x, e.y);
+        break;
       case 'bat':
         this.add({ x: e.x, y: e.y - 30, vy: -60, life: 1, max: 1, size: 30, kind: 'text', text: 'PAF!', color: '#ffd34a', stroke: INK, drag: 1.5 });
         this.add({ x: e.x, y: e.y, life: 0.3, max: 0.3, size: 6, grow: 90, kind: 'ring', color: '#fff' });

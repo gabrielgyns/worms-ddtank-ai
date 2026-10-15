@@ -21,7 +21,7 @@ import type { Look } from './cosmetics';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
 import { Unit, type Control, type Team } from './unit';
-import { BAT, isBossWeapon, specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
+import { BAT, GIRDER, isBossWeapon, specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
 
 export type Phase = 'turn' | 'retreat' | 'settle' | 'over';
 
@@ -45,6 +45,7 @@ export type GameEvent =
   | { type: 'cratePick'; crate: Crate; unit: Unit }
   | { type: 'item'; item: ItemId; unit: Unit }
   | { type: 'bat'; x: number; y: number; unit: Unit }
+  | { type: 'girder'; x: number; y: number; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
 
 export interface TeamSetup {
@@ -559,6 +560,27 @@ export class Match implements SimWorld {
     if (i.forfeit !== undefined) this.forfeit(i.forfeit);
   }
 
+  /** Ângulo da viga: segue a mira da bolota da vez. */
+  girderAngle(): number {
+    const u = this.active;
+    if (!u) return 0;
+    return Math.atan2(-Math.sin(u.aim), Math.cos(u.aim) * u.facing);
+  }
+
+  /** A viga cabe aqui? Perto da bolota, dentro do mapa e sem cobrir ninguém. */
+  girderFits(x: number, y: number): boolean {
+    const u = this.active;
+    if (!u || Math.hypot(x - u.cx, y - u.cy) > GIRDER.range) return false;
+    if (x < 30 || x > this.terrain.width - 30 || y < 10 || y > this.terrain.waterY - 10) return false;
+    const w = this.terrain.width;
+    for (const i of this.terrain.beamCells(x, y, this.girderAngle(), GIRDER.len, GIRDER.thick + 6)) {
+      const cx = i % w;
+      const cy = (i - cx) / w;
+      for (const o of this.units) if (o.alive && Math.hypot(cx - o.cx, cy - o.cy) < o.radius + 2) return false;
+    }
+    return true;
+  }
+
   /** Taco: quem estiver logo à frente leva dano e voa na direção da mira. */
   private swingBat(): void {
     const u = this.active!;
@@ -729,6 +751,14 @@ export class Match implements SimWorld {
     if (this.phase !== 'turn' || !this.active || this.hasFired || this.weapon.mode !== 'target') return false;
     if (this.ammoOf(this.weapon.id) <= 0) return false;
     const u = this.active;
+    if (this.weapon.id === 'girder') {
+      if (!this.girderFits(x, y)) return false;
+      this.terrain.addBeam(x, y, this.girderAngle(), GIRDER.len, GIRDER.thick);
+      this.consumeAmmo();
+      this.emit({ type: 'girder', x, y, unit: u });
+      this.beginRetreat(1.2);
+      return true;
+    }
     if (this.weapon.id === 'teleport') {
       const t = this.terrain;
       if (x < 20 || x > t.width - 20 || y > t.waterY - 30 || y < 0) return false;
