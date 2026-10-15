@@ -346,3 +346,122 @@ export function trailParticle(trail: string | undefined, t: number): { color: st
       return null;
   }
 }
+
+/**
+ * Bicho, parte de trás (orelhas e rabo): desenhada ANTES do corpo para ficar atrás.
+ * Espaço local do corpo, olhando para +x.
+ */
+export function drawSpeciesBack(c: CanvasRenderingContext2D, team: Team, species: string | undefined, time: number): void {
+  if (!species) return;
+  c.lineWidth = 2;
+  c.strokeStyle = INK;
+  if (species === 'species-hamster') {
+    for (const [x, y, r] of [
+      [-5, -10.5, 4.2],
+      [5, -11, 3.8],
+    ] as const) {
+      c.fillStyle = team.color;
+      ellipse(c, x, y, r, r);
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#ffb3c4';
+      ellipse(c, x, y + 0.6, r * 0.5, r * 0.5);
+      c.fill();
+    }
+    // rabinho
+    c.fillStyle = team.light;
+    ellipse(c, -11.5, 6, 2.6, 2.2);
+    c.fill();
+    c.stroke();
+  } else if (species === 'species-gato') {
+    // rabo balançando
+    const sway = Math.sin(time * 2.4) * 3;
+    c.lineCap = 'round';
+    c.strokeStyle = INK;
+    c.lineWidth = 6.5;
+    c.beginPath();
+    c.moveTo(-9, 7);
+    c.quadraticCurveTo(-20, 4, -17 + sway, -9);
+    c.stroke();
+    c.strokeStyle = team.color;
+    c.lineWidth = 3.8;
+    c.stroke();
+    c.strokeStyle = team.dark;
+    c.lineWidth = 3.8;
+    c.setLineDash([2.2, 3.2]);
+    c.stroke();
+    c.setLineDash([]);
+    c.lineCap = 'butt';
+    // orelhas pontudas
+    for (const [x0, tip, x1] of [
+      [-9, -6, -1.5],
+      [1.5, 6.5, 10],
+    ] as const) {
+      c.lineWidth = 2;
+      c.strokeStyle = INK;
+      c.fillStyle = team.color;
+      c.beginPath();
+      c.moveTo(x0, -8);
+      c.lineTo(tip, -18.5);
+      c.lineTo(x1, -10);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#ffb3c4';
+      c.beginPath();
+      c.moveTo(x0 + 2.2, -9);
+      c.lineTo(tip, -15.5);
+      c.lineTo(x1 - 2.2, -10.5);
+      c.closePath();
+      c.fill();
+    }
+  }
+}
+
+/** Bicho, rosto (focinho, bigodes, bochechas): desenhada DEPOIS dos olhos. */
+export function drawSpeciesFace(c: CanvasRenderingContext2D, team: Team, species: string | undefined): void {
+  if (!species) return;
+  c.lineWidth = 1.5;
+  c.strokeStyle = INK;
+  if (species === 'species-hamster') {
+    // bochecha estufada de quem guardou semente
+    c.fillStyle = team.light;
+    ellipse(c, 9.2, 7.2, 4.4, 3.4);
+    c.fill();
+    c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.55)';
+    ellipse(c, 8.4, 6.3, 1.8, 1.1);
+    c.fill();
+    // nariz e dentinhos
+    c.fillStyle = '#ff7f9e';
+    ellipse(c, 12, 3.8, 1.5, 1.1);
+    c.fill();
+    c.stroke();
+    c.fillStyle = '#fff';
+    c.fillRect(6.4, 9.3, 1.8, 2.4);
+    c.strokeRect(6.4, 9.3, 1.8, 2.4);
+    c.fillRect(8.2, 9.3, 1.8, 2.4);
+    c.strokeRect(8.2, 9.3, 1.8, 2.4);
+  } else if (species === 'species-gato') {
+    c.fillStyle = '#ff7f9e';
+    c.beginPath();
+    c.moveTo(10.4, 4.4);
+    c.lineTo(13, 4.4);
+    c.lineTo(11.7, 6);
+    c.closePath();
+    c.fill();
+    c.stroke();
+    // bigodes
+    c.lineWidth = 1;
+    c.beginPath();
+    for (const dy of [-1.4, 0.6, 2.6]) {
+      c.moveTo(12.5, 6.2 + dy * 0.4);
+      c.lineTo(18.5, 5 + dy * 1.6);
+    }
+    c.moveTo(4, 7);
+    c.lineTo(-1, 6.2);
+    c.moveTo(4, 8);
+    c.lineTo(-0.6, 8.6);
+    c.stroke();
+  }
+}

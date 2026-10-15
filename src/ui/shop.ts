@@ -1,6 +1,6 @@
 import { SLOT_NAME } from '../domain/cosmetics';
 import { progress } from '../progress/progress';
-import { dailyShop, type Offer } from '../progress/shop';
+import { dailyShop, featuredShop, type Offer } from '../progress/shop';
 import { animatePreview, myLook } from './closet';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
@@ -23,7 +23,7 @@ export class ShopUi {
 
   private render(): void {
     const p = progress();
-    const offers = dailyShop();
+    const offers = [...featuredShop(), ...dailyShop()];
     const sel = this.selected ?? offers[0];
     const owned = p.owns(sel.item.id);
     const body = $('#shop-body');

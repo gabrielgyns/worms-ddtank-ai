@@ -19,13 +19,19 @@ function seedOf(s: string): number {
   return h >>> 0;
 }
 
+/** Destaques fixos da loja: os bichos, sempre à venda pelo preço cheio. */
+export function featuredShop(): Offer[] {
+  return COSMETICS.filter((c) => c.slot === 'species' && c.price !== null).map((item) => ({ item, sale: false, price: item.price! }));
+}
+
 /**
  * Vitrine do dia: 6 itens à venda (igual para todo mundo no mesmo dia),
  * um deles com 30% de desconto.
  */
 export function dailyShop(date = today(), size = 6): Offer[] {
   const rng = new Rng(seedOf(`loja-${date}`));
-  const pool = COSMETICS.filter((c) => c.price !== null);
+  // bichos ficam sempre à venda (featuredShop), fora do sorteio do dia
+  const pool = COSMETICS.filter((c) => c.price !== null && c.slot !== 'species');
   const picked: Cosmetic[] = [];
   const left = [...pool];
   while (picked.length < Math.min(size, pool.length)) picked.push(left.splice(Math.floor(rng.next() * left.length), 1)[0]);

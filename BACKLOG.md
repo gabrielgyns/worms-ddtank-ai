@@ -118,7 +118,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 
 > Cosmético nunca muda a regra. A bolota mantém a cor do time (para reconhecer o lado); a skin acrescenta o bicho.
 
-- [ ] **F10-01** · P1 · M — Bichos: hamster e gato (orelhas, focinho, bigodes/bochechas, rabo). Encaixe novo "Bicho" na loja e no Visual.
+- [x] **F10-01** · P1 · M — Bichos: hamster e gato (orelhas, focinho, bigodes/bochechas, rabo). Encaixe novo "Bicho" na loja e no Visual.
 - [ ] **F10-02** · P2 · M — Mais bichos: cachorro, coelho, panda, sapo, pinguim.
 - [ ] **F10-03** · P2 · M — Prévia giratória na loja e no Visual (bolota andando, pulando e comemorando com o item).
 - [ ] **F10-04** · P2 · M — Polimento do menu: fundo animado mais rico, transições entre telas, botões com som e "pop".

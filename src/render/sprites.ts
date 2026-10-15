@@ -5,7 +5,7 @@ import type { Crate } from '../domain/crates';
 import type { Barrel, Mine } from '../domain/props';
 import type { WeaponId } from '../domain/weapons';
 import type { Look } from '../domain/cosmetics';
-import { danceTransform, drawBody, drawEyewear, drawGraveLook, drawHat, drawPineapple } from './cosmetics';
+import { drawSpeciesBack, drawSpeciesFace, danceTransform, drawBody, drawEyewear, drawGraveLook, drawHat, drawPineapple } from './cosmetics';
 
 export const INK = '#2a1a12';
 export const FONT = '"Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
@@ -378,6 +378,7 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   c.save();
   c.translate(0, -13);
   c.scale(1 - breathe, 1 + breathe);
+  drawSpeciesBack(c, team, team.look.species, t + u.seed * 0.1);
   drawBody(c, team, team.look);
 
   // barriguinha
@@ -385,7 +386,8 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   ellipse(c, 2, 5, 6, 4.5);
   c.fill();
 
-  drawHat(c, team, team.look.hat);
+  // bicho sem chapéu escolhido: sem o capacete padrão, para as orelhas aparecerem
+  if (team.look.hat || !team.look.species) drawHat(c, team, team.look.hat);
 
   // olhos
   const lookX = Math.cos(u.aim) * 1.3;
@@ -430,6 +432,7 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   if (scared) c.arc(7, 9.5, 1.8, 0, Math.PI * 2);
   else c.arc(7.5, 7.5, 2.2, 0.2, Math.PI - 0.6);
   c.stroke();
+  drawSpeciesFace(c, team, team.look.species);
   drawEyewear(c, team.look.eyes);
   if (team.boss) {
     // sobrancelhas bravas do chefão

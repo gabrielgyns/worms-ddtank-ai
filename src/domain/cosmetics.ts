@@ -1,6 +1,6 @@
 /** Catálogo de cosméticos. Só visual: nada aqui muda a regra do jogo. */
 
-export type Slot = 'hat' | 'eyes' | 'body' | 'grave' | 'trail' | 'boom' | 'aim' | 'grenade' | 'dance' | 'title';
+export type Slot = 'species' | 'hat' | 'eyes' | 'body' | 'grave' | 'trail' | 'boom' | 'aim' | 'grenade' | 'dance' | 'title';
 
 export interface Cosmetic {
   id: string;
@@ -11,6 +11,7 @@ export interface Cosmetic {
 }
 
 export const SLOT_NAME: Record<Slot, string> = {
+  species: 'Bicho',
   hat: 'Chapéu',
   eyes: 'Olhos',
   body: 'Corpo',
@@ -24,6 +25,9 @@ export const SLOT_NAME: Record<Slot, string> = {
 };
 
 export const COSMETICS: readonly Cosmetic[] = [
+  // bichos: a bolota continua na cor do time, ganha orelhas, focinho e rabo
+  { id: 'species-hamster', slot: 'species', name: 'Hamster', price: 300 },
+  { id: 'species-gato', slot: 'species', name: 'Gato', price: 300 },
   // chapéus
   { id: 'hat-pirata', slot: 'hat', name: 'Chapéu de pirata', price: 150 },
   { id: 'hat-chef', slot: 'hat', name: 'Chapéu de chef', price: 150 },

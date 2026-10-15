@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dailyShop, today } from '../src/progress/shop';
+import { dailyShop, featuredShop, today } from '../src/progress/shop';
 import { Progress } from '../src/progress/progress';
 
 describe('loja', () => {
@@ -10,6 +10,10 @@ describe('loja', () => {
     expect(a.filter((o) => o.sale)).toHaveLength(1);
     expect(new Set(a.map((o) => o.item.id)).size).toBe(6);
     for (const o of a) expect(o.item.price).not.toBeNull();
+  });
+  it('bichos ficam sempre em destaque e fora do sorteio do dia', () => {
+    expect(featuredShop().map((o) => o.item.id)).toEqual(['species-hamster', 'species-gato']);
+    for (const d of ['2026-10-15', '2026-10-16', '2026-11-01']) expect(dailyShop(d).some((o) => o.item.slot === 'species')).toBe(false);
   });
   it('dias diferentes mudam a vitrine', () => {
     expect(dailyShop('2026-10-15').map((o) => o.item.id)).not.toEqual(dailyShop('2026-10-16').map((o) => o.item.id));
