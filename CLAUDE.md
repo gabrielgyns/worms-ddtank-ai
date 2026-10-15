@@ -76,4 +76,4 @@ Sem as variáveis `VITE_SUPABASE_*`, o jogo roda 100% local.
 
 ## Deploy
 
-Hoje: `npm run build` gera `dist/index.html` autocontido. Hospedagem pública está no BACKLOG (`F1-01`).
+Push na `main` → GitHub Actions roda CI e publica no GitHub Pages (precisa de Settings → Pages → Source: GitHub Actions). `npm run build` também gera `dist/index.html` autocontido. Servidor opcional: `docs/servidor.md`.

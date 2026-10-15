@@ -6,6 +6,10 @@ Planejado de trás para frente: primeiro o destino, depois o que precisa existir
 
 > Eu no PC e minha esposa no celular (ou no PC dela), cada um no seu aparelho, abrindo um link e jogando juntos. Cada um tem perfil, bolotas com visual próprio comprado com moedas do jogo, conquistas para caçar e um ranking entre amigos que dá vontade de pedir revanche.
 
+## Estado: V1 ✅
+
+Todas as fases abaixo estão entregues (itens marcados no [BACKLOG](BACKLOG.md)). A versão de antes da V1 ficou guardada no branch `v0`. Daqui para frente, o banco de ideias do BACKLOG é a fila.
+
 ## Do destino para trás
 
 | Para ter… | …precisa antes de |
@@ -24,7 +28,7 @@ Daí a ordem das fases. Cada uma entrega algo jogável sozinha.
 ### Fase 0 — Jogo local ✅
 Partida contra CPU ou 2 jogadores no mesmo PC, 7 armas, vento, 4 cenários, toque básico.
 
-### Fase 1 — Fundação
+### Fase 1 — Fundação ✅
 Deixar o código pronto para rede e publicar numa URL.
 - Testes de simulação (Vitest) e partida headless no CI.
 - Determinismo: partida reproduzível a partir de `seed + lista de comandos`.
@@ -32,34 +36,34 @@ Deixar o código pronto para rede e publicar numa URL.
 - Replay local (grátis depois do item anterior).
 - Deploy estático com HTTPS (Cloudflare Pages ou Vercel).
 
-### Fase 2 — Celular de verdade
+### Fase 2 — Celular de verdade ✅
 - PWA instalável (`manifest`, ícone, `display: fullscreen`, orientação paisagem).
 - Botão de tela cheia + bloqueio de orientação quando o navegador permitir.
 - Mira por arrastar (estilo estilingue) e pinça para zoom.
 - Perfil de aparelho: PC continua exatamente como hoje; celular troca HUD e controles.
 
-### Fase 3 — Multiplayer online (sem conta)
+### Fase 3 — Multiplayer online (sem conta) ✅
 - Criar sala → código curto/link → outra pessoa entra.
 - Modelo **lockstep por turno**: só o jogador da vez envia comandos; os dois simulam igual.
 - Ao fim de cada turno, o dono do turno manda um checksum do estado; se divergir, manda o estado completo (ressincroniza).
 - Reconexão, "o outro saiu", tempo de turno no servidor.
 
-### Fase 4 — Contas, perfil e amigos
+### Fase 4 — Contas, perfil e amigos ✅
 - Login (e-mail mágico / Google). Conta convidado que vira conta real depois.
 - Perfil: nome, nome do time, avatar da bolota.
 - Amigos por código (`#BOLOTA-4821`) ou link de convite; presença online; convidar para sala.
 
-### Fase 5 — Progressão: conquistas, moedas e loja
+### Fase 5 — Progressão: conquistas, moedas e loja ✅
 - Motor de conquistas que escuta `GameEvent` (fácil → lendária).
 - Moeda ganha jogando (vitória, conquista, desafio diário). **Sem pay-to-win:** loja só de cosméticos.
 - Inventário e "vestir" a bolota: chapéus, cores, lápides, rastro de míssil, explosão, dancinha de vitória.
 
-### Fase 6 — Competição
+### Fase 6 — Competição ✅
 - Ranking entre amigos (rating tipo Elo/Glicko) + placar de estatísticas (vitórias, dano, precisão).
 - Desafio diário: mesmo mapa/vento para todos, placar de amigos.
 - Histórico de partidas e "cara a cara" com cada amigo.
 
-### Fase 7 — Conteúdo contínuo
+### Fase 7 — Conteúdo contínuo ✅
 Novas armas, modos (co-op contra chefão, 2x2, missões), editor de mapas. Ver banco de ideias no BACKLOG.
 
 ## Decisões técnicas recomendadas
