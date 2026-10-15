@@ -114,6 +114,21 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F9-11** · P2 · G — Modo rei da colina. — topo do meio do mapa; lado sozinho na colina ao fim da vez marca 1; 6 pontos vence. Local e online.
 - [x] **F9-12** · P2 · M — Balanceamento por simulação: CPU x CPU em massa por arma, relatório e ajustes. — `npm run balance` → `docs/balanceamento.md`.
 
+## Fase 10 — Skins e polimento visual
+
+> Cosmético nunca muda a regra. A bolota mantém a cor do time (para reconhecer o lado); a skin acrescenta o bicho.
+
+- [ ] **F10-01** · P1 · M — Bichos: hamster e gato (orelhas, focinho, bigodes/bochechas, rabo). Encaixe novo "Bicho" na loja e no Visual.
+- [ ] **F10-02** · P2 · M — Mais bichos: cachorro, coelho, panda, sapo, pinguim.
+- [ ] **F10-03** · P2 · M — Prévia giratória na loja e no Visual (bolota andando, pulando e comemorando com o item).
+- [ ] **F10-04** · P2 · M — Polimento do menu: fundo animado mais rico, transições entre telas, botões com som e "pop".
+- [ ] **F10-05** · P2 · M — Explosões e água mais bonitas (fumaça em camadas, onda na água, respingo com espuma).
+- [ ] **F10-06** · P2 · P — Expressões: bolota sorri ao acertar, fica brava ao errar, chora ao perder muita vida.
+
+## Fase 11 — Administração
+
+- [ ] **F11-01** · P1 · M — Painel de admin com feature flags: ligar/desligar armas, modos e itens para todo mundo. Só o dono acessa.
+
 ## Fase 8 — Celular de verdade (futuro)
 
 > Foco atual é o PC (ROADMAP D14). Nada aqui começa antes de o PC estar redondo.

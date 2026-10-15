@@ -8,7 +8,7 @@ Planejado de trás para frente: primeiro o destino, depois o que precisa existir
 
 ## Estado: V1 ✅
 
-Todas as fases abaixo estão entregues (itens marcados no [BACKLOG](BACKLOG.md)). A versão de antes da V1 ficou guardada no branch `v0`. A Fase 9 (polimento e gameplay) também está entregue. Próximos candidatos: banco de ideias do BACKLOG e, quando fizer sentido, a Fase 8 (celular).
+Todas as fases abaixo estão entregues (itens marcados no [BACKLOG](BACKLOG.md)). A versão de antes da V1 ficou guardada no branch `v0`. A Fase 9 (polimento e gameplay) também está entregue. Em andamento: Fase 10 (skins e visual) e Fase 11 (admin). A Fase 8 (celular) segue para depois.
 
 **Foco agora: PC.** No celular a V1 ficou com bugs. Em vez de remendar a versão web para toque, o celular vira trabalho futuro, possivelmente nativo (ver D14 e a Fase 8). O jogo continua abrindo no celular, mas sem garantia.
 
@@ -75,6 +75,12 @@ Novas armas, modos (co-op contra chefão, 2x2, missões), editor de mapas. Ver b
 ### Fase 9 — Polimento e gameplay (PC) ✅
 De trás para frente: amigos chegam por link e entendem o jogo sozinhos (tutorial, mira clara), cada partida rende história (golpes com peso, falas, armas engraçadas) e o casal joga junto contra outro casal (2x2).
 Itens `F9-01..F9-12` no BACKLOG, na ordem.
+
+### Fase 10 — Skins e polimento visual
+Deixar a bolota de cada um com cara própria (bichos, prévias bonitas) e o jogo inteiro mais caprichado. Itens `F10-xx` no BACKLOG.
+
+### Fase 11 — Administração
+Ligar e desligar partes do jogo sem publicar código: feature flags controladas só pelo dono. Itens `F11-xx`.
 
 ## Decisões técnicas recomendadas
 
