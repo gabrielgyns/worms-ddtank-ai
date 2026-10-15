@@ -67,9 +67,14 @@ export interface MatchSetup {
   bossHp?: number;
   /** barris, minas e vigas de metal (padrão: sim) */
   objects?: boolean;
+  /** mapa desenhado no editor (máscara codificada); sem isso, o terreno é gerado */
+  map?: string;
 }
 
 export const BOSS_SIZE = 2.2;
+export const WORLD_W = 2800;
+export const WORLD_H = 1400;
+export const WATER_Y = 1330;
 
 /** Vida do chefão conforme quantas bolotas enfrentam ele e a dificuldade. */
 export function bossHpFor(playerUnits: number, difficulty: 'facil' | 'normal' | 'dificil' = 'normal'): number {
@@ -161,6 +166,7 @@ export class Match implements SimWorld {
   /** caixas ligadas nesta partida */
   readonly cratesOn: boolean;
   readonly suddenDeathAt: number;
+  private customMap = false;
   readonly theme: Theme;
   readonly rng: Rng;
   readonly turnTime: number;
@@ -190,8 +196,10 @@ export class Match implements SimWorld {
     this.turnTime = setup.turnTime;
     this.cratesOn = setup.crates ?? true;
     this.suddenDeathAt = setup.suddenDeath ?? 20;
-    this.terrain = new Terrain(2800, 1400, 1330);
-    this.terrain.generate(this.rng);
+    this.terrain = new Terrain(WORLD_W, WORLD_H, WATER_Y);
+    if (setup.map) decodeMask(setup.map, this.terrain.solid);
+    else this.terrain.generate(this.rng);
+    this.customMap = !!setup.map;
 
     setup.teams.forEach((ts, i) => {
       this.teams.push({
@@ -217,7 +225,8 @@ export class Match implements SimWorld {
   /** Vigas de metal, barris e minas espalhados longe das bolotas. */
   private spawnProps(): void {
     const t = this.terrain;
-    t.addGirders(this.rng, this.rng.int(1, 3));
+    // mapa desenhado: o autor já pôs o metal que quis
+    if (!this.customMap) t.addGirders(this.rng, this.rng.int(1, 3));
     const taken: number[] = this.units.map((u) => u.x);
     const place = (): { x: number; y: number } | null => {
       for (let tries = 0; tries < 30; tries++) {

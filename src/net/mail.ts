@@ -1,6 +1,7 @@
 import { NO_INPUT, isEmptyInput, type Command } from '../domain/commands';
 import type { MatchSnapshot } from '../domain/match';
 import type { Game, TickDriver } from '../game';
+import { pack, unpack } from '../core/pack';
 import { PROTOCOL_VERSION, type WireSetup } from './protocol';
 
 /**
@@ -25,33 +26,15 @@ export interface Letter {
   to: number;
 }
 
-function toB64Url(bytes: Uint8Array): string {
-  let s = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function fromB64Url(s: string): Uint8Array {
-  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-async function pipe(data: Uint8Array, t: CompressionStream | DecompressionStream): Promise<Uint8Array> {
-  const stream = new Blob([data as BlobPart]).stream().pipeThrough(t);
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
-
 export async function encodeLetter(l: Letter): Promise<string> {
-  const json = new TextEncoder().encode(JSON.stringify(l));
-  return toB64Url(await pipe(json, new CompressionStream('deflate-raw')));
+  return pack(JSON.stringify(l));
 }
 
 export async function decodeLetter(code: string): Promise<Letter | null> {
+  const text = await unpack(code);
+  if (!text) return null;
   try {
-    const raw = await pipe(fromB64Url(code), new DecompressionStream('deflate-raw'));
-    const l = JSON.parse(new TextDecoder().decode(raw)) as Letter;
+    const l = JSON.parse(text) as Letter;
     return l.v === PROTOCOL_VERSION ? l : null;
   } catch {
     return null;

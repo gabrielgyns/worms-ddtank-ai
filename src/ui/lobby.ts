@@ -4,6 +4,7 @@ import { THEMES, type ThemeId } from '../domain/theme';
 import type { LobbyPlayer, LobbyState } from '../net/protocol';
 import type { NetSession } from '../net/session';
 import { loadProfile } from '../progress/profile';
+import { loadMaps } from '../progress/maps';
 import { myLook } from './closet';
 
 const UNIT_NAMES = [
@@ -37,6 +38,8 @@ function esc(s: string): string {
  */
 export class Lobby {
   state: LobbyState;
+  /** mapa desenhado escolhido (só no host) */
+  mapId: string | null = null;
 
   constructor(
     private session: NetSession,
@@ -111,6 +114,11 @@ export class Lobby {
     return teams;
   }
 
+  /** Máscara do mapa escolhido, se houver. */
+  map(): string | undefined {
+    return loadMaps().find((m) => m.id === this.mapId)?.data;
+  }
+
   themeId(): ThemeId {
     const ids = Object.keys(THEMES) as ThemeId[];
     return this.state.themeId === 'random' ? ids[Math.floor(Math.random() * ids.length)] : this.state.themeId;
@@ -150,6 +158,14 @@ export class Lobby {
         <div class="other">${otherLine}</div>
         <span class="lbl">Modo</span>
         <div class="seg">${modes}</div>
+        <span class="lbl">Mapa</span>
+        ${
+          host
+            ? `<select id="lobby-map"><option value="">Aleatório</option>${loadMaps()
+                .map((m) => `<option value="${m.id}" ${this.mapId === m.id ? 'selected' : ''}>${esc(m.name)}</option>`)
+                .join('')}</select>`
+            : `<div class="other"><em>${esc(this.state.mapName ?? 'Aleatório')}</em></div>`
+        }
         <span class="lbl">Cenário</span>
         <div class="seg">${themes}</div>
         <span class="lbl">Bolotas por time</span>
@@ -181,6 +197,13 @@ export class Lobby {
         this.broadcast();
       }),
     );
+    this.root.querySelector<HTMLSelectElement>('#lobby-map')?.addEventListener('change', (e) => {
+      this.mapId = (e.target as HTMLSelectElement).value || null;
+      const m = loadMaps().find((x) => x.id === this.mapId);
+      this.state.mapName = m?.name;
+      if (m) this.state.themeId = m.theme;
+      this.broadcast();
+    });
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
       b.addEventListener('click', () => {
         this.state.mode = b.dataset.mode as 'duel' | 'boss';

@@ -16,6 +16,8 @@ import { AchievementsUi, rewardText } from './ui/achievements';
 import { ClosetUi, myLook } from './ui/closet';
 import { ShopUi } from './ui/shop';
 import { RankingUi } from './ui/ranking';
+import { EditorUi } from './ui/editor';
+import { mapFromUrl, saveMap } from './progress/maps';
 import { addHistory } from './progress/history';
 import { dailyScore, dailySpec, loadDailyBest, saveDailyAttempt } from './progress/daily';
 import { daysLeft, previousSeason, SEASON_REWARD, seasonName, seasonOf } from './progress/season';
@@ -311,6 +313,7 @@ function hostStart(): void {
     seed: (Math.random() * 2 ** 31) | 0,
     turnTime: 30,
     bossHp: lobby.state.mode === 'boss' ? bossHpFor(lobby.state.units * 2) : undefined,
+    map: lobby.map(),
   };
   session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: 1 });
   startOnline(setup);
@@ -669,6 +672,32 @@ new ClosetUi(show);
 new ShopUi(show);
 const ranking = new RankingUi(show);
 
+// ─── editor de mapas ───
+function startCustom(map: string, theme: ThemeId): void {
+  sfx.unlock();
+  launch(
+    new Game(
+      {
+        teams: teams(),
+        unitsPerTeam: settings.units,
+        theme: THEMES[theme],
+        seed: (Math.random() * 2 ** 31) | 0,
+        turnTime: 30,
+        crates: settings.crates,
+        objects: settings.objects,
+        suddenDeath: settings.sudden,
+        map,
+        bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
+      },
+      { difficulty: settings.difficulty },
+      canvas,
+      input,
+      sfx,
+    ),
+  );
+}
+const editor = new EditorUi(show, startCustom);
+
 // ─── desafio do dia ───
 let dailyGame: Game | null = null;
 function startDaily(): void {
@@ -840,7 +869,16 @@ backend.presence.onInvite((inv) => {
 document.querySelectorAll<HTMLElement>('[data-back]').forEach((b) => b.addEventListener('click', () => show('menu')));
 show('menu');
 startDemo();
-void openLetterFromUrl().then((opened) => opened || friends.fromUrl() || online.autoJoin());
+void openLetterFromUrl().then(async (opened) => {
+  if (opened || friends.fromUrl()) return;
+  const shared = await mapFromUrl();
+  if (shared) {
+    saveMap(shared);
+    editor.open(shared);
+    return;
+  }
+  online.autoJoin();
+});
 $('#mail-create').addEventListener('click', () => {
   const name = ($('#mail-opponent') as HTMLInputElement).value.trim().slice(0, 14);
   startMail(null, name || 'Convidado');

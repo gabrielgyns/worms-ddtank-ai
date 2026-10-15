@@ -1704,3 +1704,62 @@ body.replay #boss-bar,
 body.boss-fight #banner {
   top: 34%;
 }
+
+/* ───────── editor ───────── */
+.card.wide {
+  width: min(920px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+#ed-canvas {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  touch-action: none;
+  cursor: crosshair;
+  image-rendering: pixelated;
+  max-width: 100%;
+}
+.ed-tools,
+.ed-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ed-tools .seg {
+  flex: 1 1 260px;
+}
+.brush {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 14px var(--font-title);
+}
+.ed-row input,
+.ed-row select {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  font: 16px var(--font-title);
+  color: var(--ink);
+  background: #fff;
+}
+.ed-row.wrap button {
+  flex: 1 1 auto;
+  padding: 9px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: #f3e6cf;
+  font-size: 15px;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.ed-row.wrap button.go {
+  background: linear-gradient(180deg, #8ff05a, #4fbf2a);
+  color: #fff;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+}

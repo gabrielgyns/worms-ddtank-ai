@@ -37,3 +37,23 @@ describe('partida por link', () => {
     expect(await decodeLetter('lixo!!')).toBeNull();
   });
 });
+
+import { pack, unpack } from '../src/core/pack';
+import { encodeMask } from '../src/domain/codec';
+import { Match } from '../src/domain/match';
+import { THEMES } from '../src/domain/theme';
+import { cpuTeam } from './helpers';
+
+describe('mapas desenhados', () => {
+  it('um mapa empacotado cabe num link e volta igual', async () => {
+    const mask = new Uint8Array(2800 * 1400);
+    for (let y = 900; y < 1400; y++) mask.fill(1, y * 2800 + 200, y * 2800 + 2600);
+    const code = await pack(JSON.stringify({ n: 'Plano', t: 'prado', d: encodeMask(mask) }));
+    expect(code.length).toBeLessThan(4000);
+    const back = JSON.parse((await unpack(code))!);
+    const m = new Match({ teams: [cpuTeam('A'), cpuTeam('B')], unitsPerTeam: 2, theme: THEMES[back.t as 'prado'], seed: 1, turnTime: 30, map: back.d, objects: false });
+    expect(m.terrain.isSolid(1400, 1000)).toBe(true);
+    expect(m.terrain.isSolid(1400, 800)).toBe(false);
+    for (const u of m.units) expect(Math.abs(u.y - 900)).toBeLessThan(30);
+  });
+});
