@@ -22,6 +22,7 @@ npm run dev        # servidor local (Vite)
 npm run typecheck  # tsc --noEmit — tem que passar sempre
 npm run build      # typecheck + dist/index.html em arquivo único
 npm test           # Vitest: testes do domínio em test/ (inclui partidas CPU x CPU completas)
+npm run balance    # CPU x CPU em massa por arma → docs/balanceamento.md (mudou arma? rode)
 ```
 
 Mudou regra de jogo? Rode `npm test` e confira no navegador. O branch `v0` guarda a versão de antes da V1.

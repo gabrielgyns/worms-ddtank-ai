@@ -58,7 +58,7 @@ export interface WeaponDef {
 }
 
 /** pedaço da bomba banana: explode ao tocar */
-const bananaPiece: ProjectileSpec = { kind: 'banana', blast: 42, damage: 30, windFactor: 0.3, bounce: 0, size: 5 };
+const bananaPiece: ProjectileSpec = { kind: 'banana', blast: 34, damage: 20, windFactor: 0.3, bounce: 0, size: 5 };
 
 const bomblet: ProjectileSpec = {
   kind: 'bomblet',
@@ -88,7 +88,7 @@ export const WEAPONS: readonly WeaponDef[] = [
     ammo: Infinity,
     mode: 'charge',
     maxSpeed: 760,
-    projectile: { kind: 'grenade', blast: 48, damage: 52, windFactor: 0, fuse: 3, bounce: 0.45, size: 4 },
+    projectile: { kind: 'grenade', blast: 50, damage: 52, windFactor: 0, fuse: 3, bounce: 0.45, size: 4 },
   },
   {
     id: 'triple',
@@ -98,8 +98,8 @@ export const WEAPONS: readonly WeaponDef[] = [
     ammo: 3,
     mode: 'charge',
     maxSpeed: 920,
-    spread: [-5, 0, 5],
-    projectile: { kind: 'missile', blast: 30, damage: 25, windFactor: 1, bounce: 0, size: 3 },
+    spread: [-3, 0, 3],
+    projectile: { kind: 'missile', blast: 32, damage: 30, windFactor: 1, bounce: 0, size: 3 },
   },
   {
     id: 'cluster',
@@ -174,7 +174,7 @@ export const WEAPONS: readonly WeaponDef[] = [
     ammo: 1,
     mode: 'drop',
     maxSpeed: 0,
-    projectile: { kind: 'sheep', blast: 62, damage: 55, windFactor: 0, fuse: 5, bounce: 0, size: 8, walker: 110 },
+    projectile: { kind: 'sheep', blast: 70, damage: 65, windFactor: 0, fuse: 5, bounce: 0, size: 8, walker: 110 },
   },
   {
     id: 'banana',
@@ -194,7 +194,7 @@ export const WEAPONS: readonly WeaponDef[] = [
     ammo: 1,
     mode: 'charge',
     maxSpeed: 700,
-    projectile: { kind: 'homing', blast: 44, damage: 42, windFactor: 0.5, bounce: 0, size: 4, homing: 4.2 },
+    projectile: { kind: 'homing', blast: 44, damage: 46, windFactor: 0.5, bounce: 0, size: 4, homing: 4.2 },
   },
   {
     id: 'bat',
