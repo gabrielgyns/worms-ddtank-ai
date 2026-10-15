@@ -77,7 +77,9 @@ De trás para frente: amigos chegam por link e entendem o jogo sozinhos (tutoria
 Itens `F9-01..F9-12` no BACKLOG, na ordem.
 
 ### Fase 10 — Skins e polimento visual
-Deixar a bolota de cada um com cara própria (bichos, prévias bonitas) e o jogo inteiro mais caprichado. Itens `F10-xx` no BACKLOG.
+Destino: visual na linha de **Worms W.M.D. e DDTank** (cartoon pintado, efeitos de anime/HQ), sem artista contratado.
+De trás para frente: skins caprichadas ← bolota com esqueleto (peças trocáveis) ← terreno e céu pintados ← efeitos na GPU ← **render na GPU (PixiJS)**.
+Trabalho na branch `fase10-visual`; entra na `main` quando aprovado. Itens `F10-xx` no BACKLOG.
 
 ### Fase 11 — Administração
 Ligar e desligar partes do jogo sem publicar código: feature flags controladas só pelo dono. Itens `F11-xx`.
@@ -104,4 +106,5 @@ Registro das escolhas e do porquê. Atualize quando mudar.
 | D15 | Tutorial = **lições que são partidas de missão** + um observador (`TutorialRun`) que só lê eventos e estado | Nenhuma regra especial no `Match`; vento diferente por lição em vez de mudar no meio da partida. Os passos são catálogo declarativo e a solubilidade é testada com a CPU. |
 | D16 | Balanceamento **medido**, não no olho: `npm run balance` roda CPU x CPU e escreve `docs/balanceamento.md` | A CPU usa a física do jogo, então os números refletem o jogo real. Mudou dano/raio de arma? Rode de novo e compare. A granada sai mal nos números porque a CPU erra quiques; isso é limite da CPU, não da arma. |
 | D17 | Admin por **conta** (tabela `admins` + função `set_flag` com RLS), não por código no cliente | Qualquer código dentro do jogo é visível para quem abre o JavaScript. Flags de arma e item entram no setup da partida (`disabledWeapons`/`disabledItems`), então os dois lados do online jogam igual mesmo se um carregou flags antigos. |
+| D18 | Visual novo **na GPU (PixiJS)**, migrado em camadas atrás de uma opção | Efeitos com brilho aditivo, filtros (onda de choque, blur) e milhares de partículas não cabem no Canvas 2D. A regra continua intocada (domínio não sabe desenhar); o desenho antigo vira uma camada dentro do Pixi até cada parte ser substituída, então o jogo nunca fica quebrado no meio da troca. |
 | D14 | **PC primeiro**; celular fica para depois, talvez nativo | A versão web no celular ficou com bugs. Antes de investir nela, avaliar um cliente nativo (Godot, Unity ou outro). Dica para essa avaliação: o domínio em TypeScript (determinístico, lockstep) é o contrato. Um cliente nativo precisa simular igual ou falar com o mesmo protocolo, então reescrever a física em outra linguagem quebra o online entre PC e celular. Caminhos que mantêm a regra única: casca nativa sobre o mesmo código (Capacitor, que já existe), ou levar o domínio junto (JS embutido). |

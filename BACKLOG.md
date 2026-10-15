@@ -119,6 +119,10 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 > Cosmético nunca muda a regra. A bolota mantém a cor do time (para reconhecer o lado); a skin acrescenta o bicho.
 
 - [x] **F10-01** · P1 · M — Bichos: hamster e gato (orelhas, focinho, bigodes/bochechas, rabo). Encaixe novo "Bicho" na loja e no Visual.
+- [ ] **F10-07** · P0 · G — Render na GPU (PixiJS): camadas novas (céu, paralaxe, terreno, efeitos) na GPU; o desenho atual vira uma camada por cima até ser trocado. Escolha nos Ajustes (Clássico / Novo).
+- [ ] **F10-08** · P0 · G — Efeitos estilo Worms W.M.D./anime por código: fogo, fumaça em camadas, brasas, destroços, onda de choque, quadro de impacto, linhas de velocidade, brilho aditivo.
+- [ ] **F10-09** · P1 · G — Terreno e céu "pintados": textura e luz no terreno, grama caindo pela borda, paralaxe com perspectiva de ar, partículas no ar (folhas, poeira).
+- [ ] **F10-10** · P1 · G — Bolota com esqueleto (peças + animação: parado, andar, pular, apanhar, comemorar); skins trocam peças.
 - [ ] **F10-02** · P2 · M — Mais bichos: cachorro, coelho, panda, sapo, pinguim.
 - [ ] **F10-03** · P2 · M — Prévia giratória na loja e no Visual (bolota andando, pulando e comemorando com o item).
 - [ ] **F10-04** · P2 · M — Polimento do menu: fundo animado mais rico, transições entre telas, botões com som e "pop".
