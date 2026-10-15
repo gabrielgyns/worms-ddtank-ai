@@ -551,6 +551,9 @@ export class Game {
     for (const mn of m.mines) drawMine(c, mn, t);
 
     const holding = m.phase === 'turn' && !!m.active ? m.weapon.id : null;
+    // todo mundo acompanha com os olhos o que está voando
+    const flying = m.projectiles[0];
+    const watch = flying ? { x: flying.x, y: flying.y } : null;
     for (const u of m.units) {
       if (!u.alive) continue;
       drawRope(c, u);
@@ -558,7 +561,16 @@ export class Game {
       const active = u === m.active && m.phase !== 'over';
       const celebrate = m.phase === 'over' && m.winner === u.team;
       if (active && m.boost.power) drawPowerAura(c, u, t);
-      drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate, charging: active && m.charging });
+      drawUnit(c, u, {
+        active,
+        holding: active ? holding : null,
+        hurt: this.fx.hurt.get(u.id) ?? 0,
+        time: t,
+        celebrate,
+        charging: active && m.charging,
+        emotion: this.fx.emotion.get(u.id)?.kind,
+        lookAt: watch,
+      });
       if (u.shield) drawShield(c, u, t);
     }
     if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') {

@@ -1,7 +1,7 @@
 import type { Team, Unit } from '../domain/unit';
 import type { CatPose } from './cat';
 import { drawEyewear, drawHat } from './cosmetics';
-import { drawFace, drawHand, type Mood, type UnitDrawOpts } from './hero';
+import { drawFace, drawHand, wailMouth, type Mood, type UnitDrawOpts } from './hero';
 import { drawHeldWeapon, INK } from './sprites';
 
 const HEAD_Y = -19.5;
@@ -32,7 +32,13 @@ function puffOf(mood: Mood, t: number): number {
       return 1.15;
     case 'celebrate':
       return 1.2 + Math.sin(t * 8) * 0.08;
+    case 'smug':
+      return 1.25;
+    case 'angry':
+      // bochechas infladas de raiva
+      return 1.35 + Math.sin(t * 18) * 0.03;
     case 'hurt':
+    case 'sob':
       return 0.85;
     default:
       return 1 + Math.sin(t * 2) * 0.03;
@@ -155,7 +161,7 @@ function drawHamsterHead(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts, 
   const team = u.team;
   const puff = puffOf(mood, t);
   // orelhinhas redondas: caem para trás com medo, tremem no susto
-  const back = mood === 'hurt' || mood === 'worried' ? 0.7 : mood === 'fall' ? 0.3 + Math.sin(t * 30) * 0.1 : 0;
+  const back = mood === 'hurt' || mood === 'worried' || mood === 'sob' || mood === 'angry' ? 0.7 : mood === 'fall' ? 0.3 + Math.sin(t * 30) * 0.1 : 0;
   const twitch = (t + u.seed) % 3.9 < 0.1 ? 0.3 : 0;
   ear(c, team, -6, -10.5, -back, true);
   ear(c, team, 5.5, -11.5, back * 0.6 + twitch, false);
@@ -312,6 +318,27 @@ export function drawHamsterMouth(c: CanvasRenderingContext2D, mood: Mood): void 
       c.lineTo(mx + 2.6, my + 0.4);
       c.stroke();
       teeth(my + 0.4, 2.2);
+      break;
+    case 'smug':
+      c.lineWidth = 1.2;
+      c.beginPath();
+      c.moveTo(mx - 2.8, my - 0.2);
+      c.quadraticCurveTo(mx, my + 1.4, mx + 2.8, my - 1.4);
+      c.stroke();
+      teeth(my + 0.3, 2);
+      break;
+    case 'angry':
+      // dentões cerrados com a boca torta
+      c.lineWidth = 1.4;
+      c.beginPath();
+      c.moveTo(mx - 3.4, my + 1.2);
+      c.quadraticCurveTo(mx, my - 0.8, mx + 3, my + 1.2);
+      c.stroke();
+      teeth(my - 0.2, 1.6);
+      break;
+    case 'sob':
+      wailMouth(c, mx - 0.4, my, 0);
+      teeth(my - 0.6, 1.6);
       break;
     case 'worried':
       teeth(my, 2.2);

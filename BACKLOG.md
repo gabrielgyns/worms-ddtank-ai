@@ -129,7 +129,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F10-11** · P2 · M — Voz de balbucio: as falas dos balões viram sílabas sintetizadas com a vogal certa e a entonação da frase; timbre por bicho (bolota, gato, hamster, Rei). Liga/desliga nos ajustes.
 - [x] **F10-12** · P2 · G — Pacotes de voz gravados (roteiro em `docs/vozes.md`): voz mais aguda, variação por time, sorteio entre falas; cada pacote é item da loja. **Feito**: "Voz original" (43 falas) na loja, espaço Voz; `VoiceDirector` liga as falas aos eventos. Próximos pacotes: gravar e rodar `scripts/voz/`.
 - [ ] **F10-05** · P2 · M — Explosões e água mais bonitas (fumaça em camadas, onda na água, respingo com espuma).
-- [ ] **F10-06** · P2 · P — Expressões: bolota sorri ao acertar, fica brava ao errar, chora ao perder muita vida.
+- [x] **F10-06** · P2 · P — Expressões: bolota sorri ao acertar, fica brava ao errar, chora ao perder muita vida. **Feito**: emoções passageiras (convencido, bravo com veia 💢, choro com cascata de lágrimas) vindas dos eventos, em bolota, gato e hamster; todos acompanham o míssil com os olhos.
 
 ## Fase 11 — Administração
 

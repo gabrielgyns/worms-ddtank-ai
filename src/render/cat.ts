@@ -1,6 +1,6 @@
 import type { Team, Unit } from '../domain/unit';
 import { drawEyewear, drawHat } from './cosmetics';
-import { drawFace, drawHand, type Mood, type UnitDrawOpts } from './hero';
+import { drawFace, drawHand, wailMouth, type Mood, type UnitDrawOpts } from './hero';
 import { drawHeldWeapon, INK } from './sprites';
 
 /** Pose já calculada pelo drawUnit (humor, achatar/esticar, passo). */
@@ -197,8 +197,8 @@ function drawCatBody(c: CanvasRenderingContext2D, team: Team): void {
 function drawCatHead(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts, mood: Mood, t: number): void {
   const team = u.team;
   // orelhas: em pé mirando, murchas com medo, tremendo no susto
-  const flat = mood === 'hurt' || mood === 'worried' ? 0.75 : mood === 'fall' ? 0.35 + Math.sin(t * 30) * 0.08 : 0;
-  const perk = mood === 'aim' || mood === 'charge' ? -0.12 : 0;
+  const flat = mood === 'hurt' || mood === 'worried' || mood === 'sob' ? 0.75 : mood === 'angry' ? 0.95 : mood === 'fall' ? 0.35 + Math.sin(t * 30) * 0.08 : 0;
+  const perk = mood === 'aim' || mood === 'charge' || mood === 'smug' ? -0.12 : 0;
   const twitch = (t + u.seed) % 4.3 < 0.12 ? 0.25 : 0;
   drawEar(c, team, -6.5, -10.5, -flat - perk, -11, -21, true);
   drawEar(c, team, 6, -11, flat + perk + twitch, 10.5, -21.5, false);
@@ -343,13 +343,21 @@ function drawTail(c: CanvasRenderingContext2D, team: Team, mood: Mood, t: number
       pts = [-12, -6, -11 + s, -22, -7 + s, -32];
       break;
     }
+    case 'smug': {
+      // rabo em pé, balançando devagar: todo orgulhoso
+      const s = Math.sin(t * 3) * 3;
+      pts = [-14, -6, -12 + s, -24, -9 + s, -31];
+      break;
+    }
     case 'hurt':
     case 'fall':
+    case 'angry':
       // eriçado
       pts = [-17, -6, -19, -18, -15 + Math.sin(t * 30), -27];
       width = 8;
       break;
     case 'worried':
+    case 'sob':
       pts = [-15, 0, -22, -1, -21, -8];
       break;
     case 'aim':
@@ -385,7 +393,7 @@ function drawTail(c: CanvasRenderingContext2D, team: Team, mood: Mood, t: number
   c.fillStyle = MUZZLE;
   ellipse(c, pts[4], pts[5], width * 0.55, width * 0.55);
   c.fill();
-  if (mood === 'hurt' || mood === 'fall') {
+  if (mood === 'hurt' || mood === 'fall' || mood === 'angry') {
     // pelos arrepiados
     c.strokeStyle = INK;
     c.lineWidth = 1.2;
@@ -508,6 +516,27 @@ export function drawCatMouth(c: CanvasRenderingContext2D, mood: Mood): void {
       c.stroke();
       fang(mx - 2);
       fang(mx + 2);
+      break;
+    case 'smug':
+      omega();
+      fang(mx + 1.6);
+      break;
+    case 'angry':
+      // chiado de gato bravo: boca aberta com as duas presas
+      c.fillStyle = '#5a1620';
+      c.beginPath();
+      c.moveTo(mx - 3, my);
+      c.lineTo(mx + 3, my);
+      c.lineTo(mx + 1.6, my + 2.6);
+      c.lineTo(mx - 1.6, my + 2.6);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      fang(mx - 1.7);
+      fang(mx + 1.7);
+      break;
+    case 'sob':
+      wailMouth(c, mx, my, 0);
       break;
     case 'worried':
       c.beginPath();

@@ -6,6 +6,7 @@ import type { Look } from '../domain/cosmetics';
 import { weaponById } from '../domain/weapons';
 import { trailParticle } from './cosmetics';
 import { HIGH, type Quality } from './quality';
+import type { Emotion } from './hero';
 import { drawGrave, FONT, INK } from './sprites';
 
 interface Particle {
@@ -72,6 +73,7 @@ export class Effects {
   }
 
   private onEvent(e: GameEvent): void {
+    this.trackFeelings(e);
     switch (e.type) {
       case 'explosion':
         this.explosion(e.x, e.y, e.r);
@@ -309,7 +311,61 @@ export class Effects {
     this.onSpeak?.(text, u.team.id, u);
   }
 
+  /** Emoção passageira de cada bolota (id → qual e quanto tempo falta). Só visual. */
+  readonly emotion = new Map<number, { kind: Emotion; t: number }>();
+  /** o tiro em andamento, para saber se acertou alguém ou foi no vazio */
+  private shot: { unit: Unit; t: number; enemy: boolean; self: boolean } | null = null;
+
+  private feel(u: Unit | null, kind: Emotion, t: number): void {
+    if (u && u.alive) this.emotion.set(u.id, { kind, t });
+  }
+
+  /** Acertou: convencido. Errou: bravo. Apanhou feio: chora. Fogo amigo: bravo com o colega. */
+  private trackFeelings(e: GameEvent): void {
+    switch (e.type) {
+      case 'fire':
+        if (e.weapon !== 'teleport' && e.weapon !== 'rope' && e.weapon !== 'parachute' && e.weapon !== 'girder')
+          this.shot = { unit: e.unit, t: 7, enemy: false, self: false };
+        break;
+      case 'explosion':
+        if (this.shot && e.by === this.shot.unit) this.shot.t = Math.min(this.shot.t, 0.9);
+        break;
+      case 'damage': {
+        const { unit, by } = e;
+        if (this.shot && by === this.shot.unit) {
+          if (unit === by) this.shot.self = true;
+          else if (unit.team !== by.team) this.shot.enemy = true;
+        }
+        if (unit.hp <= 0) break;
+        if (by === unit || (by && by.team === unit.team)) this.feel(unit, 'angry', 2.6);
+        else if (e.amount >= 30) this.feel(unit, 'sob', 2.8);
+        if (by && by !== unit && by.team !== unit.team && e.amount >= 10) this.feel(by, 'smug', 2.4);
+        break;
+      }
+      case 'death':
+        if (e.by && e.by.team !== e.unit.team) this.feel(e.by, 'smug', 3);
+        break;
+      case 'turnStart':
+        this.shot = null;
+        break;
+      default:
+        break;
+    }
+  }
+
   update(dt: number): void {
+    for (const [id, f] of this.emotion) {
+      f.t -= dt;
+      if (f.t <= 0) this.emotion.delete(id);
+    }
+    const s = this.shot;
+    if (s) {
+      s.t -= dt;
+      if (s.t <= 0) {
+        this.shot = null;
+        if (!s.enemy && !s.self) this.feel(s.unit, 'angry', 2.4);
+      }
+    }
     for (const b of this.bubbles) b.life -= dt;
     this.bubbles = this.bubbles.filter((b) => b.life > 0);
     for (const [id, t] of this.hurt) {

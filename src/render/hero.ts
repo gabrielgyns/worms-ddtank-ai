@@ -14,10 +14,17 @@ export interface UnitDrawOpts {
   celebrate?: boolean;
   /** carregando a força do tiro agora */
   charging?: boolean;
+  /** emoção passageira vinda do jogo (acertou, errou, apanhou feio) */
+  emotion?: Emotion;
+  /** algo voando para olhar (o míssil), em coordenadas do mundo */
+  lookAt?: { x: number; y: number } | null;
 }
 
+/** Emoções que os eventos da partida provocam por alguns segundos. */
+export type Emotion = 'smug' | 'angry' | 'sob';
+
 /** O que a bolota está "sentindo" — escolhe olhos, boca, braços e pose. */
-export type Mood = 'idle' | 'walk' | 'aim' | 'charge' | 'jump' | 'fall' | 'hurt' | 'worried' | 'celebrate';
+export type Mood = 'idle' | 'walk' | 'aim' | 'charge' | 'jump' | 'fall' | 'hurt' | 'worried' | 'celebrate' | Emotion;
 
 /** Memória de animação por bolota (aterrissagem, para achatar e esticar). Só visual. */
 const anim = new WeakMap<Unit, { wasGround: boolean; land: number; lastT: number }>();
@@ -65,7 +72,9 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
           ? 'jump'
           : o.charging
             ? 'charge'
-            : o.active && o.holding
+            : o.emotion
+              ? o.emotion
+              : o.active && o.holding
               ? 'aim'
               : Math.abs(Math.sin(u.walkPhase)) > 0.05 && o.active
                 ? 'walk'
@@ -313,9 +322,17 @@ export type FaceKind = 'bolota' | 'cat' | 'hamster';
 
 export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawOpts, t: number, kind: FaceKind = 'bolota'): void {
   const cat = kind === 'cat';
-  const blink = mood !== 'hurt' && mood !== 'celebrate' && (t + u.seed) % 3.7 < 0.11;
-  const lookX = Math.cos(u.aim) * 1.1;
-  const lookY = -Math.sin(u.aim) * 1.3;
+  const blink = mood !== 'hurt' && mood !== 'celebrate' && mood !== 'sob' && (t + u.seed) % 3.7 < 0.11;
+  // olha para onde mira; se tem algo voando, acompanha com os olhos
+  let lookX = Math.cos(u.aim) * 1.1;
+  let lookY = -Math.sin(u.aim) * 1.3;
+  if (o.lookAt) {
+    const dx = (o.lookAt.x - u.x) * u.facing;
+    const dy = o.lookAt.y - (u.y - 20);
+    const d = Math.hypot(dx, dy) || 1;
+    lookX = (dx / d) * 1.5;
+    lookY = (dy / d) * 1.6;
+  }
   const eyes: Array<[number, number, number]> = [
     [3.6, 4.2, 5.2],
     [9.8, 3.1, 4.6],
@@ -325,6 +342,16 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
 
   for (const [ex, rx, ry] of eyes) {
     const ey = 0.8;
+    if (mood === 'sob') {
+      // "T_T": olho apertado numa linha, as lágrimas saem por baixo
+      c.strokeStyle = INK;
+      c.lineWidth = 2.2;
+      c.beginPath();
+      c.moveTo(ex - rx * 0.9, ey - 0.6);
+      c.quadraticCurveTo(ex, ey + 1.2, ex + rx * 0.9, ey - 0.6);
+      c.stroke();
+      continue;
+    }
     if (blink || mood === 'celebrate') {
       // fechado: arco (feliz "^" na comemoração)
       c.strokeStyle = INK;
@@ -373,10 +400,18 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
     if (cat && !wide) ellipse(c, ix, iy + 0.2, ir * (mood === 'aim' || mood === 'charge' ? 0.18 : 0.32), ir * 1.05);
     else ellipse(c, ix, iy + 0.2, ir * (cat ? 0.85 : 0.5), ir * (cat ? 0.95 : 0.62));
     c.fill();
-    // pálpebra de cima: foco (mirando/carregando) corta o olho
-    if (mood === 'aim' || mood === 'charge') {
-      c.fillStyle = u.team.color;
-      c.fillRect(ex - rx - 1, ey - ry - 1, rx * 2 + 2, ry * (mood === 'charge' ? 0.8 : 0.55));
+    // pálpebra de cima: foco (mirando/carregando) e convencido cortam o olho reto; bravo corta na diagonal
+    c.fillStyle = u.team.color;
+    if (mood === 'aim' || mood === 'charge' || mood === 'smug') {
+      c.fillRect(ex - rx - 1, ey - ry - 1, rx * 2 + 2, ry * (mood === 'charge' ? 0.8 : mood === 'smug' ? 0.95 : 0.55));
+    } else if (mood === 'angry') {
+      const inner = ex < 6 ? 1 : -1;
+      c.beginPath();
+      c.moveTo(ex - rx * inner * 1.2, ey - ry - 1);
+      c.lineTo(ex + rx * inner * 1.2, ey - ry - 1);
+      c.lineTo(ex + rx * inner * 1.2, ey + ry * 0.1);
+      c.closePath();
+      c.fill();
     }
     c.restore();
     // brilhos (dois, estilo anime)
@@ -389,10 +424,14 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
     c.strokeStyle = INK;
     c.lineWidth = 2.2;
     c.beginPath();
-    const lidY = mood === 'aim' ? ey - ry * 0.45 : mood === 'charge' ? ey - ry * 0.2 : ey;
-    if (mood === 'aim' || mood === 'charge') {
+    const lidY = mood === 'aim' ? ey - ry * 0.45 : mood === 'charge' ? ey - ry * 0.2 : mood === 'smug' ? ey - ry * 0.05 : ey;
+    if (mood === 'aim' || mood === 'charge' || mood === 'smug') {
       c.moveTo(ex - rx, lidY + 0.6);
       c.lineTo(ex + rx, lidY - 0.6);
+    } else if (mood === 'angry') {
+      const inner = ex < 6 ? 1 : -1;
+      c.moveTo(ex - rx * inner, ey - ry * 0.95);
+      c.lineTo(ex + rx * inner, ey + ry * 0.1);
     } else c.ellipse(ex, ey, rx, ry, 0, Math.PI * 1.08, Math.PI * 1.92);
     c.stroke();
   }
@@ -406,7 +445,20 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
     c.lineTo(6.5, -4.4);
     c.moveTo(7.8, -4.4);
     c.lineTo(12.6, -6);
-  } else if (mood === 'worried' || mood === 'fall' || mood === 'hurt') {
+  } else if (mood === 'angry') {
+    // "V" bem fechado
+    c.lineWidth = 2.4;
+    c.moveTo(0, -8);
+    c.lineTo(6.4, -4.2);
+    c.moveTo(7.4, -4.2);
+    c.lineTo(13, -8);
+  } else if (mood === 'smug') {
+    // uma sobrancelha arqueada, a outra baixa: "fui eu mesmo"
+    c.moveTo(0.4, -9);
+    c.quadraticCurveTo(3, -10.6, 6, -8.4);
+    c.moveTo(8, -4.8);
+    c.lineTo(12.6, -5.2);
+  } else if (mood === 'worried' || mood === 'fall' || mood === 'hurt' || mood === 'sob') {
     c.moveTo(0.4, -4.6);
     c.lineTo(6, -6.6);
     c.moveTo(8, -6.4);
@@ -432,14 +484,11 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
   c.fillStyle = 'rgba(255,90,120,0.28)';
   ellipse(c, 3.2 + bo, 8, 3.2, 1.6);
   c.fill();
-  if (cat) {
-    drawCatMouth(c, mood);
+  if (cat || kind === 'hamster') {
+    if (cat) drawCatMouth(c, mood);
+    else drawHamsterMouth(c, mood);
     drawSweat(c, mood, t);
-    return;
-  }
-  if (kind === 'hamster') {
-    drawHamsterMouth(c, mood);
-    drawSweat(c, mood, t);
+    drawEmotionMarks(c, mood, t, cat ? 7.2 : 12.8);
     return;
   }
 
@@ -484,6 +533,30 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
       }
       c.stroke();
       break;
+    case 'smug':
+      // sorrisinho torto
+      c.moveTo(mx - 3, my - 0.2);
+      c.quadraticCurveTo(mx, my + 2, mx + 3.4, my - 1.8);
+      c.stroke();
+      break;
+    case 'angry':
+      // dentes cerrados numa boca de raiva
+      c.fillStyle = '#ffffff';
+      c.moveTo(mx - 3.4, my + 2);
+      c.quadraticCurveTo(mx, my - 1.4, mx + 3.4, my + 2);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.beginPath();
+      c.moveTo(mx - 1.2, my + 0.5);
+      c.lineTo(mx - 1.2, my + 1.9);
+      c.moveTo(mx + 1.2, my + 0.5);
+      c.lineTo(mx + 1.2, my + 1.9);
+      c.stroke();
+      break;
+    case 'sob':
+      wailMouth(c, mx, my, t);
+      break;
     case 'charge':
       c.moveTo(mx - 3, my + 0.6);
       c.lineTo(mx + 3, my - 0.4);
@@ -505,7 +578,94 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
   }
 
   drawSweat(c, mood, t);
+  drawEmotionMarks(c, mood, t, mx);
   void o;
+}
+
+/** Boca de choro escancarada, tremendo. */
+export function wailMouth(c: CanvasRenderingContext2D, mx: number, my: number, t: number): void {
+  const w = Math.sin(t * 22) * 0.35;
+  c.fillStyle = '#5a1620';
+  c.beginPath();
+  c.moveTo(mx - 3.2, my + 0.4 + w);
+  c.quadraticCurveTo(mx, my - 1.6, mx + 3.2, my + 0.4 - w);
+  c.quadraticCurveTo(mx + 2.2, my + 4.6, mx, my + 4.2);
+  c.quadraticCurveTo(mx - 2.2, my + 4.6, mx - 3.2, my + 0.4 + w);
+  c.closePath();
+  c.fill();
+  c.strokeStyle = INK;
+  c.lineWidth = 1.5;
+  c.stroke();
+  c.fillStyle = '#ff7a8a';
+  ellipse(c, mx, my + 3.1, 1.6, 0.9);
+  c.fill();
+}
+
+/**
+ * Marcas de mangá por cima do rosto: lágrimas em cascata (choro), a veia de raiva
+ * (bravo) e um brilho de "sou demais" (convencido). `mx` é onde fica a boca.
+ */
+function drawEmotionMarks(c: CanvasRenderingContext2D, mood: Mood, t: number, mx: number): void {
+  if (mood === 'sob') {
+    // duas cachoeiras saindo dos olhos, com gotas pingando no fim
+    for (const ex of [3.6, 9.8]) {
+      const sway = Math.sin(t * 9 + ex) * 0.6;
+      c.fillStyle = 'rgba(140,215,255,0.9)';
+      c.strokeStyle = INK;
+      c.lineWidth = 1.1;
+      c.beginPath();
+      c.moveTo(ex - 1.3, 1.2);
+      c.quadraticCurveTo(ex - 1.6 + sway, 6, ex - 0.6 + sway, 11.5);
+      c.lineTo(ex + 1.4 + sway, 11.5);
+      c.quadraticCurveTo(ex + 1.6 + sway, 6, ex + 1.3, 1.2);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      const k = (t * 3 + ex) % 1;
+      c.fillStyle = 'rgba(140,215,255,0.95)';
+      ellipse(c, ex + 0.4 + sway + k * 2, 12.5 + k * 6, 1.1, 1.4);
+      c.fill();
+    }
+  } else if (mood === 'angry') {
+    // a "veia" de raiva 💢 pulsando na testa
+    const s = 1 + Math.max(0, Math.sin(t * 10)) * 0.18;
+    c.save();
+    c.translate(-6.5, -7.5);
+    c.scale(s, s);
+    c.strokeStyle = '#e8434b';
+    c.lineWidth = 1.6;
+    c.lineCap = 'round';
+    c.beginPath();
+    for (const [qx, qy] of [
+      [-1, -1],
+      [1, -1],
+      [1, 1],
+      [-1, 1],
+    ] as const) {
+      c.moveTo(qx * 0.9, qy * 3);
+      c.quadraticCurveTo(qx * 0.9, qy * 0.9, qx * 3, qy * 0.9);
+    }
+    c.stroke();
+    c.restore();
+  } else if (mood === 'smug') {
+    // brilhinho de "sou demais" perto da boca
+    const k = 0.7 + Math.sin(t * 8) * 0.3;
+    c.save();
+    c.translate(mx + 6, 2.5);
+    c.scale(k, k);
+    c.fillStyle = '#fff6b8';
+    c.strokeStyle = INK;
+    c.lineWidth = 0.9;
+    c.beginPath();
+    c.moveTo(0, -3.4);
+    c.quadraticCurveTo(0.5, -0.5, 3.4, 0);
+    c.quadraticCurveTo(0.5, 0.5, 0, 3.4);
+    c.quadraticCurveTo(-0.5, 0.5, -3.4, 0);
+    c.quadraticCurveTo(-0.5, -0.5, 0, -3.4);
+    c.fill();
+    c.stroke();
+    c.restore();
+  }
 }
 
 /** Gota de suor: medo e vida baixa. */
