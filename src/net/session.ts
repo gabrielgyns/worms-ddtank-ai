@@ -6,11 +6,11 @@ import type { MsgOf, WireSetup } from './protocol';
 import type { Room } from './room';
 
 export function toWire(s: MatchSetup): WireSetup {
-  return { teams: s.teams, unitsPerTeam: s.unitsPerTeam, themeId: s.theme.id, seed: s.seed, turnTime: s.turnTime, crates: s.crates, suddenDeath: s.suddenDeath };
+  return { teams: s.teams, unitsPerTeam: s.unitsPerTeam, themeId: s.theme.id, seed: s.seed, turnTime: s.turnTime, crates: s.crates, suddenDeath: s.suddenDeath, bossHp: s.bossHp };
 }
 
 export function fromWire(w: WireSetup): MatchSetup {
-  return { teams: w.teams, unitsPerTeam: w.unitsPerTeam, theme: THEMES[w.themeId], seed: w.seed, turnTime: w.turnTime, crates: w.crates, suddenDeath: w.suddenDeath };
+  return { teams: w.teams, unitsPerTeam: w.unitsPerTeam, theme: THEMES[w.themeId], seed: w.seed, turnTime: w.turnTime, crates: w.crates, suddenDeath: w.suddenDeath, bossHp: w.bossHp };
 }
 
 /** Atraso-alvo do convidado em ticks: absorve variação de rede sem travar. */
@@ -155,6 +155,8 @@ export class NetSession {
         }
         if (!team) return NO_INPUT;
         if (g.isLocal(team.id)) return g.humanInput();
+        // CPU (chefão no co-op): quem decide é o host
+        if (team.control === 'cpu') return g.cpuInput();
         // vez do convidado: aplica uma entrada recebida por tick
         return this.remoteQueue.shift() ?? NO_INPUT;
       },

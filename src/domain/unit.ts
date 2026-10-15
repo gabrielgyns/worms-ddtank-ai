@@ -18,6 +18,10 @@ export interface Team {
   weapon: WeaponId;
   /** cosméticos (só visual) */
   look: Look;
+  /** times do mesmo lado são aliados (co-op contra o chefão) */
+  side: number;
+  /** é o time do chefão */
+  boss: boolean;
 }
 
 /** Uma "bolota": o soldadinho redondo controlado por um time. */
@@ -38,6 +42,8 @@ export class Unit {
   lastPower = -1;
   /** maior velocidade de queda desde que saiu do chão */
   fallSpeed = 0;
+  /** tamanho (1 = bolota normal; o chefão é bem maior) */
+  size = 1;
   /** quem acertou esta bolota por último (para creditar a eliminação) */
   lastHitBy: Unit | null = null;
   /** só cosmético (piscar, respirar); derivado do id para não depender de Math.random */
@@ -58,7 +64,11 @@ export class Unit {
   }
   /** centro do corpo (x, y é o pé) */
   get cy(): number {
-    return this.y - 12;
+    return this.y - 12 * this.size;
+  }
+
+  get radius(): number {
+    return UNIT_RADIUS * this.size;
   }
 }
 

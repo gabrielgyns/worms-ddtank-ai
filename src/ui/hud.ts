@@ -21,6 +21,8 @@ export class Hud {
   private teams = $('#teams');
   private bar = $('#weapons');
   private banner = $('#banner');
+  private bossBar = $('#boss-bar');
+  private bossMax = 0;
   private buttons = new Map<string, { el: HTMLButtonElement; ammo: HTMLElement }>();
   private teamBars: Array<{ fill: HTMLElement; num: HTMLElement; max: number }> = [];
   private last = new Map<string, string>();
@@ -54,6 +56,9 @@ export class Hud {
 
   bind(game: Game): void {
     this.game = game;
+    const boss = game.match.units.find((u) => u.team.boss);
+    this.bossMax = boss ? boss.hp : 0;
+    this.bossBar.hidden = !boss;
     this.teams.innerHTML = '';
     this.teamBars = [];
     this.last.clear();
@@ -73,7 +78,9 @@ export class Hud {
       } else if (e.type === 'suddenDeath') {
         this.show('Morte súbita! A água vai subir 🌊', '#3d6fd8', 2.6);
       } else if (e.type === 'gameOver') {
-        this.show(e.winner ? `${e.winner.name} venceu!` : 'Empate!', e.winner?.color ?? '#999', 99);
+        const boss = game.match.teams.some((t) => t.boss);
+        const text = !e.winner ? 'Empate!' : boss ? (e.winner.boss ? 'O Rei venceu!' : 'Vitória em equipe!') : `${e.winner.name} venceu!`;
+        this.show(text, e.winner?.color ?? '#999', 99);
       }
     });
   }
@@ -155,6 +162,14 @@ export class Hud {
       });
     }
 
+    const boss = this.bossMax ? m.units.find((u) => u.team.boss) : null;
+    if (boss) {
+      const hp = Math.max(0, Math.ceil(boss.alive ? boss.hp : 0));
+      this.set('boss', String(hp), () => {
+        (this.bossBar.querySelector('.fill') as HTMLElement).style.width = `${(hp / this.bossMax) * 100}%`;
+        (this.bossBar.querySelector('span') as HTMLElement).textContent = `${hp}/${this.bossMax}`;
+      });
+    }
     m.teams.forEach((t, i) => {
       const tb = this.teamBars[i];
       const hp = m.teamHp(t);

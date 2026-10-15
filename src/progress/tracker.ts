@@ -100,7 +100,7 @@ export class MatchTracker {
       case 'damage': {
         if (!e.by) break;
         const s = this.teams[e.by.team.id];
-        if (e.by.team === e.unit.team) s.selfDamage += e.amount;
+        if (e.by.team.side === e.unit.team.side) s.selfDamage += e.amount;
         else {
           s.damage += e.amount;
           this.teams[e.unit.team.id].damageTaken += e.amount;
@@ -113,7 +113,7 @@ export class MatchTracker {
       }
       case 'death': {
         this.teams[e.unit.team.id].lost++;
-        if (e.by && e.by.team !== e.unit.team) {
+        if (e.by && e.by.team.side !== e.unit.team.side) {
           const s = this.teams[e.by.team.id];
           s.kills++;
           if (e.unit.drowned) s.drowns++;

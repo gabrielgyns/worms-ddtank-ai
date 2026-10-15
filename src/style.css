@@ -1654,3 +1654,53 @@ button.big.daily {
   font-weight: 700;
   opacity: 0.65;
 }
+
+/* ───────── chefão ───────── */
+#boss-bar {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #3d1d6e;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  color: #fff;
+  font: 14px var(--font-title);
+  box-shadow: 0 3px 0 var(--ink);
+}
+#boss-bar[hidden] {
+  display: none;
+}
+#boss-bar b {
+  font-weight: normal;
+  white-space: nowrap;
+}
+#boss-bar .bar {
+  height: 12px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #24113f;
+  overflow: hidden;
+}
+#boss-bar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff4a6a, #ffb03a);
+  transition: width 0.5s;
+}
+#boss-bar span {
+  font-variant-numeric: tabular-nums;
+}
+body.replay #boss-bar,
+#net-warn:not([hidden]) ~ #boss-bar {
+  top: 130px;
+}
+
+body.boss-fight #banner {
+  top: 34%;
+}

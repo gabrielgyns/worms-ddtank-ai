@@ -15,6 +15,7 @@ export interface WireSetup {
   turnTime: number;
   crates?: boolean;
   suddenDeath?: number;
+  bossHp?: number;
 }
 
 export interface LobbyPlayer {
@@ -30,6 +31,8 @@ export interface LobbyState {
   guest: LobbyPlayer | null;
   units: number;
   themeId: ThemeId | 'random';
+  /** duelo (um contra o outro) ou chefão (juntos contra o Rei Bolotão) */
+  mode?: 'duel' | 'boss';
 }
 
 /**

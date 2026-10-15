@@ -1,6 +1,7 @@
 import type { Sfx } from './core/audio';
 import type { Input } from './core/input';
 import { AiController, type Difficulty } from './domain/ai';
+import { BossAi } from './domain/boss';
 import { DT, isEmptyInput, NO_INPUT, type Command, type TickInput } from './domain/commands';
 import { Match, type MatchSetup } from './domain/match';
 import { WEAPONS, type WeaponId } from './domain/weapons';
@@ -41,6 +42,7 @@ export class Game {
   private bg: Background;
   readonly fx: Effects;
   private ai: AiController;
+  private bossAi = new BossAi();
   private acc = 0;
   private time = 0;
   paused = false;
@@ -284,8 +286,15 @@ export class Game {
         this.replayIdx++;
       }
     } else if (this.humanTurn) input = this.humanControl();
-    else if (m.activeTeam) input = this.ai.decide(m);
+    else if (m.activeTeam) input = this.cpuInput();
     return input;
+  }
+
+  /** Decisão da CPU para o time da vez (chefão tem IA própria). */
+  cpuInput(): TickInput {
+    const team = this.match.activeTeam;
+    if (!team || team.control !== 'cpu') return NO_INPUT;
+    return team.boss ? this.bossAi.decide(this.match) : this.ai.decide(this.match);
   }
 
   private step(input: TickInput): void {
@@ -374,7 +383,7 @@ export class Game {
       speed = 5;
     } else if (m.active) {
       tx = m.active.x;
-      ty = m.active.y - 60;
+      ty = m.active.y - 60 * m.active.size;
     } else if (m.phase === 'over' && m.winner) {
       const u = m.winner.units.find((u) => u.alive);
       if (u) {

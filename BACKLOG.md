@@ -87,7 +87,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 
 - [x] **F7-01** · P1 · M — Caixas que caem do céu entre turnos (arma, vida, utilitário).
 - [x] **F7-02** · P1 · M — Morte súbita: a água sobe após N turnos.
-- [ ] **F7-03** · P1 · G — Co-op contra chefão (estilo DDTank): vocês dois contra um monstro grande com padrões de ataque.
+- [x] **F7-03** · P1 · G — Co-op contra chefão (estilo DDTank): vocês dois contra um monstro grande com padrões de ataque.
 - [ ] **F7-04** · P1 · M — Objetos no mapa: barris explosivos, minas, plataformas de metal indestrutíveis.
 - [ ] **F7-05** · P2 · G — Editor de mapas (desenhar terreno com o dedo/mouse) e compartilhar com amigos.
 - [ ] **F7-06** · P2 · M — Música dinâmica (calma na mira, tensa nos últimos 5 s).

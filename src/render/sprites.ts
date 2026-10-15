@@ -214,7 +214,7 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
     c.rotate(d.rot * u.facing);
     c.translate(0, 12);
   }
-  c.scale(u.facing, 1);
+  c.scale(u.facing * u.size, u.size);
 
   const moving = Math.sin(u.walkPhase);
   const breathe = u.onGround ? Math.sin(t * 3 + u.seed) * 0.03 : 0;
@@ -296,6 +296,17 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   else c.arc(7.5, 7.5, 2.2, 0.2, Math.PI - 0.6);
   c.stroke();
   drawEyewear(c, team.look.eyes);
+  if (team.boss) {
+    // sobrancelhas bravas do chefão
+    c.strokeStyle = INK;
+    c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(0, -3);
+    c.lineTo(6, -1);
+    c.moveTo(7, -1);
+    c.lineTo(12, -3);
+    c.stroke();
+  }
   c.restore();
 
   // arma
@@ -321,7 +332,7 @@ export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean,
   const s = 1 / Math.max(0.75, Math.min(1.3, zoom));
   // chapéus altos empurram o rótulo para cima
   const tall = { 'hat-cartola': 16, 'hat-festa': 16, 'hat-chef': 10, 'hat-crown': 8, 'hat-louros': 4 }[u.team.look.hat ?? ''] ?? 0;
-  const y = u.y - 34 - tall;
+  const y = u.y - 34 * u.size - tall * u.size;
   c.save();
   c.translate(u.x, y);
   c.scale(s, s);

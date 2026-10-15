@@ -16,7 +16,7 @@ import type { Look } from './cosmetics';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
 import { Unit, type Control, type Team } from './unit';
-import { specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
+import { isBossWeapon, specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
 
 export type Phase = 'turn' | 'retreat' | 'settle' | 'over';
 
@@ -45,6 +45,10 @@ export interface TeamSetup {
   control: Control;
   names: string[];
   look?: Look;
+  /** lado (aliança); padrão = um lado por time */
+  side?: number;
+  /** time do chefão: uma bolota gigante */
+  boss?: boolean;
 }
 
 export interface MatchSetup {
@@ -57,7 +61,30 @@ export interface MatchSetup {
   crates?: boolean;
   /** turno em que começa a morte súbita (0 = nunca; padrão 20) */
   suddenDeath?: number;
+  /** vida do chefão (modo co-op) */
+  bossHp?: number;
 }
+
+export const BOSS_SIZE = 2.2;
+
+/** Vida do chefão conforme quantas bolotas enfrentam ele e a dificuldade. */
+export function bossHpFor(playerUnits: number, difficulty: 'facil' | 'normal' | 'dificil' = 'normal'): number {
+  const mult = { facil: 0.7, normal: 1, dificil: 1.4 }[difficulty];
+  return Math.round((85 * playerUnits * mult) / 10) * 10;
+}
+
+/** Time do chefão pronto para o setup. */
+export const BOSS_TEAM: TeamSetup = {
+  name: 'Rei Bolotão',
+  color: '#7a3cc4',
+  light: '#c9a6ff',
+  dark: '#3d1d6e',
+  control: 'cpu',
+  names: ['Rei Bolotão'],
+  look: { hat: 'hat-crown', eyes: undefined },
+  side: 1,
+  boss: true,
+};
 
 /** Quanto a água sobe por turno na morte súbita. */
 export const WATER_RISE = 28;
@@ -169,6 +196,8 @@ export class Match implements SimWorld {
         ammo: new Map(WEAPONS.map((w) => [w.id, w.ammo])),
         weapon: 'bazooka',
         look: ts.look ?? {},
+        side: ts.side ?? i,
+        boss: !!ts.boss,
       });
     });
     this.spawnUnits(setup);
@@ -183,7 +212,8 @@ export class Match implements SimWorld {
   }
 
   private spawnUnits(setup: MatchSetup): void {
-    const total = setup.unitsPerTeam * this.teams.length;
+    const players = this.teams.filter((t) => !t.boss);
+    const total = setup.unitsPerTeam * players.length;
     const t = this.terrain;
     const slots: number[] = [];
     const margin = 300;
@@ -197,7 +227,7 @@ export class Match implements SimWorld {
     let id = 0;
     let s = 0;
     for (let n = 0; n < setup.unitsPerTeam; n++) {
-      for (const team of this.teams) {
+      for (const team of players) {
         let x = slots[s++] + this.rng.range(-span * 0.3, span * 0.3);
         let y = t.surfaceY(x);
         for (let tries = 0; tries < 30 && y > t.waterY - 40; tries++) {
@@ -212,6 +242,23 @@ export class Match implements SimWorld {
         this.units.push(u);
       }
     }
+    // chefão: gigante, no centro do mapa, num pedaço de chão firme
+    for (const team of this.teams.filter((t) => t.boss)) {
+      let x = t.width / 2;
+      for (let tries = 0; tries < 40 && t.surfaceY(x) > t.waterY - 80; tries++) x = this.rng.range(t.width * 0.3, t.width * 0.7);
+      const u = new Unit(id++, team, setup.teams[team.id].names[0] ?? 'Rei Bolotão', x, t.surfaceY(x));
+      u.size = BOSS_SIZE;
+      u.hp = setup.bossHp ?? 500;
+      u.facing = -1;
+      unstick(t, u);
+      team.units.push(u);
+      this.units.push(u);
+    }
+  }
+
+  /** Lados que ainda têm alguém vivo. */
+  aliveSides(): number[] {
+    return [...new Set(this.aliveTeams().map((t) => t.side))];
   }
 
   get weapon(): WeaponDef {
@@ -223,7 +270,10 @@ export class Match implements SimWorld {
   }
 
   ammoOf(id: WeaponId): number {
-    return this.activeTeam?.ammo.get(id) ?? 0;
+    const team = this.activeTeam;
+    if (!team) return 0;
+    if (isBossWeapon(id)) return team.boss ? Infinity : 0;
+    return team.ammo.get(id) ?? 0;
   }
 
   aliveTeams(): Team[] {
@@ -472,9 +522,18 @@ export class Match implements SimWorld {
       this.beginRetreat(1.2);
       return true;
     }
-    // ataque aéreo: cinco mísseis vindos do céu
+    // ataque aéreo: cinco mísseis vindos do céu (chefão: três meteoros quase na vertical)
     const spec = this.weapon.projectile!;
     const dir = x >= u.x ? 1 : -1;
+    if (this.weapon.id === 'boss-meteoro') {
+      for (let i = 0; i < 3; i++) {
+        this.projectiles.push({ x: x + (i - 1) * 45, y: -60 - i * 50, vx: 0, vy: 260, spec, age: 1, ownerId: u.id, rot: 0 });
+      }
+      this.consumeAmmo();
+      this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
+      this.beginRetreat(RETREAT_TIME);
+      return true;
+    }
     for (let i = 0; i < 5; i++) {
       this.projectiles.push({
         x: x + (i - 2) * 34 - dir * 90,
@@ -502,7 +561,7 @@ export class Match implements SimWorld {
       const a = u.aim + extra * DEG;
       const dx = Math.cos(a) * u.facing;
       const dy = -Math.sin(a);
-      this.projectiles.push(this.makeProjectile(u.cx + dx * 16, u.cy + dy * 16, dx * speed, dy * speed, spec, u.id));
+      this.projectiles.push(this.makeProjectile(u.cx + dx * 16 * u.size, u.cy + dy * 16 * u.size, dx * speed, dy * speed, spec, u.id));
     }
     u.lastPower = power;
     this.consumeAmmo();
@@ -513,6 +572,13 @@ export class Match implements SimWorld {
   private fireDrop(): void {
     const u = this.active!;
     const spec = this.weapon.projectile!;
+    if (this.weapon.id === 'boss-pisao') {
+      this.consumeAmmo();
+      this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
+      this.explode(u.x, u.y - 6, spec.blast, spec.damage, u.id, u);
+      this.beginRetreat(RETREAT_TIME);
+      return;
+    }
     this.projectiles.push(this.makeProjectile(u.x + u.facing * 8, u.y - 10, u.facing * 30, -80, spec, u.id));
     this.consumeAmmo();
     this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
@@ -525,8 +591,7 @@ export class Match implements SimWorld {
 
   private consumeAmmo(): void {
     const team = this.activeTeam!;
-    const left = team.ammo.get(this.weapon.id)!;
-    team.ammo.set(this.weapon.id, left - 1);
+    if (!isBossWeapon(this.weapon.id)) team.ammo.set(this.weapon.id, team.ammo.get(this.weapon.id)! - 1);
     this.hasFired = true;
   }
 
@@ -544,7 +609,7 @@ export class Match implements SimWorld {
 
   private nextTurn(): void {
     const alive = this.aliveTeams();
-    if (alive.length <= 1) {
+    if (this.aliveSides().length <= 1) {
       this.phase = 'over';
       this.active = null;
       this.winner = alive[0] ?? null;
@@ -717,19 +782,19 @@ export class Match implements SimWorld {
     }
   }
 
-  explode(x: number, y: number, r: number, dmg: number, ownerId: number): void {
+  explode(x: number, y: number, r: number, dmg: number, ownerId: number, spare: Unit | null = null): void {
     const attacker = this.units.find((u) => u.id === ownerId) ?? null;
     this.terrain.carve(x, y, r);
     this.emit({ type: 'explosion', x, y, r, by: attacker });
     for (const u of this.units) {
-      if (!u.alive) continue;
+      if (!u.alive || u === spare) continue;
       const d = blastDamage(r, dmg, x, y, u);
       if (d <= 0) continue;
       this.damage(u, d, attacker);
       const dx = u.cx - x;
       const dy = u.cy - y - 6;
       const len = Math.hypot(dx, dy) || 1;
-      const force = 120 + d * 6.5;
+      const force = (120 + d * 6.5) / (u.size * u.size);
       u.vx = (dx / len) * force;
       u.vy = (dy / len) * force - 80;
       u.onGround = false;

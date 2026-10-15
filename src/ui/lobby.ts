@@ -1,4 +1,4 @@
-import type { TeamSetup } from '../domain/match';
+import { BOSS_TEAM, type TeamSetup } from '../domain/match';
 import { TEAM_COLORS } from '../domain/teamColors';
 import { THEMES, type ThemeId } from '../domain/theme';
 import type { LobbyPlayer, LobbyState } from '../net/protocol';
@@ -102,10 +102,13 @@ export class Lobby {
   /** Times da partida a partir da sala: host é o time 0, convidado o 1. */
   teams(): TeamSetup[] {
     const players = [this.state.host, this.state.guest ?? { name: 'Convidado', color: 1, ready: true, connected: true }];
-    return players.map((p, i) => {
+    const coop = this.state.mode === 'boss';
+    const teams: TeamSetup[] = players.map((p, i) => {
       const c = TEAM_COLORS[p.color];
-      return { name: p.name, color: c.color, light: c.light, dark: c.dark, control: 'human' as const, names: UNIT_NAMES[i], look: p.look ?? {} };
+      return { name: p.name, color: c.color, light: c.light, dark: c.dark, control: 'human' as const, names: UNIT_NAMES[i], look: p.look ?? {}, side: coop ? 0 : i };
     });
+    if (coop) teams.push(BOSS_TEAM);
+    return teams;
   }
 
   themeId(): ThemeId {
@@ -133,6 +136,9 @@ export class Lobby {
     const themes = (['random', ...Object.keys(THEMES)] as Array<ThemeId | 'random'>)
       .map((t) => `<button data-theme="${t}" class="${this.state.themeId === t ? 'on' : ''}" ${host ? '' : 'disabled'}>${t === 'random' ? 'Surpresa' : THEMES[t].name}</button>`)
       .join('');
+    const modes = (['duel', 'boss'] as const)
+      .map((md) => `<button data-mode="${md}" class="${(this.state.mode ?? 'duel') === md ? 'on' : ''}" ${host ? '' : 'disabled'}>${md === 'duel' ? 'Duelo' : 'Juntos vs Chefão 👑'}</button>`)
+      .join('');
     const units = [2, 3, 4].map((n) => `<button data-units="${n}" class="${this.state.units === n ? 'on' : ''}" ${host ? '' : 'disabled'}>${n}</button>`).join('');
     this.root.innerHTML = `
       <div class="lobby-grid">
@@ -142,6 +148,8 @@ export class Lobby {
         <div class="swatches">${swatches}</div>
         <span class="lbl">Oponente</span>
         <div class="other">${otherLine}</div>
+        <span class="lbl">Modo</span>
+        <div class="seg">${modes}</div>
         <span class="lbl">Cenário</span>
         <div class="seg">${themes}</div>
         <span class="lbl">Bolotas por time</span>
@@ -170,6 +178,12 @@ export class Lobby {
     this.root.querySelectorAll<HTMLButtonElement>('[data-theme]').forEach((b) =>
       b.addEventListener('click', () => {
         this.state.themeId = b.dataset.theme as ThemeId | 'random';
+        this.broadcast();
+      }),
+    );
+    this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
+      b.addEventListener('click', () => {
+        this.state.mode = b.dataset.mode as 'duel' | 'boss';
         this.broadcast();
       }),
     );

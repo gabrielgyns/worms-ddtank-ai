@@ -23,13 +23,13 @@ const NOISE: Record<Difficulty, { aim: number; power: number; think: number }> =
 };
 
 /** Onde o tiro cairia? Usa exatamente a mesma física do jogo. */
-function simulate(m: Match, u: Unit, spec: ProjectileSpec, maxSpeed: number, facing: 1 | -1, aim: number, power: number) {
+export function simulate(m: Match, u: Unit, spec: ProjectileSpec, maxSpeed: number, facing: 1 | -1, aim: number, power: number) {
   const dx = Math.cos(aim) * facing;
   const dy = -Math.sin(aim);
   const speed = maxSpeed * Math.max(0.06, power);
   const p: Projectile = {
-    x: u.cx + dx * 16,
-    y: u.cy + dy * 16,
+    x: u.cx + dx * 16 * u.size,
+    y: u.cy + dy * 16 * u.size,
     vx: dx * speed,
     vy: dy * speed,
     spec,
@@ -54,13 +54,13 @@ function scoreImpact(m: Match, me: Unit, x: number, y: number, blast: number, dm
     const d = Math.min(blastDamage(blast, dmg, x, y, u), Math.max(0, u.hp));
     if (d <= 0) continue;
     if (u === me) s -= d * 2.2;
-    else if (u.team === me.team) s -= d * 1.4;
+    else if (u.team.side === me.team.side) s -= d * 1.4;
     else s += d + (d >= u.hp ? 35 : 0);
   }
   // perto de inimigo já é alguma coisa — ajuda a IA a "chegar perto"
   let nearest = Infinity;
   for (const u of m.units) {
-    if (u.alive && u.team !== me.team) nearest = Math.min(nearest, Math.hypot(u.cx - x, u.cy - y));
+    if (u.alive && u.team.side !== me.team.side) nearest = Math.min(nearest, Math.hypot(u.cx - x, u.cy - y));
   }
   return s + Math.max(0, 8 - nearest / 40);
 }
@@ -141,7 +141,7 @@ export class AiController {
     let best: Unit | null = null;
     let bd = Infinity;
     for (const o of m.units) {
-      if (!o.alive || o.team === u.team) continue;
+      if (!o.alive || o.team.side === u.team.side) continue;
       const d = Math.abs(o.x - u.x);
       if (d < bd) {
         bd = d;
@@ -205,7 +205,7 @@ export class AiController {
     // sem tiro bom? chama o ataque aéreo
     if (best.score < 18 && m.ammoOf('airstrike') > 0) {
       const enemy = m.units
-        .filter((o) => o.alive && o.team !== u.team)
+        .filter((o) => o.alive && o.team.side !== u.team.side)
         .sort((a, b) => a.hp - b.hp)[0];
       if (enemy && Math.abs(enemy.x - u.x) > 120) {
         best = { weapon: 'airstrike', facing: u.facing, aim: u.aim, power: 0, score: 30, target: { x: enemy.x, y: enemy.y } };

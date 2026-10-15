@@ -17,7 +17,17 @@ export interface ProjectileSpec {
   fragments?: { count: number; spec: ProjectileSpec };
 }
 
-export type WeaponId = 'bazooka' | 'grenade' | 'triple' | 'cluster' | 'dynamite' | 'airstrike' | 'teleport';
+export type WeaponId =
+  | 'bazooka'
+  | 'grenade'
+  | 'triple'
+  | 'cluster'
+  | 'dynamite'
+  | 'airstrike'
+  | 'teleport'
+  | 'boss-meteoro'
+  | 'boss-rajada'
+  | 'boss-pisao';
 
 export type AimMode = 'charge' | 'drop' | 'target';
 
@@ -125,12 +135,50 @@ export const WEAPONS: readonly WeaponDef[] = [
   },
 ];
 
-export const weaponById = (id: WeaponId): WeaponDef => WEAPONS.find((w) => w.id === id)!;
+/** Ataques exclusivos do chefão (não aparecem na barra de armas). */
+export const BOSS_WEAPONS: readonly WeaponDef[] = [
+  {
+    id: 'boss-meteoro',
+    name: 'Chuva de Meteoros',
+    hint: '',
+    key: '',
+    ammo: Infinity,
+    mode: 'target',
+    maxSpeed: 0,
+    projectile: { kind: 'missile', blast: 52, damage: 40, windFactor: 0.3, bounce: 0, size: 7 },
+  },
+  {
+    id: 'boss-rajada',
+    name: 'Rajada Real',
+    hint: '',
+    key: '',
+    ammo: Infinity,
+    mode: 'charge',
+    maxSpeed: 900,
+    spread: [-10, -5, 0, 5, 10],
+    projectile: { kind: 'bomblet', blast: 32, damage: 26, windFactor: 0.6, bounce: 0, size: 4 },
+  },
+  {
+    id: 'boss-pisao',
+    name: 'Pisão Sísmico',
+    hint: '',
+    key: '',
+    ammo: Infinity,
+    mode: 'drop',
+    maxSpeed: 0,
+    projectile: { kind: 'bomblet', blast: 110, damage: 45, windFactor: 0, bounce: 0, size: 1 },
+  },
+];
+
+export const ALL_WEAPONS: readonly WeaponDef[] = [...WEAPONS, ...BOSS_WEAPONS];
+
+export const weaponById = (id: WeaponId): WeaponDef => ALL_WEAPONS.find((w) => w.id === id)!;
+export const isBossWeapon = (id: WeaponId): boolean => id.startsWith('boss-');
 
 /** Chave estável de cada ProjectileSpec, para salvar projéteis em voo. */
 const SPEC_KEYS = new Map<ProjectileSpec, string>();
 const SPECS_BY_KEY = new Map<string, ProjectileSpec>();
-for (const w of WEAPONS) {
+for (const w of ALL_WEAPONS) {
   if (!w.projectile) continue;
   SPEC_KEYS.set(w.projectile, w.id);
   SPECS_BY_KEY.set(w.id, w.projectile);

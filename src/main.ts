@@ -32,7 +32,7 @@ import { decodeLetter, encodeLetter, letterFromUrl, letterLink, MailDriver, type
 import { TEAM_COLORS } from './domain/teamColors';
 import { savedName } from './ui/lobby';
 import type { Room } from './net/room';
-import type { MatchSetup } from './domain/match';
+import { BOSS_TEAM, bossHpFor, type MatchSetup } from './domain/match';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -60,7 +60,7 @@ function startDemo(): void {
 }
 
 const settings = {
-  mode: 'cpu' as 'cpu' | 'pvp',
+  mode: 'cpu' as 'cpu' | 'pvp' | 'boss',
   difficulty: 'normal' as Difficulty,
   units: 3,
   theme: 'random' as ThemeId | 'random',
@@ -73,6 +73,15 @@ const NAMES_B = ['Jujuba', 'Torresmo', 'Biscoito', 'Quindim'];
 
 function teams(): TeamSetup[] {
   const p = loadProfile();
+  if (settings.mode === 'boss') {
+    const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
+    const ally = TEAM_COLORS[p.color === 2 ? 1 : 2];
+    return [
+      { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook(), side: 0 },
+      { name: 'Aliados', color: ally.color, light: ally.light, dark: ally.dark, control: 'cpu', names: ['Amigão', 'Parceira', 'Escudeiro', 'Bolotinha'], side: 0 },
+      BOSS_TEAM,
+    ];
+  }
   const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
   const other = TEAM_COLORS[p.color === 1 ? 0 : 1];
   return [
@@ -107,6 +116,7 @@ function startGame(): void {
         turnTime: 30,
         crates: settings.crates,
         suddenDeath: settings.sudden,
+        bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
       },
       { difficulty: settings.difficulty },
       canvas,
@@ -138,7 +148,8 @@ function recordResult(g: Game, tracker: MatchTracker): void {
   unlocksEl.innerHTML = '';
   const me = myTeamIn(g);
   if (me === null) return;
-  const won = g.match.winner?.id === me;
+  // co-op: vence o lado inteiro (mesmo que quem sobrou seja o aliado)
+  const won = !!g.match.winner && g.match.winner.side === g.match.teams[me].side;
   const s = tracker.teams[me];
   addMatchToStats(s, won);
   const opponentTeam = g.match.teams.find((t) => t.id !== me);
@@ -224,6 +235,7 @@ function launch(g: Game, original: Game = g): void {
   demo = null;
   hud.bind(g);
   document.body.classList.toggle('replay', g.isReplay);
+  document.body.classList.toggle('boss-fight', g.match.teams.some((t) => t.boss));
   g.match.on((e) => {
     if (e.type !== 'gameOver') return;
     setTimeout(() => {
@@ -234,16 +246,27 @@ function launch(g: Game, original: Game = g): void {
         show('mail');
         return;
       }
-      $('#over-title').textContent = e.winner ? `${e.winner.name} venceu!` : 'Empate!';
+      const bossFight = g.match.teams.some((t) => t.boss);
+      $('#over-title').textContent = !e.winner
+        ? 'Empate!'
+        : bossFight
+          ? e.winner.boss
+            ? 'O Rei Bolotão venceu!'
+            : 'Rei Bolotão derrotado!'
+          : `${e.winner.name} venceu!`;
       $('#over-title').style.color = e.winner?.color ?? '#fff';
       const human = e.winner?.control === 'human';
       const onlineGame = g.online && session !== null;
       $('#again').textContent = onlineGame && session!.role === 'guest' ? 'Esperando revanche…' : 'Revanche!';
       ($('#again') as HTMLButtonElement).disabled = onlineGame && session!.role === 'guest';
-      const localWin = e.winner ? g.isLocal(e.winner.id) : false;
+      const localWin = e.winner ? g.match.teams.some((t) => g.isLocal(t.id) && t.side === e.winner!.side) : false;
       $('#over-sub').textContent = g.isReplay
         ? 'Fim do replay.'
-        : onlineGame
+        : bossFight
+          ? localWin
+            ? 'Trabalho em equipe! 👑💥'
+            : 'Ele foi demais desta vez. Tentem de novo!'
+          : onlineGame
           ? localWin
             ? 'Você venceu! 🎉'
             : 'Não foi dessa vez… revanche?'
@@ -285,6 +308,7 @@ function hostStart(): void {
     theme: THEMES[lobby.themeId()],
     seed: (Math.random() * 2 ** 31) | 0,
     turnTime: 30,
+    bossHp: lobby.state.mode === 'boss' ? bossHpFor(lobby.state.units * 2) : undefined,
   };
   session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: 1 });
   startOnline(setup);
@@ -421,7 +445,7 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
       b.classList.add('on');
       const v = b.dataset.v!;
       (settings as Record<string, unknown>)[key] = key === 'units' || key === 'sudden' ? Number(v) : key === 'crates' ? v === 'true' : v;
-      $('#diff-row').style.display = settings.mode === 'cpu' ? '' : 'none';
+      $('#diff-row').style.display = settings.mode === 'pvp' ? 'none' : '';
       sfx.unlock();
       sfx.select();
     });
