@@ -133,6 +133,8 @@ export interface Projectile {
   age: number;
   ownerId: number;
   rot: number;
+  /** direção de quem anda (ovelha) */
+  dir?: 1 | -1;
 }
 
 export interface SimWorld {
@@ -151,6 +153,7 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
     p.fuse -= dt;
     if (p.fuse <= 0) return 'explode';
   }
+  if (p.spec.walker) return stepWalker(p, dt, w);
   p.vx += w.wind * WIND_ACCEL * p.spec.windFactor * dt;
   p.vy += GRAVITY * dt;
   p.rot += p.vx * dt * 0.04;
@@ -206,6 +209,57 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
     p.y = ny;
   }
   return result;
+}
+
+const WALKER_STEP = 10; // degrau que sobe andando
+const WALKER_HOP = 270; // pulo quando dá de cara com parede
+
+/** Ovelha: anda no chão, sobe degraus, pula paredes, explode em quem encostar. */
+function stepWalker(p: Projectile, dt: number, w: SimWorld): FlightResult {
+  const t = w.terrain;
+  const r = p.spec.size;
+  const dir = p.dir ?? 1;
+  for (const u of w.units) {
+    if (!u.alive || (u.id === p.ownerId && p.age < 1)) continue;
+    const dx = p.x - u.cx;
+    const dy = p.y - u.cy;
+    const rr = u.radius + r;
+    if (dx * dx + dy * dy < rr * rr) return 'explode';
+  }
+  const grounded = t.isSolid(p.x, p.y + r + 1);
+  p.vy += GRAVITY * dt;
+  if (grounded && p.vy > 0) p.vy = 0;
+  // anda (no ar também, para conseguir passar por cima do que pulou)
+  const nx = p.x + dir * p.spec.walker! * dt;
+  if (!t.isSolid(nx + dir * r, p.y)) p.x = nx;
+  else {
+    let climbed = false;
+    for (let s = 1; s <= WALKER_STEP; s++) {
+      if (!t.isSolid(nx + dir * r, p.y - s)) {
+        p.x = nx;
+        p.y -= s;
+        climbed = true;
+        break;
+      }
+    }
+    if (!climbed) {
+      if (grounded) p.vy = -WALKER_HOP;
+      else if (p.vy > 0) p.dir = dir === 1 ? -1 : 1; // pulou e não passou: dá meia-volta
+    }
+  }
+  // ladeira acima: não deixa o pé afundar no chão
+  for (let s = 0; s < WALKER_STEP && t.isSolid(p.x, p.y + r - 1); s++) p.y -= 1;
+  // vertical
+  const ny = p.y + p.vy * dt;
+  if (p.vy > 0 && t.isSolid(p.x, ny + r)) {
+    p.vy = 0;
+    while (t.isSolid(p.x, p.y + r) && p.y > 0) p.y -= 1;
+  } else if (p.vy < 0 && t.isSolid(p.x, ny - r)) p.vy = 0;
+  else p.y = ny;
+  p.rot += dt * 10; // passinhos (só visual)
+  if (p.y > t.waterY) return 'water';
+  if (p.x < -400 || p.x > t.width + 400) return 'lost';
+  return 'fly';
 }
 
 /** Dano de uma explosão em uma bolota (0 se longe demais). */

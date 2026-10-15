@@ -156,7 +156,7 @@ export interface MatchSnapshot {
     chute?: boolean;
     shield?: boolean;
   }>;
-  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number }>;
+  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number; dir?: 1 | -1 }>;
   terrain: string;
   crates: Crate[];
   nextCrateId: number;
@@ -404,7 +404,7 @@ export class Match implements SimWorld {
       h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0).int(u.chute ? 1 : 0).int(u.shield ? 1 : 0);
       if (u.rope) h.num(u.rope.ax).num(u.rope.ay).num(u.rope.len);
     }
-    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
+    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind).int(p.dir ?? 0);
     for (const c of this.crates) h.int(c.id).num(c.x).num(c.y).num(c.vy).str(c.kind).int(c.landed ? 1 : 0);
     for (const b of this.barrels) h.int(b.id).num(b.x).num(b.y).num(b.vy).num(b.fuse ?? -1);
     for (const mn of this.mines) h.int(mn.id).num(mn.x).num(mn.y).num(mn.vy).num(mn.fuse ?? -1);
@@ -464,6 +464,7 @@ export class Match implements SimWorld {
         age: p.age,
         ownerId: p.ownerId,
         rot: p.rot,
+        dir: p.dir,
       })),
       terrain: encodeMask(this.terrain.solid),
       crates: this.crates.map((c) => ({ ...c })),
@@ -540,10 +541,20 @@ export class Match implements SimWorld {
     if (i.aimTo !== undefined && this.active) this.aimBy(i.aimTo - this.active.aim);
     if (i.jump !== undefined) this.jump(i.jump === 'back');
     if (i.item !== undefined) this.useItem(i.item);
-    if (i.charge === 'start') this.startCharge(i.chargeLimit ?? 1);
+    if (i.charge === 'start') {
+      if (this.phase === 'retreat') this.detonateWalkers();
+      else this.startCharge(i.chargeLimit ?? 1);
+    }
     if (i.charge === 'release') this.releaseCharge();
     if (i.target !== undefined) this.fireAt(i.target.x, i.target.y);
     if (i.forfeit !== undefined) this.forfeit(i.forfeit);
+  }
+
+  /** Espaço de novo depois de soltar a ovelha: ela explode na hora. */
+  private detonateWalkers(): void {
+    const me = this.active;
+    if (!me) return;
+    for (const p of this.projectiles) if (p.spec.walker && p.ownerId === me.id) p.fuse = 0;
   }
 
   /** Gasta um item de turno. Vale antes de atirar; não passa a vez. */
@@ -766,7 +777,12 @@ export class Match implements SimWorld {
       this.beginRetreat(RETREAT_TIME);
       return;
     }
-    this.projectiles.push(this.makeProjectile(u.x + u.facing * 8, u.y - 10, u.facing * 30, -80, spec, u.id));
+    if (spec.walker) {
+      // ovelha: sai pulando na direção em que a bolota olha
+      const sheep = this.makeProjectile(u.x + u.facing * 18, u.y - 12, 0, -160, spec, u.id);
+      sheep.dir = u.facing;
+      this.projectiles.push(sheep);
+    } else this.projectiles.push(this.makeProjectile(u.x + u.facing * 8, u.y - 10, u.facing * 30, -80, spec, u.id));
     this.consumeAmmo();
     this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
     this.beginRetreat(RETREAT_TIME + 1);

@@ -20,6 +20,66 @@ function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number,
   c.roundRect(x, y, w, h, r);
 }
 
+/** Banana cartoon (bomba e pedaços). */
+function drawBananaShape(c: CanvasRenderingContext2D, x: number, y: number, rot: number, scale = 1): void {
+  c.save();
+  c.translate(x, y);
+  c.rotate(rot);
+  c.scale(scale, scale);
+  c.lineWidth = 2;
+  c.strokeStyle = INK;
+  c.fillStyle = '#ffd93b';
+  c.beginPath();
+  c.moveTo(-9, -3);
+  c.quadraticCurveTo(0, 10, 10, -4);
+  c.quadraticCurveTo(0, 4, -9, -3);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.fillStyle = '#6b4a1e';
+  c.beginPath();
+  c.arc(10, -4, 1.8, 0, Math.PI * 2);
+  c.arc(-9, -3, 1.6, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
+/** Ovelha fofa com patinhas que andam. */
+function drawSheepShape(c: CanvasRenderingContext2D, x: number, y: number, dir: number, step: number): void {
+  c.save();
+  c.translate(x, y);
+  c.scale(dir, 1);
+  c.lineWidth = 2;
+  c.strokeStyle = INK;
+  // patas
+  c.fillStyle = INK;
+  for (const [lx, ph] of [[-6, 0], [-2, Math.PI], [3, Math.PI], [7, 0]] as const) {
+    const lift = Math.max(0, Math.sin(step + ph)) * 3;
+    c.fillRect(lx - 1.2, 4 - lift, 2.4, 6);
+  }
+  // lã
+  c.fillStyle = '#fbfbf6';
+  c.beginPath();
+  for (const [cx, cy, r] of [[-6, -1, 5], [-1, -4, 6], [5, -2, 5], [0, 2, 6], [-5, 3, 4]] as const) {
+    c.moveTo(cx + r, cy);
+    c.arc(cx, cy, r, 0, Math.PI * 2);
+  }
+  c.fill();
+  c.stroke();
+  c.fill();
+  // cara
+  c.fillStyle = '#3a2c28';
+  c.beginPath();
+  c.ellipse(10, -2, 4.5, 4, 0.2, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.fillStyle = '#fff';
+  c.beginPath();
+  c.arc(11.5, -3, 1.5, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
 /** Arma na mão, desenhada no espaço local (apontando para +x). */
 export function drawHeldWeapon(c: CanvasRenderingContext2D, id: WeaponId): void {
   c.lineWidth = 2;
@@ -94,6 +154,12 @@ export function drawHeldWeapon(c: CanvasRenderingContext2D, id: WeaponId): void 
       c.lineTo(8, 6);
       c.lineTo(17, -2);
       c.stroke();
+      break;
+    case 'banana':
+      drawBananaShape(c, 10, 0, -0.4, 1.1);
+      break;
+    case 'sheep':
+      drawSheepShape(c, 12, 0, 1, 0);
       break;
     case 'teleport':
       roundRect(c, 2, -5, 14, 10, 3);
@@ -191,6 +257,10 @@ export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time:
     c.beginPath();
     c.arc(p.x + 2, p.y - 17, 3 + Math.random() * 2, 0, Math.PI * 2);
     c.fill();
+  } else if (k === 'banana') {
+    drawBananaShape(c, p.x, p.y, p.rot, p.spec.fuse === undefined ? 0.8 : 1.2);
+  } else if (k === 'sheep') {
+    drawSheepShape(c, p.x, p.y - 2, p.dir ?? 1, p.rot * 2);
   } else if (k === 'cluster') {
     c.save();
     c.translate(p.x, p.y);
@@ -561,6 +631,14 @@ export function drawWeaponIcon(c: CanvasRenderingContext2D, id: WeaponId): void 
       drawProjectile(c, fake, 0);
       break;
     }
+    case 'banana':
+      c.scale(1.5, 1.5);
+      drawBananaShape(c, 0, 1, -0.3);
+      break;
+    case 'sheep':
+      c.scale(1.5, 1.5);
+      drawSheepShape(c, -1, 0, 1, 0);
+      break;
     case 'teleport':
     case 'rope':
     case 'parachute':

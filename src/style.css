@@ -1936,3 +1936,20 @@ input.vol {
 .item:disabled:not(.active) {
   opacity: 0.45;
 }
+
+/* barra com 11 armas: encolhe um pouco em telas médias para o painel de força respirar */
+@media (max-width: 1200px) and (min-width: 861px) {
+  .weapon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+  }
+  .weapon canvas {
+    width: 33px;
+    height: 33px;
+  }
+  #weapons {
+    gap: 4px;
+    padding: 5px;
+  }
+}

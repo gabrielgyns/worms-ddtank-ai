@@ -5,7 +5,7 @@ import { BossAi } from './domain/boss';
 import { DT, isEmptyInput, NO_INPUT, type Command, type TickInput } from './domain/commands';
 import { Match, type MatchSetup } from './domain/match';
 import { HighlightRecorder, type Highlight } from './domain/highlight';
-import { WEAPONS, type WeaponId } from './domain/weapons';
+import { WEAPONS, weaponKeyCodes, type WeaponId } from './domain/weapons';
 import { ITEMS, type ItemId } from './domain/items';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
@@ -397,7 +397,7 @@ export class Game {
     const out: TickInput = this.pending;
     this.pending = {};
     for (const code of i.takeKeys()) {
-      const w = WEAPONS.find((w) => `Digit${w.key}` === code || `Numpad${w.key}` === code);
+      const w = WEAPONS.find((w) => weaponKeyCodes(w.key).includes(code));
       if (w) out.weapon = w.id;
       const it = ITEMS.find((x) => x.key === code);
       if (it) out.item = it.id;

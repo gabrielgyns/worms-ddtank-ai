@@ -107,7 +107,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F9-04** · P1 · M — Sensação dos golpes: pausa de impacto, rastro de quem é arremessado, falas engraçadas ao levar dano/eliminar. — falas em `render/quips.ts` (catálogo).
 - [x] **F9-05** · P1 · M — Configurações: volume de música e efeitos, tempo de turno, velocidade da CPU, tremida de tela, paleta para daltonismo.
 - [x] **F9-06** · P1 · G — Itens de turno estilo DDTank (+50% dano, tiro duplo, escudo), gastos sem passar a vez. — `domain/items.ts`; 1 de cada por partida; CPU usa; protocolo v3.
-- [ ] **F9-07** · P1 · M — Ovelha andante e bomba banana.
+- [x] **F9-07** · P1 · M — Ovelha andante e bomba banana. — ovelha anda pela `stepProjectile` (sobe degrau, pula parede, detona com Espaço); banana com 5 fragmentos.
 - [ ] **F9-08** · P1 · M — Modo 2x2 (local, contra CPU e online).
 - [ ] **F9-09** · P2 · M — Míssil teleguiado e taco de beisebol.
 - [ ] **F9-10** · P2 · M — Viga: construir pontes e muros.

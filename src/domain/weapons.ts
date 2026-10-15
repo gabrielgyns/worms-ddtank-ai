@@ -1,6 +1,6 @@
 /** Como um projétil se comporta em voo. */
 export interface ProjectileSpec {
-  kind: 'missile' | 'grenade' | 'bomblet' | 'dynamite' | 'cluster';
+  kind: 'missile' | 'grenade' | 'bomblet' | 'dynamite' | 'cluster' | 'banana' | 'sheep';
   /** raio da explosão (px) */
   blast: number;
   /** dano no centro da explosão */
@@ -15,6 +15,8 @@ export interface ProjectileSpec {
   size: number;
   /** ao explodir, solta estes fragmentos */
   fragments?: { count: number; spec: ProjectileSpec };
+  /** anda pelo chão (ovelha) em vez de voar: velocidade em px/s */
+  walker?: number;
 }
 
 export type WeaponId =
@@ -27,6 +29,8 @@ export type WeaponId =
   | 'teleport'
   | 'rope'
   | 'parachute'
+  | 'sheep'
+  | 'banana'
   | 'boss-meteoro'
   | 'boss-rajada'
   | 'boss-pisao';
@@ -47,6 +51,9 @@ export interface WeaponDef {
   /** ângulos extras (graus) para disparos múltiplos */
   spread?: number[];
 }
+
+/** pedaço da bomba banana: explode ao tocar */
+const bananaPiece: ProjectileSpec = { kind: 'banana', blast: 42, damage: 30, windFactor: 0.3, bounce: 0, size: 5 };
 
 const bomblet: ProjectileSpec = {
   kind: 'bomblet',
@@ -154,7 +161,33 @@ export const WEAPONS: readonly WeaponDef[] = [
     mode: 'utility',
     maxSpeed: 0,
   },
+  {
+    id: 'sheep',
+    name: 'Ovelha',
+    hint: 'Sai andando e pulando. Explode ao encostar em alguém, em 5 s, ou quando você aperta Espaço de novo.',
+    key: '0',
+    ammo: 1,
+    mode: 'drop',
+    maxSpeed: 0,
+    projectile: { kind: 'sheep', blast: 62, damage: 55, windFactor: 0, fuse: 5, bounce: 0, size: 8, walker: 110 },
+  },
+  {
+    id: 'banana',
+    name: 'Bomba Banana',
+    hint: 'Pavio de 3 s, quica e se divide em 5 bananas explosivas. Devastadora.',
+    key: '-',
+    ammo: 1,
+    mode: 'charge',
+    maxSpeed: 760,
+    projectile: { kind: 'banana', blast: 48, damage: 38, windFactor: 0.4, fuse: 3, bounce: 0.45, size: 6, fragments: { count: 5, spec: bananaPiece } },
+  },
 ];
+
+/** Código do KeyboardEvent da tecla de atalho de uma arma. */
+export function weaponKeyCodes(key: string): string[] {
+  if (key === '-') return ['Minus', 'NumpadSubtract'];
+  return key ? [`Digit${key}`, `Numpad${key}`] : [];
+}
 
 /** Ataques exclusivos do chefão (não aparecem na barra de armas). */
 export const BOSS_WEAPONS: readonly WeaponDef[] = [
