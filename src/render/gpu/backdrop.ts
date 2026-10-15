@@ -42,6 +42,7 @@ export class Backdrop {
   private sky: Sprite;
   private sunGlow: Sprite;
   private sun: Sprite;
+  private rays: Array<{ s: Sprite; angle: number; width: number; phase: number }> = [];
   /** cópias lado a lado (repetir só na horizontal; TilingSprite vazaria a borda de cima) */
   private layers: Array<{ def: LayerDef; tex: Texture; parts: Sprite[]; holder: Container; fill: Graphics }> = [];
   private clouds: Array<{ s: Sprite; x: number; y: number; f: number; speed: number }> = [];
@@ -83,6 +84,30 @@ export class Backdrop {
       }),
     );
     this.sun.anchor.set(0.5);
+    // raios de sol em leque, atrás das nuvens e dos morros
+    const rayTex = canvasTex(64, 512, (c) => {
+      const across = c.createLinearGradient(0, 0, 64, 0);
+      across.addColorStop(0, 'rgba(255,255,255,0)');
+      across.addColorStop(0.5, 'rgba(255,255,255,1)');
+      across.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = across;
+      c.fillRect(0, 0, 64, 512);
+      // some ao longo do comprimento
+      c.globalCompositeOperation = 'destination-in';
+      const along = c.createLinearGradient(0, 0, 0, 512);
+      along.addColorStop(0, 'rgba(0,0,0,1)');
+      along.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = along;
+      c.fillRect(0, 0, 64, 512);
+    });
+    for (let i = 0; i < 6; i++) {
+      const s = new Sprite(rayTex);
+      s.anchor.set(0.5, 0);
+      s.tint = t.sun;
+      s.blendMode = 'add';
+      this.rays.push({ s, angle: 0.18 + i * 0.17 + hash(i, 9) * 0.08, width: 0.6 + hash(i, 8) * 1.2, phase: hash(i, 7) * 6 });
+      this.view.addChild(s);
+    }
     this.view.addChild(this.sunGlow, this.sun);
 
     // nuvens fofas com sombra embaixo
@@ -270,6 +295,12 @@ export class Backdrop {
     this.sun.position.set(sunX, sunY);
     this.sun.scale.set(z * 0.85);
     this.sunGlow.position.set(sunX, sunY);
+    for (const r of this.rays) {
+      r.s.position.set(sunX, sunY);
+      r.s.rotation = r.angle + Math.sin(time * 0.15 + r.phase) * 0.04;
+      r.s.scale.set(r.width * z, (h * 1.6) / 512);
+      r.s.alpha = 0.09 + Math.sin(time * 0.5 + r.phase) * 0.04;
+    }
     this.sunGlow.scale.set(z * 4.2 + Math.sin(time * 0.8) * 0.08);
 
     const toScreenY = (y: number, f: number) => h / 2 + (y - cam.y * f - (1 - f) * this.worldH * 0.5) * z;

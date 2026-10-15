@@ -2,6 +2,7 @@ import { Application, BlurFilter, Container, Graphics, Sprite, Texture } from 'p
 import type { Match } from '../../domain/match';
 import type { Camera } from '../camera';
 import type { TerrainView } from '../terrainView';
+import { Ambience } from './ambience';
 import { Backdrop } from './backdrop';
 import { makeVfxTextures, type VfxTextures } from './textures';
 import { Vfx } from './vfx';
@@ -31,6 +32,7 @@ export interface GpuFrame {
  */
 export class GpuStage {
   private backdrop: Backdrop | null = null;
+  private ambience: Ambience | null = null;
   private themeId = '';
   private backWorld = new Container();
   private frontWorld = new Container();
@@ -77,6 +79,13 @@ export class GpuStage {
       if (this.backdrop) this.back.stage.removeChild(this.backdrop.view);
       this.backdrop = new Backdrop(m.theme, m.terrain.height, this.tex.glow);
       this.back.stage.addChildAt(this.backdrop.view, 0);
+      if (this.ambience) {
+        this.front.stage.removeChild(this.ambience.vignette);
+        this.ambience.destroy();
+      }
+      this.ambience = new Ambience(m.theme.id, this.tex);
+      this.front.stage.addChild(this.ambience.vignette);
+      this.frontWorld.addChild(this.ambience.world);
     }
     if (this.terrainSource !== f.terrain.canvas) {
       this.terrainSource = f.terrain.canvas;
@@ -97,6 +106,7 @@ export class GpuStage {
       m.terrain.onReset(dirty);
       this.frontWorld.removeChildren();
       this.frontWorld.addChild(this.vfx.front.view);
+      if (this.ambience) this.frontWorld.addChild(this.ambience.world);
     }
     this.vfx.attach(m);
   }
@@ -119,6 +129,7 @@ export class GpuStage {
       world.position.set(w / 2 - cam.x * z + f.shakeX, h / 2 - cam.y * z + f.shakeY);
     }
     this.drawWaterBack(f);
+    this.ambience!.update(cam, w, h, f.time, f.dt, f.match.wind);
     this.vfx.update(f.dt);
     for (const imp of this.vfx.takeImpacts()) {
       this.vfx.impactFrame((imp.x - cam.x) * z + w / 2, (imp.y - cam.y) * z + h / 2, imp.power, w, h);
