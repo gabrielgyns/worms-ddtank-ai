@@ -528,8 +528,66 @@ export class Game {
 
     drawWater(c, m.theme, wy, x0, right, bottom, t, true);
     c.restore();
+    this.drawOffscreen(c, w, h);
     c.restore();
     if (this.highlight) this.drawCaption(c);
+  }
+
+  /** Setinhas na borda para as bolotas fora da câmera (em pixels CSS). */
+  private drawOffscreen(c: CanvasRenderingContext2D, w: number, h: number): void {
+    const z = this.cam.zoom;
+    // longe dos painéis do HUD em cima e embaixo
+    const top = 96;
+    const bottom = h - 96;
+    const side = 26;
+    if (bottom - top < 80) return;
+    const cx = w / 2;
+    const cy = (top + bottom) / 2;
+    for (const u of this.match.units) {
+      if (!u.alive) continue;
+      const sx = (u.cx - this.cam.x) * z + cx;
+      const sy = (u.cy - this.cam.y) * z + h / 2;
+      if (sx >= side && sx <= w - side && sy >= top && sy <= bottom) continue;
+      // empurra o ponto até a borda da área visível, na direção da bolota
+      const dx = sx - cx;
+      const dy = sy - cy;
+      const k = Math.min(Math.abs((cx - side) / (dx || 1e-6)), Math.abs((cy - top) / (dy || 1e-6)));
+      const ax = cx + dx * k;
+      const ay = cy + dy * k;
+      const ang = Math.atan2(dy, dx);
+      const meters = Math.round(Math.hypot(sx - ax, sy - ay) / z / 10);
+      c.save();
+      c.translate(ax, ay);
+      c.globalAlpha = u === this.match.active ? 1 : 0.85;
+      c.save();
+      c.rotate(ang);
+      c.beginPath();
+      c.moveTo(14, 0);
+      c.lineTo(-8, -10);
+      c.lineTo(-4, 0);
+      c.lineTo(-8, 10);
+      c.closePath();
+      c.fillStyle = u.team.color;
+      c.strokeStyle = '#2a1a12';
+      c.lineWidth = 3;
+      c.lineJoin = 'round';
+      c.stroke();
+      c.fill();
+      c.restore();
+      if (meters > 0) {
+        c.font = "13px 'Lilita One', sans-serif";
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        c.lineWidth = 4;
+        c.strokeStyle = '#2a1a12';
+        c.fillStyle = '#fff';
+        const lx = -Math.cos(ang) * 24;
+        const ly = -Math.sin(ang) * 20;
+        c.strokeText(`${meters} m`, lx, ly);
+        c.fillText(`${meters} m`, lx, ly);
+      }
+      c.restore();
+    }
   }
 
   /** Legenda gravada junto no vídeo do melhor lance. */
