@@ -15,16 +15,19 @@ describe('2x2', () => {
     });
     m.start();
     const ais = m.teams.map(() => new AiController('dificil'));
+    // só conta a alternância enquanto os quatro times têm alguém vivo
     const sides: number[] = [];
-    m.on((e) => e.type === 'turnStart' && sides.push(e.unit.team.side));
+    m.on((e) => {
+      if (e.type === 'turnStart' && m.teams.every((t) => t.units.some((u) => u.alive))) sides.push(e.unit.team.side);
+    });
     for (let t = 0; t < 60 * 60 * 25 && m.phase !== 'over'; t++) {
       const team = m.activeTeam;
       m.step(team ? ais[team.id].decide(m) : {});
     }
     expect(m.phase).toBe('over');
     // enquanto os dois lados têm gente, ninguém joga duas vezes seguidas pelo mesmo lado
-    const firstTurns = sides.slice(0, 6);
-    for (let i = 1; i < firstTurns.length; i++) expect(firstTurns[i]).not.toBe(firstTurns[i - 1]);
+    expect(sides.length).toBeGreaterThanOrEqual(2);
+    for (let i = 1; i < sides.length; i++) expect(sides[i]).not.toBe(sides[i - 1]);
     // fogo amigo é possível, mas a CPU mira em quem é do outro lado
     expect(m.winner).not.toBeNull();
     const winSide = m.winner!.side;
