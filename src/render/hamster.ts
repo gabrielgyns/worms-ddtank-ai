@@ -1,5 +1,5 @@
 import type { Team, Unit } from '../domain/unit';
-import type { CatPose } from './cat';
+import type { CritterPose } from './critter';
 import { drawEyewear, drawHat } from './cosmetics';
 import { drawFace, drawHand, wailMouth, type Mood, type UnitDrawOpts } from './hero';
 import { drawHeldWeapon, INK } from './sprites';
@@ -50,7 +50,7 @@ function puffOf(mood: Mood, t: number): number {
  * colada no corpo, bochechas que enchem (cheias quando carrega o tiro),
  * dentões, patinhas rosas e um rabicho. Pés em (0, 0), olhando para +x.
  */
-export function drawHamster(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts, p: CatPose): void {
+export function drawHamster(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts, p: CritterPose): void {
   const team = u.team;
   const { mood, t } = p;
   const armed = !!o.holding && mood !== 'fall';

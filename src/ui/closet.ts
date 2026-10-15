@@ -29,7 +29,7 @@ export function drawPreview(canvas: HTMLCanvasElement, look: Look, colorIdx = lo
   u.onGround = true;
   u.aim = 0.3;
   // gato e hamster são mais altos (orelhas): enquadra um pouco mais longe
-  const s = Math.min(w, h) / (look.species === 'species-gato' ? 54 : look.species === 'species-hamster' ? 50 : 44);
+  const s = Math.min(w, h) / (look.species === 'species-gato' ? 54 : look.species === 'species-hamster' || look.species === 'species-cachorro' ? 50 : 44);
   c.save();
   c.translate(w * 0.42, h * 0.82);
   c.scale(s, s);

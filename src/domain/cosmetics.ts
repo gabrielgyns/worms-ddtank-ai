@@ -29,6 +29,7 @@ export const COSMETICS: readonly Cosmetic[] = [
   // bichos: a bolota continua na cor do time, ganha orelhas, focinho e rabo
   { id: 'species-hamster', slot: 'species', name: 'Hamster', price: 300 },
   { id: 'species-gato', slot: 'species', name: 'Gato', price: 300 },
+  { id: 'species-cachorro', slot: 'species', name: 'Cachorro', price: 300 },
   // chapéus
   { id: 'hat-pirata', slot: 'hat', name: 'Chapéu de pirata', price: 150 },
   { id: 'hat-chef', slot: 'hat', name: 'Chapéu de chef', price: 150 },

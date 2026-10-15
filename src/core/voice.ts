@@ -19,10 +19,12 @@ export interface VoiceProfile {
 }
 
 /** Catálogo de vozes por bicho (dados, como as armas). */
-export const VOICES: Record<'bolota' | 'gato' | 'hamster' | 'rei', VoiceProfile> = {
+export const VOICES: Record<'bolota' | 'gato' | 'hamster' | 'cachorro' | 'rei', VoiceProfile> = {
   bolota: { pitch: 240, syl: 0.085, wave: 'triangle', glide: 0.08, wobble: 6, throat: 1 },
   gato: { pitch: 400, syl: 0.1, wave: 'sawtooth', glide: 0.35, wobble: 10, throat: 1.25 },
   hamster: { pitch: 640, syl: 0.06, wave: 'square', glide: 0.12, wobble: 18, throat: 1.5 },
+  // "au": cai de tom dentro da sílaba
+  cachorro: { pitch: 300, syl: 0.09, wave: 'sawtooth', glide: -0.3, wobble: 5, throat: 0.95 },
   rei: { pitch: 105, syl: 0.12, wave: 'sawtooth', glide: 0.05, wobble: 4, throat: 0.8 },
 };
 

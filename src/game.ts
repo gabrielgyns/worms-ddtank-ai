@@ -1,4 +1,4 @@
-import { VOICES } from './core/voice';
+import { VOICES, type VoiceProfile } from './core/voice';
 import { VoicePlayer } from './core/voiceplayer';
 import { VoiceDirector } from './voiceDirector';
 import type { Sfx } from './core/audio';
@@ -20,6 +20,13 @@ import { drawHill, drawGirderGhost, drawHomingMark, drawPowerAura, drawShield, d
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
+
+/** Timbre do balbucio de cada bicho. */
+const SPECIES_VOICE: Record<string, VoiceProfile> = {
+  'species-gato': VOICES.gato,
+  'species-hamster': VOICES.hamster,
+  'species-cachorro': VOICES.cachorro,
+};
 
 /**
  * De onde vêm as entradas de cada tick quando não é o jogo local padrão
@@ -114,7 +121,7 @@ export class Game {
     this.fx.onSpeak = (text, teamId, unit) => {
       const team = this.match.teams.find((t) => t.id === teamId);
       if (!team) return;
-      const voice = team.boss ? VOICES.rei : team.look.species === 'species-gato' ? VOICES.gato : team.look.species === 'species-hamster' ? VOICES.hamster : VOICES.bolota;
+      const voice = team.boss ? VOICES.rei : (SPECIES_VOICE[team.look.species ?? ''] ?? VOICES.bolota);
       // cada time e cada bolota soa um pouco diferente
       const variant = ((teamId * 3 + (unit ? unit.seed % 5 : 0)) % 7) / 6 - 0.5;
       this.sfx.speak(text, voice, variant);

@@ -12,7 +12,7 @@ describe('loja', () => {
     for (const o of a) expect(o.item.price).not.toBeNull();
   });
   it('bichos e vozes ficam sempre em destaque e fora do sorteio do dia', () => {
-    expect(featuredShop().map((o) => o.item.id)).toEqual(['species-hamster', 'species-gato', 'voice-original']);
+    expect(featuredShop().map((o) => o.item.id)).toEqual(['species-hamster', 'species-gato', 'species-cachorro', 'voice-original']);
     for (const d of ['2026-10-15', '2026-10-16', '2026-11-01'])
       expect(dailyShop(d).some((o) => o.item.slot === 'species' || o.item.slot === 'voice')).toBe(false);
   });

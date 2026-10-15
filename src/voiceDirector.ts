@@ -19,7 +19,7 @@ const NO_SHOT = new Set<WeaponId>(['teleport', 'rope', 'parachute', 'girder']);
 /** Velocidade da fala por bicho: mais rápido = mais agudo (o "esquilo" do Worms). */
 function rateOf(u: Unit): number {
   const t = u.team;
-  const base = t.boss ? 0.8 : t.look.species === 'species-hamster' ? 1.62 : t.look.species === 'species-gato' ? 1.45 : 1.32;
+  const base = t.boss ? 0.8 : t.look.species === 'species-hamster' ? 1.62 : t.look.species === 'species-gato' ? 1.45 : t.look.species === 'species-cachorro' ? 1.22 : 1.32;
   // cada time e cada bolota soa um pouco diferente
   return base * (1 + ((t.id % 4) - 1.5) * 0.035 + ((u.seed % 7) - 3) * 0.006);
 }

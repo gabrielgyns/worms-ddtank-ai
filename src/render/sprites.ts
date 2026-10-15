@@ -335,7 +335,7 @@ export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean,
   // chapéus altos empurram o rótulo para cima
   const tall = { 'hat-cartola': 16, 'hat-festa': 16, 'hat-chef': 10, 'hat-crown': 8, 'hat-louros': 4 }[u.team.look.hat ?? ''] ?? 0;
   // gato e hamster têm cabeça e orelhas acima do corpo: mais altos que a bolota
-  const cat = { 'species-gato': 15, 'species-hamster': 9 }[u.team.look.species ?? ''] ?? 0;
+  const cat = { 'species-gato': 15, 'species-hamster': 9, 'species-cachorro': 9 }[u.team.look.species ?? ''] ?? 0;
   const y = u.y - 34 * u.size - (tall + cat) * u.size - (u.chute ? 40 : 0);
   c.save();
   c.translate(u.x, y);
