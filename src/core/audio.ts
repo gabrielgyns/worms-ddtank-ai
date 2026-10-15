@@ -1,4 +1,5 @@
 import { Music } from './music';
+import { babble, type VoiceProfile } from './voice';
 
 /** Efeitos sonoros sintetizados na hora com WebAudio — nenhum arquivo externo. */
 export class Sfx {
@@ -13,6 +14,15 @@ export class Sfx {
   private volume = 0.8;
 
   private bus: GainNode | null = null;
+
+  /** vozes de balbucio nos balões de fala */
+  voices = true;
+
+  /** Fala o texto em balbucio com a voz do bicho. */
+  speak(text: string, voice: VoiceProfile, variant = 0): void {
+    if (!this.voices || !this.ctx || !this.master) return;
+    babble(this.ctx, this.master, this.noise, text, voice, variant);
+  }
 
   setVolume(v: number): void {
     this.volume = v;

@@ -948,6 +948,7 @@ new PrefsUi(show, (p) => {
   prefs = p;
   sfx.setVolume(p.sfx);
   sfx.music.setVolume(p.music);
+  sfx.voices = p.voices;
   a11y.colorblind = p.colorblind;
   a11y.shake = p.shake ? 1 : 0;
   if (game) game.cpuSpeed = p.cpuSpeed;

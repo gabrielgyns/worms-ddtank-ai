@@ -281,16 +281,22 @@ export class Effects {
     }
   }
 
+  /** Quem quer ouvir as falas (a voz de balbucio); a render só avisa, não toca som. */
+  onSpeak: ((text: string, teamId: number, unit?: Unit) => void) | null = null;
+
   /** Balão de fala sobre uma bolota do time. */
   say(teamId: number, text: string): void {
     this.bubbles = this.bubbles.filter((b) => b.teamId !== teamId);
     this.bubbles.push({ teamId, text, life: 2.8, max: 2.8 });
+    this.onSpeak?.(text, teamId);
   }
 
   /** Fala de uma bolota (dano, eliminação). Não atropela emote nem outra fala dela. */
   speak(u: Unit, kind: QuipKind): void {
     if (this.bubbles.some((b) => b.unitId === u.id || (b.unitId === undefined && b.teamId === u.team.id))) return;
-    this.bubbles.push({ teamId: u.team.id, unitId: u.id, text: quip(kind), life: 1.9, max: 1.9 });
+    const text = quip(kind);
+    this.bubbles.push({ teamId: u.team.id, unitId: u.id, text, life: 1.9, max: 1.9 });
+    this.onSpeak?.(text, u.team.id, u);
   }
 
   update(dt: number): void {

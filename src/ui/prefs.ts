@@ -4,10 +4,11 @@ const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel)
 
 type Choice<K extends keyof Prefs> = { key: K; label: string; options: Array<[Prefs[K], string]> };
 
-const CHOICES: Array<Choice<'gfx'> | Choice<'turnTime'> | Choice<'cpuSpeed'> | Choice<'shake'> | Choice<'colorblind'>> = [
+const CHOICES: Array<Choice<'gfx'> | Choice<'turnTime'> | Choice<'cpuSpeed'> | Choice<'shake'> | Choice<'colorblind'> | Choice<'voices'>> = [
   { key: 'gfx', label: 'Gráficos (recarrega o jogo)', options: [['gpu', 'Novo ✨'], ['classic', 'Clássico']] },
   { key: 'turnTime', label: 'Tempo de turno', options: [[20, '20 s'], [30, '30 s'], [45, '45 s'], [60, '60 s']] },
   { key: 'cpuSpeed', label: 'Velocidade da CPU', options: [[1, 'Normal'], [1.6, 'Rápida'], [2.5, 'Turbo']] },
+  { key: 'voices', label: 'Vozes das bolotas', options: [[true, 'Ligadas'], [false, 'Desligadas']] },
   { key: 'shake', label: 'Tremida de tela', options: [[true, 'Ligada'], [false, 'Desligada']] },
   { key: 'colorblind', label: 'Símbolos nos times (daltonismo)', options: [[false, 'Não'], [true, 'Sim ● ▲']] },
 ];

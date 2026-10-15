@@ -1,3 +1,4 @@
+import { VOICES } from './core/voice';
 import type { Sfx } from './core/audio';
 import type { Input } from './core/input';
 import { AiController, type Difficulty } from './domain/ai';
@@ -103,6 +104,14 @@ export class Game {
     this.terrainView = new TerrainView(t, setup.theme);
     this.bg = new Background(setup.theme, t.height);
     this.fx = new Effects(this.match, this.cam);
+    this.fx.onSpeak = (text, teamId, unit) => {
+      const team = this.match.teams.find((t) => t.id === teamId);
+      if (!team) return;
+      const voice = team.boss ? VOICES.rei : team.look.species === 'species-gato' ? VOICES.gato : team.look.species === 'species-hamster' ? VOICES.hamster : VOICES.bolota;
+      // cada time e cada bolota soa um pouco diferente
+      const variant = ((teamId * 3 + (unit ? unit.seed % 5 : 0)) % 7) / 6 - 0.5;
+      this.sfx.speak(text, voice, variant);
+    };
     this.ai = new AiController(difficulty);
     const p = deviceProfile();
     this.setQuality(p.touch && p.small ? LOW : HIGH);
