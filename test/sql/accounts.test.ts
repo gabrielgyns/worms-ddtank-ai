@@ -80,3 +80,24 @@ describe('migração: contas e amigos', () => {
     expect(await as(db, a, 'select * from matches')).toHaveLength(1);
   });
 });
+
+describe('migração: perfis que faltaram', () => {
+  it('cria perfil para conta feita antes das migrações', async () => {
+    const { PGlite } = await import('@electric-sql/pglite');
+    const { readdirSync, readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const root = join(import.meta.dirname, '..', '..');
+    const db = new PGlite();
+    await db.exec(readFileSync(join(root, 'test/sql/auth_stub.sql'), 'utf8'));
+    const early = '00000000-0000-4000-8000-0000000000ee';
+    await db.query(`insert into auth.users (id, raw_user_meta_data) values ($1, '{"name":"Pioneiro"}')`, [early]);
+    const dir = join(root, 'supabase/migrations');
+    for (const f of readdirSync(dir).sort()) await db.exec(readFileSync(join(dir, f), 'utf8'));
+    const [p] = await as<{ name: string }>(db, early, 'select name from profiles where id = $1', [early]);
+    expect(p.name).toBe('Pioneiro');
+    // e agora consegue salvar progresso
+    await as(db, early, `insert into progress (user_id, coins) values ($1, 484)`, [early]);
+    // rodar de novo não duplica nada
+    expect((await db.query<{ n: number }>('select public.backfill_profiles() as n')).rows[0].n).toBe(0);
+  });
+});
