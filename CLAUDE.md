@@ -24,7 +24,7 @@ npm run build      # typecheck + dist/index.html em arquivo único
 npm test           # Vitest: testes do domínio em test/ (inclui partidas CPU x CPU completas)
 ```
 
-Mudou regra de jogo? Rode `npm test` e confira no navegador.
+Mudou regra de jogo? Rode `npm test` e confira no navegador. O branch `v0` guarda a versão de antes da V1.
 
 ## Arquitetura
 
@@ -41,13 +41,15 @@ src/
     ai.ts        CPU: simula tiros com a MESMA stepProjectile do jogo
     unit.ts      Unit (bolota) e Team
     theme.ts     paletas dos cenários (só dados)
+    boss.ts, missions.ts, highlight.ts, props.ts, crates.ts, cosmetics.ts …
   net/       multiplayer: Transport (PeerJS/BroadcastChannel), Link (protocolo tipado),
              NetSession (lockstep: o host é o relógio e carimba as entradas com o tick)
   platform/  tela cheia, orientação, perfil de aparelho, vibração
+  progress/  estatísticas, conquistas, moedas, loja, baús, diário, temporada
   services/  contas e progresso: Backend local (localStorage) ou Supabase (env VITE_SUPABASE_*)
   render/    desenho em Canvas; só lê o estado
-  ui/        HUD e controles de toque em DOM
-  core/      math (Rng seedado), input, áudio
+  ui/        HUD, telas e controles de toque em DOM
+  core/      math (Rng seedado), input, áudio, música, compressão
   game.ts    cola tudo: loop de passo fixo 60 Hz, TickDriver (local/replay/rede), câmera, som
   main.ts    menus, telas, partida demo atrás do menu
 ```
