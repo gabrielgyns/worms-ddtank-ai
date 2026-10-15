@@ -47,6 +47,7 @@ import { a11y } from './render/a11y';
 import { disabledWeapons, isOn, type Flags } from './domain/flags';
 import { ITEMS } from './domain/items';
 import { AdminUi } from './ui/admin';
+import { GpuStage } from './render/gpu/stage';
 import { highlightCommands } from './domain/highlight';
 import { ClipRecorder, shareClip } from './ui/clip';
 
@@ -929,6 +930,18 @@ void getBackend().flags.load().then(setFlags);
 const admin = new AdminUi(show, () => flags, setFlags);
 getBackend().auth.onChange(() => void admin.refresh());
 void admin.refresh();
+
+// ─── visual novo (GPU) ───
+if (prefs.gfx === 'gpu') {
+  const back = $<HTMLCanvasElement>('#gpu-back');
+  const front = $<HTMLCanvasElement>('#gpu-front');
+  back.hidden = front.hidden = false;
+  void GpuStage.create(back, front, Math.min(2, window.devicePixelRatio || 1)).then((s) => {
+    if (s) Game.gpu = s;
+    // sem WebGL: volta para o clássico sem alarde
+    else back.hidden = front.hidden = true;
+  });
+}
 
 // ─── ajustes ───
 new PrefsUi(show, (p) => {

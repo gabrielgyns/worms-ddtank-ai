@@ -2036,3 +2036,21 @@ input.vol {
   height: 18px;
   accent-color: #2f8a12;
 }
+
+/* ───────── visual novo (GPU) ───────── */
+#gpu-back,
+#gpu-front {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+#gpu-front {
+  /* acima do jogo 2D, abaixo do HUD */
+  z-index: 1;
+}
+#game {
+  z-index: 0;
+}

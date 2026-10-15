@@ -26,6 +26,7 @@
   "dependencies": {
     "@capacitor/core": "^7.6.9",
     "@supabase/supabase-js": "^2.117.3",
-    "peerjs": "^1.5.4"
+    "peerjs": "^1.5.4",
+    "pixi.js": "^8.22.0"
   }
 }

@@ -44,6 +44,8 @@ export class Effects {
   private trailClock = 0;
   readonly hurt = new Map<number, number>();
   quality: Quality = HIGH;
+  /** visual novo: fogo, fumaça e destroços ficam com a GPU; aqui só números, anéis e textos */
+  lite = false;
 
   constructor(
     private m: Match,
@@ -206,6 +208,7 @@ export class Effects {
 
   private explosion(x: number, y: number, r: number): void {
     this.cam.shake = Math.min(26, this.cam.shake + r * 0.28);
+    if (this.lite) return;
     this.add({ x, y, life: 0.18, max: 0.18, size: r * 1.3, kind: 'flash', color: '#fffbe0' });
     this.add({ x, y, life: 0.45, max: 0.45, size: r * 0.5, grow: r * 3.2, kind: 'ring', color: '#fff6c8' });
     const n = Math.round(r * 0.6 * this.quality.particles);
@@ -337,6 +340,8 @@ export class Effects {
             });
             continue;
           }
+          // rastro padrão: no visual novo quem faz é a GPU
+          if (this.lite) continue;
           this.add({
             x: p.x - p.vx * 0.012,
             y: p.y - p.vy * 0.012,

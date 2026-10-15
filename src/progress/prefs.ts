@@ -13,9 +13,11 @@ export interface Prefs {
   shake: boolean;
   /** símbolos por time além da cor */
   colorblind: boolean;
+  /** visual: clássico (Canvas 2D) ou novo (GPU) */
+  gfx: 'classic' | 'gpu';
 }
 
-export const DEFAULT_PREFS: Prefs = { music: 0.7, sfx: 0.8, turnTime: 30, cpuSpeed: 1, shake: true, colorblind: false };
+export const DEFAULT_PREFS: Prefs = { music: 0.7, sfx: 0.8, turnTime: 30, cpuSpeed: 1, shake: true, colorblind: false, gfx: 'gpu' };
 
 export function loadPrefs(): Prefs {
   return { ...DEFAULT_PREFS, ...store.get<Partial<Prefs>>('prefs', {}) };

@@ -11,6 +11,7 @@ import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { a11y, TEAM_MARK } from './render/a11y';
+import type { GpuStage } from './render/gpu/stage';
 import { drawHill, drawGirderGhost, drawHomingMark, drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
@@ -69,6 +70,9 @@ export class Game {
   private highlightDone = false;
   /** pausa de impacto: segura a simulação uns milésimos num golpe forte (só tempo real, a regra não muda) */
   private hitstop = 0;
+  /** visual novo na GPU (um só para a página; null = clássico) */
+  static gpu: GpuStage | null = null;
+  private lastDt = 1 / 60;
   /** acelera a partida na vez da CPU (preferência do jogador; nunca online) */
   cpuSpeed = 1;
   /** velocidade da simulação (replay pode ir em 2x, 4x) */
@@ -279,6 +283,7 @@ export class Game {
   }
 
   frame(realDt: number): void {
+    this.lastDt = Math.min(0.1, realDt);
     if (this.quality !== LOW && this.meter.sample(realDt)) this.setQuality(LOW);
     if (this.paused) {
       this.input.endFrame();
@@ -486,18 +491,25 @@ export class Game {
       this.canvas.width = Math.round(w * dpr);
       this.canvas.height = Math.round(h * dpr);
     }
+    const gpu = Game.gpu;
+    this.fx.lite = !!gpu;
     c.save();
     c.scale(dpr, dpr);
     c.imageSmoothingEnabled = true;
     const m = this.match;
     const t = this.time;
-    this.bg.draw(c, this.cam, w, h, t, dpr);
+    // no visual novo o céu e o terreno vêm da GPU; aqui só limpa (camada transparente por cima)
+    if (gpu) c.clearRect(0, 0, w, h);
+    else this.bg.draw(c, this.cam, w, h, t, dpr);
 
     c.save();
     const z = this.cam.zoom;
     c.setTransform(dpr * z, 0, 0, dpr * z, dpr * (w / 2 - this.cam.x * z), dpr * (h / 2 - this.cam.y * z));
     const shake = this.cam.shake * a11y.shake;
-    if (shake > 0) c.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+    // um só deslocamento por frame, compartilhado com a GPU, para as camadas não descolarem
+    const shakeX = shake > 0 ? (Math.random() - 0.5) * shake : 0;
+    const shakeY = shake > 0 ? (Math.random() - 0.5) * shake : 0;
+    if (shake > 0) c.translate(shakeX / z, shakeY / z);
 
     const left = this.cam.x - w / 2 / z - 20;
     const right = this.cam.x + w / 2 / z + 20;
@@ -508,8 +520,11 @@ export class Game {
     if (!this.waterDrawY || this.waterDrawY < terr.waterY) this.waterDrawY = terr.waterY;
     this.waterDrawY += (terr.waterY - this.waterDrawY) * 0.03;
     const wy = this.waterDrawY;
-    drawWater(c, m.theme, wy, x0, right, bottom, t, false);
-    c.drawImage(this.terrainView.canvas, 0, 0);
+    if (gpu) gpu.render({ match: m, cam: this.cam, terrain: this.terrainView, w, h, time: t, dt: this.lastDt, waterY: wy, shakeX, shakeY });
+    else {
+      drawWater(c, m.theme, wy, x0, right, bottom, t, false);
+      c.drawImage(this.terrainView.canvas, 0, 0);
+    }
     if (m.hill) {
       const on = m.sidesOnHill();
       const owner = on.length === 1 ? m.teams.find((tm) => tm.side === on[0]) : null;
