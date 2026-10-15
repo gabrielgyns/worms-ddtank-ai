@@ -1,6 +1,6 @@
 /** Como um projétil se comporta em voo. */
 export interface ProjectileSpec {
-  kind: 'missile' | 'grenade' | 'bomblet' | 'dynamite' | 'cluster' | 'banana' | 'sheep';
+  kind: 'missile' | 'grenade' | 'bomblet' | 'dynamite' | 'cluster' | 'banana' | 'sheep' | 'homing';
   /** raio da explosão (px) */
   blast: number;
   /** dano no centro da explosão */
@@ -17,6 +17,8 @@ export interface ProjectileSpec {
   fragments?: { count: number; spec: ProjectileSpec };
   /** anda pelo chão (ovelha) em vez de voar: velocidade em px/s */
   walker?: number;
+  /** teleguiado: depois de um instante de voo vira para o alvo marcado (rad/s) */
+  homing?: number;
 }
 
 export type WeaponId =
@@ -31,12 +33,14 @@ export type WeaponId =
   | 'parachute'
   | 'sheep'
   | 'banana'
+  | 'homing'
+  | 'bat'
   | 'boss-meteoro'
   | 'boss-rajada'
   | 'boss-pisao';
 
-/** utility: corda e paraquedas — não gastam a vez */
-export type AimMode = 'charge' | 'drop' | 'target' | 'utility';
+/** utility: corda e paraquedas — não gastam a vez; melee: golpe na hora (taco) */
+export type AimMode = 'charge' | 'drop' | 'target' | 'utility' | 'melee';
 
 export interface WeaponDef {
   id: WeaponId;
@@ -181,11 +185,34 @@ export const WEAPONS: readonly WeaponDef[] = [
     maxSpeed: 760,
     projectile: { kind: 'banana', blast: 48, damage: 38, windFactor: 0.4, fuse: 3, bounce: 0.45, size: 6, fragments: { count: 5, spec: bananaPiece } },
   },
+  {
+    id: 'homing',
+    name: 'Míssil Teleguiado',
+    hint: 'Clique no mapa para marcar o alvo e atire: depois de um instante ele vira para a marca.',
+    key: 'R',
+    ammo: 1,
+    mode: 'charge',
+    maxSpeed: 700,
+    projectile: { kind: 'homing', blast: 44, damage: 42, windFactor: 0.5, bounce: 0, size: 4, homing: 4.2 },
+  },
+  {
+    id: 'bat',
+    name: 'Taco de Beisebol',
+    hint: 'Encoste no inimigo, mire e bata: ele voa longe na direção da mira.',
+    key: 'B',
+    ammo: 2,
+    mode: 'melee',
+    maxSpeed: 0,
+  },
 ];
+
+/** Taco: alcance à frente da bolota, dano e força da tacada. */
+export const BAT = { reach: 30, damage: 22, launch: 640 };
 
 /** Código do KeyboardEvent da tecla de atalho de uma arma. */
 export function weaponKeyCodes(key: string): string[] {
   if (key === '-') return ['Minus', 'NumpadSubtract'];
+  if (/^[A-Z]$/.test(key)) return [`Key${key}`];
   return key ? [`Digit${key}`, `Numpad${key}`] : [];
 }
 

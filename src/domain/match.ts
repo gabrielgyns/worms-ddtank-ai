@@ -21,7 +21,7 @@ import type { Look } from './cosmetics';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
 import { Unit, type Control, type Team } from './unit';
-import { isBossWeapon, specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
+import { BAT, isBossWeapon, specByKey, specKey, WEAPONS, weaponById, type ProjectileSpec, type WeaponDef, type WeaponId } from './weapons';
 
 export type Phase = 'turn' | 'retreat' | 'settle' | 'over';
 
@@ -44,6 +44,7 @@ export type GameEvent =
   | { type: 'waterRise'; y: number }
   | { type: 'cratePick'; crate: Crate; unit: Unit }
   | { type: 'item'; item: ItemId; unit: Unit }
+  | { type: 'bat'; x: number; y: number; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
 
 export interface TeamSetup {
@@ -156,7 +157,8 @@ export interface MatchSnapshot {
     chute?: boolean;
     shield?: boolean;
   }>;
-  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number; dir?: 1 | -1 }>;
+  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number; dir?: 1 | -1; tx?: number; ty?: number }>;
+  homingTarget?: { x: number; y: number } | null;
   terrain: string;
   crates: Crate[];
   nextCrateId: number;
@@ -204,6 +206,8 @@ export class Match implements SimWorld {
   private teamCursor = -1;
   private settleClock = 0;
   private hasFired = false;
+  /** marca do míssil teleguiado nesta vez */
+  homingTarget: { x: number; y: number } | null = null;
   /** itens ativos na vez atual (somem quando a vez acaba) */
   readonly boost = { power: false, double: false };
   turnNumber = 0;
@@ -394,6 +398,7 @@ export class Match implements SimWorld {
     h.int(this.tick).str(this.phase).int(this.wind).int(this.turnNumber).int(this.rng.state).num(this.terrain.waterY);
     h.num(this.turnTimer).num(this.retreatTimer).num(this.power).int(this.charging ? 1 : 0);
     h.int(this.active?.id ?? -1).int(this.boost.power ? 1 : 0).int(this.boost.double ? 1 : 0);
+    if (this.homingTarget) h.num(this.homingTarget.x).num(this.homingTarget.y);
     for (const t of this.teams) {
       h.int(t.cursor).str(t.weapon);
       for (const [id, n] of t.ammo) h.str(id).num(n);
@@ -404,7 +409,7 @@ export class Match implements SimWorld {
       h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0).int(u.chute ? 1 : 0).int(u.shield ? 1 : 0);
       if (u.rope) h.num(u.rope.ax).num(u.rope.ay).num(u.rope.len);
     }
-    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind).int(p.dir ?? 0);
+    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind).int(p.dir ?? 0).num(p.tx ?? -1).num(p.ty ?? -1);
     for (const c of this.crates) h.int(c.id).num(c.x).num(c.y).num(c.vy).str(c.kind).int(c.landed ? 1 : 0);
     for (const b of this.barrels) h.int(b.id).num(b.x).num(b.y).num(b.vy).num(b.fuse ?? -1);
     for (const mn of this.mines) h.int(mn.id).num(mn.x).num(mn.y).num(mn.vy).num(mn.fuse ?? -1);
@@ -465,7 +470,10 @@ export class Match implements SimWorld {
         ownerId: p.ownerId,
         rot: p.rot,
         dir: p.dir,
+        tx: p.tx,
+        ty: p.ty,
       })),
+      homingTarget: this.homingTarget ? { ...this.homingTarget } : null,
       terrain: encodeMask(this.terrain.solid),
       crates: this.crates.map((c) => ({ ...c })),
       nextCrateId: this.nextCrateId,
@@ -493,6 +501,7 @@ export class Match implements SimWorld {
     this.winner = this.teams.find((t) => t.id === s.winner) ?? null;
     this.time = s.time;
     this.rng.state = s.rng;
+    this.homingTarget = s.homingTarget ? { ...s.homingTarget } : null;
     this.boost.power = s.boost?.power ?? false;
     this.boost.double = s.boost?.double ?? false;
     s.teams.forEach((st, i) => {
@@ -548,6 +557,30 @@ export class Match implements SimWorld {
     if (i.charge === 'release') this.releaseCharge();
     if (i.target !== undefined) this.fireAt(i.target.x, i.target.y);
     if (i.forfeit !== undefined) this.forfeit(i.forfeit);
+  }
+
+  /** Taco: quem estiver logo à frente leva dano e voa na direção da mira. */
+  private swingBat(): void {
+    const u = this.active!;
+    const hx = u.cx + u.facing * BAT.reach * u.size;
+    const hy = u.cy;
+    const dx = Math.cos(u.aim) * u.facing;
+    const dy = -Math.sin(u.aim);
+    this.consumeAmmo();
+    this.emit({ type: 'fire', weapon: 'bat', unit: u });
+    for (const o of this.units) {
+      if (!o.alive || o === u) continue;
+      if (Math.hypot(o.cx - hx, o.cy - hy) > BAT.reach + o.radius) continue;
+      const d = this.boost.power ? Math.round(BAT.damage * POWER_MULT) : BAT.damage;
+      this.damage(o, o.shield ? Math.max(1, Math.round(d * SHIELD_MULT)) : d, u);
+      const force = BAT.launch / (o.size * o.size);
+      o.vx = dx * force;
+      o.vy = dy * force - 60;
+      o.onGround = false;
+      o.fallSpeed = 0;
+      this.emit({ type: 'bat', x: o.cx, y: o.cy, unit: o });
+    }
+    this.beginRetreat(RETREAT_TIME);
   }
 
   /** Espaço de novo depois de soltar a ovelha: ela explode na hora. */
@@ -670,6 +703,10 @@ export class Match implements SimWorld {
       this.fireDrop();
       return;
     }
+    if (this.weapon.mode === 'melee') {
+      this.swingBat();
+      return;
+    }
     if (this.weapon.mode !== 'charge' || this.charging) return;
     this.charging = true;
     this.power = 0;
@@ -684,6 +721,11 @@ export class Match implements SimWorld {
 
   /** Para armas de alvo (ataque aéreo, teletransporte). */
   fireAt(x: number, y: number): boolean {
+    // teleguiado: o clique só marca o alvo; o tiro sai carregando a força
+    if (this.phase === 'turn' && this.active && this.weapon.projectile?.homing && !this.charging) {
+      this.homingTarget = { x, y };
+      return true;
+    }
     if (this.phase !== 'turn' || !this.active || this.hasFired || this.weapon.mode !== 'target') return false;
     if (this.ammoOf(this.weapon.id) <= 0) return false;
     const u = this.active;
@@ -760,7 +802,14 @@ export class Match implements SimWorld {
   private fireCharged(power: number): void {
     const u = this.active!;
     const w = this.weapon;
-    for (const extra of w.spread ?? [0]) this.projectiles.push(this.launch(u, extra, power));
+    for (const extra of w.spread ?? [0]) {
+      const p = this.launch(u, extra, power);
+      if (w.projectile?.homing && this.homingTarget) {
+        p.tx = this.homingTarget.x;
+        p.ty = this.homingTarget.y;
+      }
+      this.projectiles.push(p);
+    }
     u.lastPower = power;
     this.consumeAmmo();
     this.emit({ type: 'fire', weapon: w.id, unit: u });
@@ -894,6 +943,7 @@ export class Match implements SimWorld {
     this.hasFired = false;
     this.boost.power = false;
     this.boost.double = false;
+    this.homingTarget = null;
     // o escudo vale até a próxima vez do próprio time
     for (const tu of team.units) tu.shield = false;
     if (this.ammoOf(team.weapon) <= 0) team.weapon = WEAPONS.find((w) => this.ammoOf(w.id) > 0)?.id ?? 'bazooka';

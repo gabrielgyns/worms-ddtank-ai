@@ -11,7 +11,7 @@ import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { a11y, TEAM_MARK } from './render/a11y';
-import { drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawHomingMark, drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -129,6 +129,10 @@ export class Game {
         case 'bounce':
           s.bounce();
           break;
+        case 'bat':
+          s.explosion(10);
+          this.hitstop = Math.max(this.hitstop, 0.12);
+          break;
         case 'splash':
           s.splash();
           break;
@@ -203,7 +207,8 @@ export class Game {
 
   /** Clique no mundo (coordenadas de tela). */
   clickAt(px: number, py: number): void {
-    if (!this.humanTurn || this.paused || this.match.weapon.mode !== 'target') return;
+    const wpn = this.match.weapon;
+    if (!this.humanTurn || this.paused || (wpn.mode !== 'target' && !wpn.projectile?.homing)) return;
     const w = this.cam.toWorld(px, py, this.canvas.clientWidth, this.canvas.clientHeight);
     this.pending.target = { x: Math.round(w.x), y: Math.round(w.y) };
   }
@@ -538,6 +543,8 @@ export class Game {
     this.fx.drawBubbles(c, z);
 
     // mira de alvo (ataque aéreo / teletransporte)
+    // marca do teleguiado (só quem joga neste aparelho vê)
+    if (m.homingTarget && this.humanTurn && m.weapon.projectile?.homing) drawHomingMark(c, m.homingTarget.x, m.homingTarget.y, t);
     if (this.hoverWorld && this.humanTurn && m.phase === 'turn' && m.weapon.mode === 'target') {
       const { x, y } = this.hoverWorld;
       c.strokeStyle = '#fff';

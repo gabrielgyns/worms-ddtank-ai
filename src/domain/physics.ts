@@ -135,6 +135,9 @@ export interface Projectile {
   rot: number;
   /** direção de quem anda (ovelha) */
   dir?: 1 | -1;
+  /** alvo do míssil teleguiado */
+  tx?: number;
+  ty?: number;
 }
 
 export interface SimWorld {
@@ -154,8 +157,23 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
     if (p.fuse <= 0) return 'explode';
   }
   if (p.spec.walker) return stepWalker(p, dt, w);
-  p.vx += w.wind * WIND_ACCEL * p.spec.windFactor * dt;
-  p.vy += GRAVITY * dt;
+  if (p.spec.homing && p.tx !== undefined && p.ty !== undefined && p.age > HOMING_DELAY) {
+    // vira aos poucos para a marca, mantendo a velocidade (nem vento nem gravidade)
+    const sp = Math.max(320, Math.hypot(p.vx, p.vy));
+    const want = Math.atan2(p.ty - p.y, p.tx - p.x);
+    const cur = Math.atan2(p.vy, p.vx);
+    let d = want - cur;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    const turn = Math.max(-p.spec.homing * dt, Math.min(p.spec.homing * dt, d));
+    const a = cur + turn;
+    const accel = Math.min(sp + 500 * dt, 780);
+    p.vx = Math.cos(a) * accel;
+    p.vy = Math.sin(a) * accel;
+  } else {
+    p.vx += w.wind * WIND_ACCEL * p.spec.windFactor * dt;
+    p.vy += GRAVITY * dt;
+  }
   p.rot += p.vx * dt * 0.04;
 
   const speed = Math.hypot(p.vx, p.vy);
@@ -211,6 +229,8 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
   return result;
 }
 
+/** segundos de voo livre antes do teleguiado começar a virar */
+const HOMING_DELAY = 0.45;
 const WALKER_STEP = 10; // degrau que sobe andando
 const WALKER_HOP = 270; // pulo quando dá de cara com parede
 

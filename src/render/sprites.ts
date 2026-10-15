@@ -158,6 +158,31 @@ export function drawHeldWeapon(c: CanvasRenderingContext2D, id: WeaponId): void 
     case 'banana':
       drawBananaShape(c, 10, 0, -0.4, 1.1);
       break;
+    case 'homing': {
+      roundRect(c, -8, -4.5, 28, 9, 3);
+      c.fillStyle = '#3a8a52';
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#ff4040';
+      c.beginPath();
+      c.arc(6, -7, 2.5, 0, Math.PI * 2);
+      c.fill();
+      c.stroke();
+      break;
+    }
+    case 'bat':
+      c.fillStyle = '#c98a4a';
+      c.beginPath();
+      c.moveTo(0, -2);
+      c.lineTo(22, -4.5);
+      c.quadraticCurveTo(27, 0, 22, 4.5);
+      c.lineTo(0, 2);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.fillStyle = '#7a4a22';
+      c.fillRect(-1, -2, 5, 4);
+      break;
     case 'sheep':
       drawSheepShape(c, 12, 0, 1, 0);
       break;
@@ -218,14 +243,14 @@ export function drawDynamiteShape(c: CanvasRenderingContext2D, x: number, y: num
 
 export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time: number, look?: Look): void {
   const k = p.spec.kind;
-  if (k === 'missile') {
+  if (k === 'missile' || k === 'homing') {
     c.save();
     c.translate(p.x, p.y);
     c.rotate(Math.atan2(p.vy, p.vx));
     c.lineWidth = 2;
     c.strokeStyle = INK;
-    // aletas
-    c.fillStyle = '#c33';
+    // aletas (teleguiado: verdes)
+    c.fillStyle = k === 'homing' ? '#3aa04a' : '#c33';
     c.beginPath();
     c.moveTo(-8, 0);
     c.lineTo(-12, -6);
@@ -518,6 +543,25 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.restore();
 }
 
+/** Marca do míssil teleguiado: X verde girando. */
+export function drawHomingMark(c: CanvasRenderingContext2D, x: number, y: number, time: number): void {
+  c.save();
+  c.translate(x, y);
+  c.rotate(time * 1.5);
+  c.lineCap = 'round';
+  for (const [w, col] of [[6, INK], [3, '#4fdc6a']] as const) {
+    c.lineWidth = w;
+    c.strokeStyle = col;
+    c.beginPath();
+    c.moveTo(-10, -10);
+    c.lineTo(10, 10);
+    c.moveTo(10, -10);
+    c.lineTo(-10, 10);
+    c.stroke();
+  }
+  c.restore();
+}
+
 /** Força +50%: brilho vermelho pulsando atrás da bolota. */
 export function drawPowerAura(c: CanvasRenderingContext2D, u: Unit, time: number): void {
   const r = 26 * u.size + Math.sin(time * 8) * 3;
@@ -634,6 +678,13 @@ export function drawWeaponIcon(c: CanvasRenderingContext2D, id: WeaponId): void 
     case 'banana':
       c.scale(1.5, 1.5);
       drawBananaShape(c, 0, 1, -0.3);
+      break;
+    case 'homing':
+    case 'bat':
+      c.rotate(-0.6);
+      c.scale(1.05, 1.05);
+      c.translate(-10, 0);
+      drawHeldWeapon(c, id);
       break;
     case 'sheep':
       c.scale(1.5, 1.5);

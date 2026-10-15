@@ -1938,18 +1938,31 @@ input.vol {
 }
 
 /* barra com 11 armas: encolhe um pouco em telas médias para o painel de força respirar */
-@media (max-width: 1200px) and (min-width: 861px) {
+@media (max-width: 1360px) and (min-width: 861px) {
   .weapon {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     border-radius: 10px;
   }
   .weapon canvas {
-    width: 33px;
-    height: 33px;
+    width: 31px;
+    height: 31px;
   }
   #weapons {
     gap: 4px;
     padding: 5px;
+  }
+}
+@media (max-width: 1100px) and (min-width: 861px) {
+  .weapon {
+    width: 35px;
+    height: 35px;
+  }
+  .weapon canvas {
+    width: 27px;
+    height: 27px;
+  }
+  .weapon em {
+    transform: scale(0.85);
   }
 }
