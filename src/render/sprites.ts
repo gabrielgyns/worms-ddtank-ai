@@ -5,7 +5,7 @@ import type { Crate } from '../domain/crates';
 import type { Barrel, Mine } from '../domain/props';
 import type { WeaponId } from '../domain/weapons';
 import type { Look } from '../domain/cosmetics';
-import { drawSpeciesBack, drawSpeciesFace, danceTransform, drawBody, drawEyewear, drawGraveLook, drawHat, drawPineapple } from './cosmetics';
+import { drawGraveLook, drawPineapple } from './cosmetics';
 
 export const INK = '#2a1a12';
 export const FONT = '"Lilita One", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
@@ -328,143 +328,7 @@ export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time:
   }
 }
 
-export interface UnitDrawOpts {
-  active: boolean;
-  holding: WeaponId | null;
-  hurt: number;
-  time: number;
-  /** comemorando a vitória (fim de partida) */
-  celebrate?: boolean;
-}
-
-/** A bolota: corpinho redondo, capacete do time, olhos que seguem a mira. */
-export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts): void {
-  const t = o.time;
-  const team = u.team;
-  c.save();
-  c.translate(u.x, u.y);
-  if (o.celebrate) {
-    const d = danceTransform(team.look.dance, t + u.seed * 0.01);
-    c.translate(0, d.dy - 12);
-    c.rotate(d.rot * u.facing);
-    c.translate(0, 12);
-  }
-  c.scale(u.facing * u.size, u.size);
-
-  const moving = Math.sin(u.walkPhase);
-  const breathe = u.onGround ? Math.sin(t * 3 + u.seed) * 0.03 : 0;
-  const air = !u.onGround;
-
-  // sombra
-  if (!air) {
-    c.fillStyle = 'rgba(0,0,0,0.18)';
-    ellipse(c, 0, 0, 11, 3);
-    c.fill();
-  }
-
-  // pés
-  c.lineWidth = 2;
-  c.strokeStyle = INK;
-  c.fillStyle = team.dark;
-  const fy = air ? -1 : -2;
-  ellipse(c, -5 + moving * 2.5, fy, 5, 3.2);
-  c.fill();
-  c.stroke();
-  ellipse(c, 5 - moving * 2.5, fy, 5, 3.2);
-  c.fill();
-  c.stroke();
-
-  // corpo
-  c.save();
-  c.translate(0, -13);
-  c.scale(1 - breathe, 1 + breathe);
-  drawSpeciesBack(c, team, team.look.species, t + u.seed * 0.1);
-  drawBody(c, team, team.look);
-
-  // barriguinha
-  c.fillStyle = 'rgba(255,255,255,0.35)';
-  ellipse(c, 2, 5, 6, 4.5);
-  c.fill();
-
-  // bicho sem chapéu escolhido: sem o capacete padrão, para as orelhas aparecerem
-  if (team.look.hat || !team.look.species) drawHat(c, team, team.look.hat);
-
-  // olhos
-  const lookX = Math.cos(u.aim) * 1.3;
-  const lookY = -Math.sin(u.aim) * 1.5;
-  const blink = (t + u.seed) % 3.7 < 0.12;
-  const scared = o.hurt > 0;
-  for (const [ex, rx, ry] of [
-    [3.5, 3.6, 4.3],
-    [9, 2.8, 3.8],
-  ] as const) {
-    if (blink) {
-      c.strokeStyle = INK;
-      c.lineWidth = 1.8;
-      c.beginPath();
-      c.moveTo(ex - rx, 3);
-      c.lineTo(ex + rx, 3);
-      c.stroke();
-      continue;
-    }
-    c.fillStyle = '#fff';
-    ellipse(c, ex, 2.5, rx, ry);
-    c.fill();
-    c.lineWidth = 1.5;
-    c.strokeStyle = INK;
-    c.stroke();
-    c.fillStyle = INK;
-    ellipse(c, ex + lookX, 2.8 + lookY, scared ? 0.9 : 1.6, scared ? 0.9 : 2.1);
-    c.fill();
-    if (!scared) {
-      c.fillStyle = '#fff';
-      ellipse(c, ex + lookX - 0.6, 1.8 + lookY, 0.6, 0.6);
-      c.fill();
-    }
-  }
-  // bochecha e boca
-  c.fillStyle = 'rgba(255,90,120,0.45)';
-  ellipse(c, 6.5, 8, 2.5, 1.5);
-  c.fill();
-  c.strokeStyle = INK;
-  c.lineWidth = 1.5;
-  c.beginPath();
-  if (scared) c.arc(7, 9.5, 1.8, 0, Math.PI * 2);
-  else c.arc(7.5, 7.5, 2.2, 0.2, Math.PI - 0.6);
-  c.stroke();
-  drawSpeciesFace(c, team, team.look.species);
-  drawEyewear(c, team.look.eyes);
-  if (team.boss) {
-    // sobrancelhas bravas do chefão
-    c.strokeStyle = INK;
-    c.lineWidth = 2;
-    c.beginPath();
-    c.moveTo(0, -3);
-    c.lineTo(6, -1);
-    c.moveTo(7, -1);
-    c.lineTo(12, -3);
-    c.stroke();
-  }
-  c.restore();
-
-  // arma
-  if (o.holding) {
-    c.save();
-    c.translate(2, -11);
-    if (o.holding !== 'dynamite' && o.holding !== 'airstrike' && o.holding !== 'teleport') c.rotate(-u.aim);
-    drawHeldWeapon(c, o.holding);
-    // mãozinha
-    c.fillStyle = team.color;
-    c.strokeStyle = INK;
-    c.lineWidth = 1.8;
-    ellipse(c, 6, 3, 3.2, 3);
-    c.fill();
-    c.stroke();
-    c.restore();
-  }
-  c.restore();
-}
-
+export { drawUnit, type UnitDrawOpts } from './hero';
 
 export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean, time: number, zoom: number): void {
   const s = 1 / Math.max(0.75, Math.min(1.3, zoom));

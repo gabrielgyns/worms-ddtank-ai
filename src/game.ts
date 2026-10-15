@@ -543,7 +543,7 @@ export class Game {
       const active = u === m.active && m.phase !== 'over';
       const celebrate = m.phase === 'over' && m.winner === u.team;
       if (active && m.boost.power) drawPowerAura(c, u, t);
-      drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate });
+      drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate, charging: active && m.charging });
       if (u.shield) drawShield(c, u, t);
     }
     if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') {
