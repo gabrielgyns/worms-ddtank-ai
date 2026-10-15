@@ -1,4 +1,6 @@
 import { VOICES } from './core/voice';
+import { VoicePlayer } from './core/voiceplayer';
+import { VoiceDirector } from './voiceDirector';
 import type { Sfx } from './core/audio';
 import type { Input } from './core/input';
 import { AiController, type Difficulty } from './domain/ai';
@@ -72,6 +74,8 @@ export class Game {
   /** pausa de impacto: segura a simulação uns milésimos num golpe forte (só tempo real, a regra não muda) */
   private hitstop = 0;
   /** visual novo na GPU (um só para a página; null = clássico) */
+  /** falas gravadas dos pacotes de voz */
+  private voices: VoiceDirector;
   static gpu: GpuStage | null = null;
   private lastDt = 1 / 60;
   /** acelera a partida na vez da CPU (preferência do jogador; nunca online) */
@@ -112,6 +116,7 @@ export class Game {
       const variant = ((teamId * 3 + (unit ? unit.seed % 5 : 0)) % 7) / 6 - 0.5;
       this.sfx.speak(text, voice, variant);
     };
+    this.voices = new VoiceDirector(this.match, new VoicePlayer(this.sfx), this.fx, () => this.sfx.voices);
     this.ai = new AiController(difficulty);
     const p = deviceProfile();
     this.setQuality(p.touch && p.small ? LOW : HIGH);
@@ -293,6 +298,7 @@ export class Game {
 
   frame(realDt: number): void {
     this.lastDt = Math.min(0.1, realDt);
+    this.voices.update(this.lastDt);
     if (this.quality !== LOW && this.meter.sample(realDt)) this.setQuality(LOW);
     if (this.paused) {
       this.input.endFrame();

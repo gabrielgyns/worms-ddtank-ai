@@ -52,6 +52,7 @@ src/
   ui/        HUD, telas e controles de toque em DOM
   core/      math (Rng seedado), input, áudio, música, compressão
   game.ts    cola tudo: loop de passo fixo 60 Hz, TickDriver (local/replay/rede), câmera, som
+  voiceDirector.ts  falas gravadas (pacotes de voz em public/voices/) ligadas aos eventos; sem pacote, balbucio
   main.ts    menus, telas, partida demo atrás do menu
 ```
 

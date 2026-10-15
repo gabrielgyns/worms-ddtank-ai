@@ -1,6 +1,6 @@
 /** Catálogo de cosméticos. Só visual: nada aqui muda a regra do jogo. */
 
-export type Slot = 'species' | 'hat' | 'eyes' | 'body' | 'grave' | 'trail' | 'boom' | 'aim' | 'grenade' | 'dance' | 'title';
+export type Slot = 'species' | 'hat' | 'eyes' | 'body' | 'grave' | 'trail' | 'boom' | 'aim' | 'grenade' | 'dance' | 'title' | 'voice';
 
 export interface Cosmetic {
   id: string;
@@ -22,6 +22,7 @@ export const SLOT_NAME: Record<Slot, string> = {
   grenade: 'Granada',
   dance: 'Dancinha de vitória',
   title: 'Título',
+  voice: 'Voz',
 };
 
 export const COSMETICS: readonly Cosmetic[] = [
@@ -59,6 +60,8 @@ export const COSMETICS: readonly Cosmetic[] = [
   { id: 'skin-abacaxi', slot: 'grenade', name: 'Granada de abacaxi', price: null },
   { id: 'dance-giro', slot: 'dance', name: 'Giro', price: 150 },
   { id: 'dance-cambalhota', slot: 'dance', name: 'Cambalhota', price: 200 },
+  // vozes gravadas (estilo Worms): falas de verdade no lugar do balbucio
+  { id: 'voice-original', slot: 'voice', name: 'Voz original', price: 150 },
   { id: 'title-lenda', slot: 'title', name: 'Título "Lenda"', price: null },
 ];
 

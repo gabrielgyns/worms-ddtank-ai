@@ -1,5 +1,5 @@
 import { Rng } from '../core/math';
-import { COSMETICS, type Cosmetic } from '../domain/cosmetics';
+import { COSMETICS, type Cosmetic, type Slot } from '../domain/cosmetics';
 
 export interface Offer {
   item: Cosmetic;
@@ -13,15 +13,17 @@ export function today(d = new Date()): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+const FEATURED = new Set<Slot>(['species', 'voice']);
+
 function seedOf(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
   return h >>> 0;
 }
 
-/** Destaques fixos da loja: os bichos, sempre à venda pelo preço cheio. */
+/** Destaques fixos da loja: os bichos e as vozes, sempre à venda pelo preço cheio. */
 export function featuredShop(): Offer[] {
-  return COSMETICS.filter((c) => c.slot === 'species' && c.price !== null).map((item) => ({ item, sale: false, price: item.price! }));
+  return COSMETICS.filter((c) => FEATURED.has(c.slot) && c.price !== null).map((item) => ({ item, sale: false, price: item.price! }));
 }
 
 /**
@@ -30,8 +32,8 @@ export function featuredShop(): Offer[] {
  */
 export function dailyShop(date = today(), size = 6): Offer[] {
   const rng = new Rng(seedOf(`loja-${date}`));
-  // bichos ficam sempre à venda (featuredShop), fora do sorteio do dia
-  const pool = COSMETICS.filter((c) => c.price !== null && c.slot !== 'species');
+  // bichos e vozes ficam sempre à venda (featuredShop), fora do sorteio do dia
+  const pool = COSMETICS.filter((c) => c.price !== null && !FEATURED.has(c.slot));
   const picked: Cosmetic[] = [];
   const left = [...pool];
   while (picked.length < Math.min(size, pool.length)) picked.push(left.splice(Math.floor(rng.next() * left.length), 1)[0]);

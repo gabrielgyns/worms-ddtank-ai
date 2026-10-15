@@ -291,8 +291,18 @@ export class Effects {
     this.onSpeak?.(text, teamId);
   }
 
+  /** Times com voz gravada: quem escolhe a fala é o diretor de voz, não o sorteio daqui. */
+  voiced: ((u: Unit) => boolean) | null = null;
+
+  /** Balão com um texto pronto (a legenda de uma fala gravada). Não chama o balbucio. */
+  bubble(u: Unit, text: string, life = 1.9): void {
+    this.bubbles = this.bubbles.filter((b) => b.unitId !== u.id && !(b.unitId === undefined && b.teamId === u.team.id));
+    this.bubbles.push({ teamId: u.team.id, unitId: u.id, text, life, max: life });
+  }
+
   /** Fala de uma bolota (dano, eliminação). Não atropela emote nem outra fala dela. */
   speak(u: Unit, kind: QuipKind): void {
+    if (this.voiced?.(u)) return;
     if (this.bubbles.some((b) => b.unitId === u.id || (b.unitId === undefined && b.teamId === u.team.id))) return;
     const text = quip(kind);
     this.bubbles.push({ teamId: u.team.id, unitId: u.id, text, life: 1.9, max: 1.9 });

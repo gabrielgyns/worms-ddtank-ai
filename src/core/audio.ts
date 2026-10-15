@@ -24,6 +24,19 @@ export class Sfx {
     babble(this.ctx, this.master, this.noise, text, voice, variant);
   }
 
+  /** Toca um trecho de um áudio (fala gravada). `rate` acima de 1 deixa mais agudo e rápido. */
+  playClip(buf: AudioBuffer, start: number, dur: number, rate: number): boolean {
+    if (!this.voices || !this.ctx || !this.master) return false;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rate;
+    const g = this.ctx.createGain();
+    g.gain.value = 1.1;
+    src.connect(g).connect(this.master);
+    src.start(this.ctx.currentTime, start, dur);
+    return true;
+  }
+
   setVolume(v: number): void {
     this.volume = v;
     if (this.master) this.master.gain.value = 0.6 * v;
