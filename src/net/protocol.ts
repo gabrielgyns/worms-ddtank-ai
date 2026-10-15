@@ -33,8 +33,8 @@ export interface LobbyState {
   guest: LobbyPlayer | null;
   units: number;
   themeId: ThemeId | 'random';
-  /** duelo (um contra o outro) ou chefão (juntos contra o Rei Bolotão) */
-  mode?: 'duel' | 'boss';
+  /** duelo (um contra o outro), chefão (juntos contra o Rei Bolotão) ou 2x2 (dupla em cada aparelho) */
+  mode?: 'duel' | 'boss' | 'duo';
   /** nome do mapa desenhado escolhido pelo host (o mapa vai no setup) */
   mapName?: string;
 }
@@ -53,7 +53,7 @@ export type NetMsg =
   // sala
   | { t: 'lobby'; state: LobbyState }
   | { t: 'me'; name: string; color: number; ready: boolean; look?: Look }
-  | { t: 'start'; setup: WireSetup; guestTeam: number; rejoin?: boolean }
+  | { t: 'start'; setup: WireSetup; guestTeam: number; guestTeams?: number[]; rejoin?: boolean }
   // partida (lockstep)
   | { t: 'frame'; upTo: number; cmds: Command[] }
   | { t: 'input'; input: TickInput }

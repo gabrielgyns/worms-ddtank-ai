@@ -102,9 +102,31 @@ export class Lobby {
     }
   }
 
-  /** Times da partida a partir da sala: host é o time 0, convidado o 1. */
+  /** Times que o convidado controla nesta configuração. */
+  guestTeams(): number[] {
+    return this.state.mode === 'duo' ? [1, 3] : [1];
+  }
+
+  /** Times da partida a partir da sala: host é o time 0, convidado o 1 (no 2x2, também 2 e 3). */
   teams(): TeamSetup[] {
     const players = [this.state.host, this.state.guest ?? { name: 'Convidado', color: 1, ready: true, connected: true }];
+    if (this.state.mode === 'duo') {
+      // dupla em cada aparelho, vez alternada entre os lados: A1, B1, A2, B2
+      return [0, 1, 0, 1].map((pi, i) => {
+        const p = players[pi];
+        const c = TEAM_COLORS[p.color];
+        return {
+          name: `${p.name} ${i < 2 ? '①' : '②'}`,
+          color: c.color,
+          light: c.light,
+          dark: c.dark,
+          control: 'human' as const,
+          names: UNIT_NAMES[pi].map((n) => (i < 2 ? n : `${n} Jr.`)),
+          look: p.look ?? {},
+          side: pi,
+        };
+      });
+    }
     const coop = this.state.mode === 'boss';
     const teams: TeamSetup[] = players.map((p, i) => {
       const c = TEAM_COLORS[p.color];
@@ -144,8 +166,9 @@ export class Lobby {
     const themes = (['random', ...Object.keys(THEMES)] as Array<ThemeId | 'random'>)
       .map((t) => `<button data-theme="${t}" class="${this.state.themeId === t ? 'on' : ''}" ${host ? '' : 'disabled'}>${t === 'random' ? 'Surpresa' : THEMES[t].name}</button>`)
       .join('');
-    const modes = (['duel', 'boss'] as const)
-      .map((md) => `<button data-mode="${md}" class="${(this.state.mode ?? 'duel') === md ? 'on' : ''}" ${host ? '' : 'disabled'}>${md === 'duel' ? 'Duelo' : 'Juntos vs Chefão 👑'}</button>`)
+    const modeName = { duel: 'Duelo', boss: 'Juntos vs Chefão 👑', duo: '2x2 (dupla em cada PC) 👫' };
+    const modes = (['duel', 'duo', 'boss'] as const)
+      .map((md) => `<button data-mode="${md}" class="${(this.state.mode ?? 'duel') === md ? 'on' : ''}" ${host ? '' : 'disabled'}>${modeName[md]}</button>`)
       .join('');
     const units = [2, 3, 4].map((n) => `<button data-units="${n}" class="${this.state.units === n ? 'on' : ''}" ${host ? '' : 'disabled'}>${n}</button>`).join('');
     this.root.innerHTML = `
@@ -206,7 +229,7 @@ export class Lobby {
     });
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
       b.addEventListener('click', () => {
-        this.state.mode = b.dataset.mode as 'duel' | 'boss';
+        this.state.mode = b.dataset.mode as 'duel' | 'boss' | 'duo';
         this.broadcast();
       }),
     );

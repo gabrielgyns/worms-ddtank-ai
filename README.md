@@ -16,6 +16,7 @@ No ar em **https://worms-ddtank-ai.vercel.app**: cada push na `main` publica soz
 ## Modos
 
 - **Contra a CPU** (fácil, normal, difícil) ou **2 no mesmo aparelho**.
+- **2x2**: você e um parceiro (CPU ou outra pessoa) contra duas CPUs; online, um casal em cada PC.
 - **Online**: crie uma sala, mande o código/link, a outra pessoa entra (WebRTC, sem servidor).
 - **Por link**: cada jogada vira um link para mandar no WhatsApp; quem recebe assiste ao lance e responde.
 - **Co-op contra o Rei Bolotão**: você + aliado (CPU ou amigo online) contra um chefão com ataques próprios.

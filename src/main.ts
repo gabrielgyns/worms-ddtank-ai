@@ -76,7 +76,9 @@ function startDemo(): void {
 let prefs: Prefs = loadPrefs();
 
 const settings = {
-  mode: 'cpu' as 'cpu' | 'pvp' | 'boss',
+  mode: 'cpu' as 'cpu' | 'pvp' | 'boss' | 'duo',
+  /** no 2x2 local: parceiro é a CPU ou outra pessoa no mesmo PC */
+  partner: 'cpu' as 'cpu' | 'human',
   difficulty: 'normal' as Difficulty,
   units: 3,
   theme: 'random' as ThemeId | 'random',
@@ -101,6 +103,25 @@ function teams(): TeamSetup[] {
   }
   const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
   const other = TEAM_COLORS[p.color === 1 ? 0 : 1];
+  if (settings.mode === 'duo') {
+    // 2x2: vez alternada entre as duplas (você, rival, parceiro, rival)
+    const ally = TEAM_COLORS[p.color === 2 ? 3 : 2];
+    const rival = TEAM_COLORS[p.color === 5 ? 4 : 5];
+    return [
+      { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook(), side: 0 },
+      { name: 'Robolas', color: other.color, light: other.light, dark: other.dark, control: 'cpu', names: ['Robozão', 'Chip', 'Parafuso', 'Bit'], side: 1 },
+      {
+        name: settings.partner === 'human' ? 'Parceiros' : 'Aliados',
+        color: ally.color,
+        light: ally.light,
+        dark: ally.dark,
+        control: settings.partner,
+        names: settings.partner === 'human' ? NAMES_B : ['Amigão', 'Parceira', 'Escudeiro', 'Bolotinha'],
+        side: 0,
+      },
+      { name: 'Ferrolhos', color: rival.color, light: rival.light, dark: rival.dark, control: 'cpu', names: ['Rebite', 'Porca', 'Arruela', 'Mola'], side: 1 },
+    ];
+  }
   return [
     { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook() },
     {
@@ -156,7 +177,8 @@ function startReplay(): void {
 function myTeamIn(g: Game): number | null {
   if (g.isReplay) return null;
   const local = g.match.teams.filter((t) => g.isLocal(t.id));
-  return local.length === 1 ? local[0].id : null;
+  // dupla no mesmo aparelho (2x2) conta como uma só; lados opostos no mesmo PC não contam
+  return local.length > 0 && local.every((t) => t.side === local[0].side) ? local[0].id : null;
 }
 
 /** Missão cumprida (ou não): estrelas pelos tiros e moedas na primeira vez. */
@@ -310,7 +332,10 @@ function launch(g: Game, original: Game = g): void {
           ? e.winner.boss
             ? 'O Rei Bolotão venceu!'
             : 'Rei Bolotão derrotado!'
-          : `${e.winner.name} venceu!`;
+          : (() => {
+              const duo = g.match.teams.filter((t) => t.side === e.winner!.side);
+              return duo.length > 1 ? `${duo.map((t) => t.name).join(' & ')} venceram!` : `${e.winner!.name} venceu!`;
+            })();
       $('#over-title').style.color = e.winner?.color ?? '#fff';
       const human = e.winner?.control === 'human';
       const onlineGame = g.online && session !== null;
@@ -327,6 +352,10 @@ function launch(g: Game, original: Game = g): void {
           ? localWin
             ? 'Você venceu! 🎉'
             : 'Não foi dessa vez… revanche?'
+          : settings.mode === 'duo'
+          ? localWin
+            ? 'A dupla venceu! 🎉'
+            : 'A outra dupla levou essa… revanche?'
           : settings.mode === 'cpu'
           ? human
             ? 'Você amassou os robôs! 🎉'
@@ -353,7 +382,7 @@ function onRoom(room: Room): void {
   room.link.on('start', (m) => {
     // reconexão: a partida já está aberta, só falta o estado (vem no resync)
     if (m.rejoin && session?.game && session.game.setup.seed === m.setup.seed && game === session.game) return;
-    startOnline(fromWire(m.setup));
+    startOnline(fromWire(m.setup), m.guestTeams ?? [m.guestTeam]);
   });
 }
 
@@ -368,18 +397,22 @@ function hostStart(): void {
     bossHp: lobby.state.mode === 'boss' ? bossHpFor(lobby.state.units * 2) : undefined,
     map: lobby.map(),
   };
-  session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: 1 });
-  startOnline(setup);
+  const guestTeams = lobby.guestTeams();
+  session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: guestTeams[0], guestTeams });
+  startOnline(setup, guestTeams);
 }
 
-function startOnline(setup: MatchSetup): void {
+function startOnline(setup: MatchSetup, guestTeams: number[]): void {
   if (!session) return;
   sfx.unlock();
   session.reset();
-  if (session.role === 'host') session.guestTeam = 1;
+  session.guestTeams = guestTeams;
+  // host: todos os times humanos que não são do convidado
+  const mine =
+    session.role === 'host' ? setup.teams.map((t, i) => (t.control === 'human' && !guestTeams.includes(i) ? i : -1)).filter((i) => i >= 0) : guestTeams;
   const g = new Game(
     setup,
-    { difficulty: 'normal', localTeams: [session.role === 'host' ? 0 : 1], driver: session.driver() },
+    { difficulty: 'normal', localTeams: mine, driver: session.driver() },
     canvas,
     input,
     sfx,
@@ -504,6 +537,7 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
       const v = b.dataset.v!;
       (settings as Record<string, unknown>)[key] = key === 'units' || key === 'sudden' ? Number(v) : key === 'crates' || key === 'objects' ? v === 'true' : v;
       $('#diff-row').style.display = settings.mode === 'pvp' ? 'none' : '';
+      $('#partner-row').style.display = settings.mode === 'duo' ? '' : 'none';
       sfx.unlock();
       sfx.select();
     });

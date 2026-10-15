@@ -31,8 +31,8 @@ export const ABANDON_AFTER = 60;
  */
 export class NetSession {
   game: Game | null = null;
-  guestTeam = 1;
-  private forfeitSent = false;
+  /** times que o convidado controla (no 2x2, dois) */
+  guestTeams: number[] = [1];
   // host
   private remoteQueue: TickInput[] = [];
   private outCmds: Command[] = [];
@@ -57,7 +57,7 @@ export class NetSession {
       link.on('hello', () => {
         const g = this.game;
         if (!g || g.match.phase === 'over') return;
-        link.send({ t: 'start', setup: toWire(g.setup), guestTeam: this.guestTeam, rejoin: true });
+        link.send({ t: 'start', setup: toWire(g.setup), guestTeam: this.guestTeams[0], guestTeams: this.guestTeams, rejoin: true });
         this.remoteQueue = [];
         this.sendResync();
       });
@@ -84,7 +84,6 @@ export class NetSession {
     this.lastTurn = 0;
     this.hostSums.clear();
     this.mySums.clear();
-    this.forfeitSent = false;
   }
 
   /** O outro jogador sumiu tempo demais? */
@@ -149,9 +148,10 @@ export class NetSession {
     return {
       next: (g) => {
         const team = g.match.activeTeam;
-        if (this.abandoned && !this.forfeitSent && g.match.phase !== 'over') {
-          this.forfeitSent = true;
-          return { forfeit: this.guestTeam };
+        if (this.abandoned && g.match.phase !== 'over') {
+          // um time por tick, até todos os do convidado saírem
+          const left = this.guestTeams.find((id) => g.match.teams[id]?.units.some((u) => u.alive));
+          if (left !== undefined) return { forfeit: left };
         }
         if (!team) return NO_INPUT;
         if (g.isLocal(team.id)) return g.humanInput();
