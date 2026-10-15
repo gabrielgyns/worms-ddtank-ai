@@ -38,6 +38,8 @@ import { BOSS_TEAM, bossHpFor, type MatchSetup } from './domain/match';
 import { MISSIONS, missionSetup, missionStars, type Mission } from './domain/missions';
 import { MISSION_REWARD, saveMissionResult } from './progress/missions';
 import { MissionsUi, starText } from './ui/missions';
+import { highlightCommands } from './domain/highlight';
+import { ClipRecorder, shareClip } from './ui/clip';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -261,12 +263,14 @@ function launch(g: Game, original: Game = g): void {
   demo = null;
   hud.bind(g);
   document.body.classList.toggle('replay', g.isReplay);
+  $('#replay-bar b').textContent = g.highlight ? 'MELHOR LANCE' : 'REPLAY';
   document.body.classList.toggle('boss-fight', g.match.teams.some((t) => t.boss));
   g.match.on((e) => {
     if (e.type !== 'gameOver') return;
     setTimeout(() => {
       if (game !== g) return;
       finished = original;
+      updateBestButtons();
       // partida por link que acabou na minha jogada: primeiro mandar o link
       if (g === mailGame && mailPending) {
         show('mail');
@@ -498,6 +502,59 @@ $('#again').addEventListener('click', () => {
   else startGame();
 });
 $('#watch').addEventListener('click', startReplay);
+
+// ─── melhor lance ───
+let clip: ClipRecorder | null = null;
+/** vídeo do último melhor lance gravado (da partida em `finished`) */
+let clipBlob: { of: Game; blob: Blob } | null = null;
+
+function updateBestButtons(): void {
+  const h = finished?.highlights?.best;
+  const best = $<HTMLButtonElement>('#best');
+  best.hidden = !h;
+  if (h) best.textContent = `🎬 Melhor lance: ${h.shooter}, ${h.damage} de dano`;
+  const share = $('#share-clip');
+  share.hidden = !clipBlob || clipBlob.of !== finished;
+  share.textContent = '📤 Enviar o vídeo do lance';
+}
+
+async function finishClip(): Promise<void> {
+  const rec = clip;
+  clip = null;
+  const of = finished;
+  const blob = rec ? await rec.stop() : null;
+  if (blob && of) clipBlob = { of, blob };
+  updateBestButtons();
+}
+
+function startHighlight(): void {
+  const src = finished;
+  const h = src?.highlights?.best;
+  if (!src || !h) return;
+  sfx.unlock();
+  const g = new Game(src.setup, { difficulty: settings.difficulty, replay: highlightCommands(h, src.log), highlight: h }, canvas, input, sfx);
+  launch(g, src);
+  document.body.classList.add('highlight');
+  hud.show('Melhor lance!', '#f2a81e', 1.4);
+  if (ClipRecorder.supported()) {
+    clip = new ClipRecorder();
+    if (!clip.start(canvas, sfx.stream())) clip = null;
+  }
+  g.onHighlightEnd = () =>
+    setTimeout(() => {
+      void finishClip();
+      if (game !== g) return;
+      game = null;
+      document.body.classList.remove('playing', 'replay', 'highlight');
+      show('over');
+    }, 1800);
+}
+$('#best').addEventListener('click', startHighlight);
+$('#share-clip').addEventListener('click', async () => {
+  if (!clipBlob) return;
+  const r = await shareClip(clipBlob.blob);
+  if (r === 'downloaded') $('#share-clip').textContent = '✅ Vídeo baixado — mande no WhatsApp!';
+});
 $('#replay-speed').addEventListener('click', (e) => {
   e.stopPropagation();
   if (!game?.isReplay) return;
@@ -506,6 +563,8 @@ $('#replay-speed').addEventListener('click', (e) => {
 });
 $('#replay-exit').addEventListener('click', (e) => {
   e.stopPropagation();
+  if (clip) void finishClip();
+  document.body.classList.remove('highlight');
   game = null;
   show('over');
   document.body.classList.remove('playing', 'replay');

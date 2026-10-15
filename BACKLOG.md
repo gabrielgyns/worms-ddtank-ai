@@ -93,7 +93,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F7-06** · P2 · M — Música dinâmica (calma na mira, tensa nos últimos 5 s).
 - [x] **F7-07** · P1 · M — Corda ninja e paraquedas (utilitários que não gastam a vez). *(promovido do banco de ideias)*
 - [x] **F7-08** · P1 · G — Missões/quebra-cabeças com estrelas: alvos parados, armas limitadas, vento fixo. *(promovido do banco de ideias)* — 8 missões em `domain/missions.ts` (mapas por código), time `dummy` que nunca joga, derrota quando acaba a munição de ataque; estrelas por tiros.
-- [ ] **F7-09** · P1 · M — Melhor lance da partida em câmera lenta + gravar vídeo para mandar no WhatsApp. *(promovido do banco de ideias)*
+- [x] **F7-09** · P1 · M — Melhor lance da partida em câmera lenta + gravar vídeo para mandar no WhatsApp. *(promovido do banco de ideias)* — `domain/highlight.ts` fotografa o estado a cada vez e guarda a de mais estrago; replay só daquela vez (mira 3×, voo 0,4×), gravado com `MediaRecorder` (H.264 quando dá) e enviado pelo menu de compartilhar do celular.
 
 ---
 

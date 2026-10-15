@@ -30,6 +30,18 @@ export class Sfx {
     }
   }
 
+  private tap: MediaStreamAudioDestinationNode | null = null;
+
+  /** Som do jogo como stream (para gravar vídeo junto com a imagem). */
+  stream(): MediaStream | null {
+    if (!this.ctx || !this.master) return null;
+    if (!this.tap) {
+      this.tap = this.ctx.createMediaStreamDestination();
+      this.master.connect(this.tap);
+    }
+    return this.tap.stream;
+  }
+
   toggleMute(): boolean {
     this.muted = !this.muted;
     if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;

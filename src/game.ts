@@ -4,6 +4,7 @@ import { AiController, type Difficulty } from './domain/ai';
 import { BossAi } from './domain/boss';
 import { DT, isEmptyInput, NO_INPUT, type Command, type TickInput } from './domain/commands';
 import { Match, type MatchSetup } from './domain/match';
+import { HighlightRecorder, type Highlight } from './domain/highlight';
 import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
@@ -32,6 +33,8 @@ export interface GameOptions {
   /** times controlados neste aparelho (padrão: todos os humanos) */
   localTeams?: number[];
   driver?: TickDriver;
+  /** reproduz só este lance, em câmera lenta (precisa de `replay` com os comandos dele) */
+  highlight?: Highlight;
 }
 
 /** Liga partida, controladores, câmera, render e som. */
@@ -55,6 +58,13 @@ export class Game {
   /** se definido, a partida é um replay: as entradas vêm daqui */
   private replay: readonly Command[] | null = null;
   private replayIdx = 0;
+  /** guarda o melhor lance enquanto se joga (null em replays) */
+  readonly highlights: HighlightRecorder | null;
+  /** tocando um melhor lance: para sozinho no fim dele */
+  readonly highlight: Highlight | null;
+  /** chamado uma vez quando o melhor lance termina */
+  onHighlightEnd: (() => void) | null = null;
+  private highlightDone = false;
   /** velocidade da simulação (replay pode ir em 2x, 4x) */
   speed = 1;
   private quality: Quality = HIGH;
@@ -88,6 +98,13 @@ export class Game {
     this.setQuality(p.touch && p.small ? LOW : HIGH);
     this.wireSound();
     this.match.start();
+    this.highlight = opts.highlight ?? null;
+    if (this.highlight) {
+      this.match.restore(this.highlight.snap);
+      this.cam.x = this.match.active?.x ?? this.cam.x;
+      this.cam.y = this.match.active?.y ?? this.cam.y;
+    }
+    this.highlights = this.replay ? null : new HighlightRecorder(this.match);
   }
 
   private wireSound(): void {
@@ -246,6 +263,22 @@ export class Game {
       this.render();
       return;
     }
+    const h = this.highlight;
+    if (h) {
+      if (this.match.tick >= h.endTick) {
+        // fim do lance: congela a simulação, mas efeitos e câmera seguem vivos
+        if (!this.highlightDone) {
+          this.highlightDone = true;
+          this.onHighlightEnd?.();
+        }
+        this.fx.update(realDt);
+        this.updateCamera(realDt);
+        this.render();
+        return;
+      }
+      // mira passa rápido; o voo e a explosão, devagar
+      this.speed = this.match.projectiles.length > 0 || this.match.phase === 'settle' ? 0.4 : 3;
+    }
     this.acc += Math.min(0.1, realDt) * this.speed;
     const d = this.driver;
     d?.beforeFrame?.(this);
@@ -313,6 +346,7 @@ export class Game {
     const wasCharging = m.charging;
     if (!isEmptyInput(input)) this.log.push({ tick: m.tick, input });
     m.step(input);
+    this.highlights?.afterStep();
     if (m.charging) {
       if (!wasCharging) this.sfx.chargeStart();
       this.sfx.chargeLevel(m.power);
@@ -485,6 +519,33 @@ export class Game {
 
     drawWater(c, m.theme, wy, x0, right, bottom, t, true);
     c.restore();
+    c.restore();
+    if (this.highlight) this.drawCaption(c);
+  }
+
+  /** Legenda gravada junto no vídeo do melhor lance. */
+  private drawCaption(c: CanvasRenderingContext2D): void {
+    const h = this.highlight!;
+    const w = this.canvas.width;
+    const s = Math.max(0.6, Math.min(1.6, w / 1000));
+    c.save();
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.textBaseline = 'top';
+    c.lineJoin = 'round';
+    c.font = `${Math.round(26 * s)}px 'Lilita One', sans-serif`;
+    const title = `🎬 ${h.shooter}: ${h.damage} de dano${h.kills ? ` · ${h.kills} KO` : ''}`;
+    c.lineWidth = 6 * s;
+    c.strokeStyle = '#2a1a12';
+    c.fillStyle = '#ffd34a';
+    c.strokeText(title, 18 * s, 16 * s);
+    c.fillText(title, 18 * s, 16 * s);
+    c.font = `${Math.round(18 * s)}px 'Lilita One', sans-serif`;
+    c.textAlign = 'right';
+    c.fillStyle = '#fff';
+    c.lineWidth = 5 * s;
+    const brand = 'Bolotas em Guerra';
+    c.strokeText(brand, w - 18 * s, 18 * s);
+    c.fillText(brand, w - 18 * s, 18 * s);
     c.restore();
   }
 }

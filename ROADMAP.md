@@ -80,3 +80,4 @@ Registro das escolhas e do porquê. Atualize quando mudar.
 | D10 | Serviços **local-first** (`services/`): implementação local completa + Supabase opcional por variáveis de ambiente | O jogo inteiro funciona sem configurar nada; ligar o servidor só acrescenta contas, amigos, presença e ranking compartilhado. |
 | D11 | Migrações SQL testadas no **PGlite** com stub do `auth` | Regras de RLS e funções `security definer` ficam cobertas por testes que rodam no CI, sem Docker. |
 | D12 | Missões são **partidas normais** com setup especial (spawns fixos, munição, vento, time `dummy`) | Nenhuma regra nova de jogo: a mesma `Match` roda missão, CPU e online. Solubilidade conferida por força bruta com a física real. |
+| D13 | Melhor lance = **foto do estado no começo da vez + comandos da vez** | Determinismo de novo: não gravamos vídeo da partida inteira; só reproduzimos a vez certa quando pedem, e aí gravamos o canvas. A foto é tirada entre ticks, nunca no meio de um. |
