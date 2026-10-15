@@ -64,6 +64,36 @@ export function drawHeldWeapon(c: CanvasRenderingContext2D, id: WeaponId): void 
       c.arc(14, -16, 2, 0, Math.PI * 2);
       c.fill();
       break;
+    case 'rope':
+      c.strokeStyle = '#9b6a3a';
+      c.lineWidth = 3;
+      c.beginPath();
+      c.arc(8, 0, 5, 0, Math.PI * 2);
+      c.stroke();
+      c.strokeStyle = INK;
+      c.lineWidth = 2;
+      c.beginPath();
+      c.moveTo(13, 0);
+      c.lineTo(19, -4);
+      c.lineTo(17, -7);
+      c.moveTo(19, -4);
+      c.lineTo(21, -1);
+      c.stroke();
+      break;
+    case 'parachute':
+      c.fillStyle = '#ff5a3a';
+      c.beginPath();
+      c.moveTo(-2, -2);
+      c.quadraticCurveTo(8, -16, 18, -2);
+      c.closePath();
+      c.fill();
+      c.stroke();
+      c.beginPath();
+      c.moveTo(-1, -2);
+      c.lineTo(8, 6);
+      c.lineTo(17, -2);
+      c.stroke();
+      break;
     case 'teleport':
       roundRect(c, 2, -5, 14, 10, 3);
       c.fillStyle = '#7b5cff';
@@ -333,7 +363,7 @@ export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean,
   const s = 1 / Math.max(0.75, Math.min(1.3, zoom));
   // chapéus altos empurram o rótulo para cima
   const tall = { 'hat-cartola': 16, 'hat-festa': 16, 'hat-chef': 10, 'hat-crown': 8, 'hat-louros': 4 }[u.team.look.hat ?? ''] ?? 0;
-  const y = u.y - 34 * u.size - tall * u.size;
+  const y = u.y - 34 * u.size - tall * u.size - (u.chute ? 40 : 0);
   c.save();
   c.translate(u.x, y);
   c.scale(s, s);
@@ -470,11 +500,69 @@ export function drawWeaponIcon(c: CanvasRenderingContext2D, id: WeaponId): void 
       break;
     }
     case 'teleport':
+    case 'rope':
+    case 'parachute':
       c.scale(1.4, 1.4);
-      c.translate(-9, 0);
+      c.translate(-9, id === 'parachute' ? 4 : 0);
       drawHeldWeapon(c, id);
       break;
   }
+  c.restore();
+}
+
+/** Corda ninja: fio do gancho até a bolota. */
+export function drawRope(c: CanvasRenderingContext2D, u: Unit): void {
+  const r = u.rope;
+  if (!r) return;
+  c.save();
+  c.strokeStyle = INK;
+  c.lineWidth = 3.5;
+  c.beginPath();
+  c.moveTo(r.ax, r.ay);
+  c.lineTo(u.cx, u.cy);
+  c.stroke();
+  c.strokeStyle = '#c48a4a';
+  c.lineWidth = 2;
+  c.stroke();
+  c.fillStyle = '#9aa3ad';
+  c.strokeStyle = INK;
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.arc(r.ax, r.ay, 3.5, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.restore();
+}
+
+/** Paraquedas aberto sobre a bolota. */
+export function drawChute(c: CanvasRenderingContext2D, u: Unit, t: number): void {
+  if (!u.chute) return;
+  c.save();
+  c.translate(u.x, u.y - 24);
+  c.rotate(Math.sin(t * 2.5 + u.seed) * 0.08);
+  c.strokeStyle = INK;
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.moveTo(-6, 4);
+  c.lineTo(-18, -20);
+  c.moveTo(6, 4);
+  c.lineTo(18, -20);
+  c.stroke();
+  c.lineWidth = 2.5;
+  c.fillStyle = u.team.light;
+  c.beginPath();
+  c.moveTo(-26, -20);
+  c.quadraticCurveTo(0, -50, 26, -20);
+  c.quadraticCurveTo(13, -25, 0, -20);
+  c.quadraticCurveTo(-13, -25, -26, -20);
+  c.fill();
+  c.stroke();
+  c.fillStyle = u.team.color;
+  c.beginPath();
+  c.moveTo(-9, -22);
+  c.quadraticCurveTo(0, -44, 9, -22);
+  c.quadraticCurveTo(0, -25, -9, -22);
+  c.fill();
   c.restore();
 }
 

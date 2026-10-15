@@ -91,6 +91,9 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F7-04** · P1 · M — Objetos no mapa: barris explosivos, minas, plataformas de metal indestrutíveis.
 - [x] **F7-05** · P2 · G — Editor de mapas (desenhar terreno com o dedo/mouse) e compartilhar com amigos.
 - [x] **F7-06** · P2 · M — Música dinâmica (calma na mira, tensa nos últimos 5 s).
+- [x] **F7-07** · P1 · M — Corda ninja e paraquedas (utilitários que não gastam a vez). *(promovido do banco de ideias)*
+- [ ] **F7-08** · P1 · G — Missões/quebra-cabeças com estrelas: alvos parados, armas limitadas, vento fixo. *(promovido do banco de ideias)*
+- [ ] **F7-09** · P1 · M — Melhor lance da partida em câmera lenta + gravar vídeo para mandar no WhatsApp. *(promovido do banco de ideias)*
 
 ---
 

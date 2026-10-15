@@ -25,11 +25,14 @@ export type WeaponId =
   | 'dynamite'
   | 'airstrike'
   | 'teleport'
+  | 'rope'
+  | 'parachute'
   | 'boss-meteoro'
   | 'boss-rajada'
   | 'boss-pisao';
 
-export type AimMode = 'charge' | 'drop' | 'target';
+/** utility: corda e paraquedas — não gastam a vez */
+export type AimMode = 'charge' | 'drop' | 'target' | 'utility';
 
 export interface WeaponDef {
   id: WeaponId;
@@ -131,6 +134,24 @@ export const WEAPONS: readonly WeaponDef[] = [
     key: '7',
     ammo: 2,
     mode: 'target',
+    maxSpeed: 0,
+  },
+  {
+    id: 'rope',
+    name: 'Corda Ninja',
+    hint: 'Mire e dispare: ←→ balança, ↑↓ encurta/estica, dispare de novo para soltar. Não gasta a vez.',
+    key: '8',
+    ammo: 5,
+    mode: 'utility',
+    maxSpeed: 0,
+  },
+  {
+    id: 'parachute',
+    name: 'Paraquedas',
+    hint: 'Use no ar: desce devagar, sem dano de queda, levado pelo vento.',
+    key: '9',
+    ammo: 2,
+    mode: 'utility',
     maxSpeed: 0,
   },
 ];

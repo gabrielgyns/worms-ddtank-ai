@@ -74,8 +74,10 @@ export function walk(t: Terrain, u: Unit, dir: 1 | -1, dt: number): boolean {
 /**
  * Física da bolota no ar. Retorna o dano de queda ao aterrissar (0 se nada).
  */
-export function stepUnit(t: Terrain, u: Unit, dt: number): number {
+export function stepUnit(t: Terrain, u: Unit, dt: number, wind = 0): number {
+  if (u.rope) return stepRope(t, u, dt);
   if (u.onGround) {
+    u.chute = false;
     if (!groundAt(t, u.x, u.y, u.size)) {
       u.onGround = false;
       u.fallSpeed = 0;
@@ -86,6 +88,12 @@ export function stepUnit(t: Terrain, u: Unit, dt: number): number {
     }
   }
   u.vy += GRAVITY * dt;
+  if (u.chute) {
+    // paraquedas: desce devagar, vai com o vento e não leva dano
+    u.vy = Math.min(u.vy, 60);
+    u.vx += (wind * 9 - u.vx) * Math.min(1, dt * 2);
+    u.fallSpeed = 0;
+  }
   u.fallSpeed = Math.max(u.fallSpeed, u.vy);
   const steps = Math.max(1, Math.ceil((Math.max(Math.abs(u.vx), Math.abs(u.vy)) * dt) / 1.5));
   const sdt = dt / steps;
@@ -103,6 +111,7 @@ export function stepUnit(t: Terrain, u: Unit, dt: number): number {
       if (u.vy > 0) {
         const impact = u.fallSpeed;
         u.onGround = true;
+        u.chute = false;
         u.vx = 0;
         u.vy = 0;
         u.fallSpeed = 0;
@@ -206,4 +215,61 @@ export function blastDamage(blast: number, damage: number, ex: number, ey: numbe
   if (d >= reach) return 0;
   const f = 1 - d / reach;
   return Math.round(damage * (0.35 + 0.65 * f));
+}
+
+export const ROPE_RANGE = 320;
+export const ROPE_MIN = 24;
+
+/** Lança a corda na direção (dx, dy). Devolve o ponto onde prendeu, ou null. */
+export function castRope(t: Terrain, x: number, y: number, dx: number, dy: number): { x: number; y: number } | null {
+  for (let d = 14; d <= ROPE_RANGE; d += 3) {
+    const px = x + dx * d;
+    const py = y + dy * d;
+    if (t.isSolid(px, py)) return { x: px, y: py };
+  }
+  return null;
+}
+
+/** Pêndulo da corda ninja: gravidade + fio de comprimento fixo. */
+export function stepRope(t: Terrain, u: Unit, dt: number): number {
+  const r = u.rope!;
+  // o chão onde a corda prendeu explodiu? solta
+  if (!t.isSolid(r.ax, r.ay)) {
+    u.rope = null;
+    return 0;
+  }
+  u.onGround = false;
+  u.fallSpeed = 0;
+  u.vy += GRAVITY * dt;
+  u.vx *= 0.998;
+  u.vy *= 0.998;
+  const steps = Math.max(1, Math.ceil((Math.hypot(u.vx, u.vy) * dt) / 1.5));
+  const sdt = dt / steps;
+  for (let i = 0; i < steps; i++) {
+    let px = u.x + u.vx * sdt;
+    let py = u.cy + u.vy * sdt;
+    const dx = px - r.ax;
+    const dy = py - r.ay;
+    const dist = Math.hypot(dx, dy) || 1;
+    if (dist > r.len) {
+      const nx = dx / dist;
+      const ny = dy / dist;
+      px = r.ax + nx * r.len;
+      py = r.ay + ny * r.len;
+      const radial = u.vx * nx + u.vy * ny;
+      if (radial > 0) {
+        u.vx -= radial * nx;
+        u.vy -= radial * ny;
+      }
+    }
+    const footY = py + 12 * u.size;
+    if (bodyCollides(t, px, footY, u.size)) {
+      u.vx *= -0.25;
+      u.vy *= -0.25;
+      break;
+    }
+    u.x = px;
+    u.y = footY;
+  }
+  return 0;
 }

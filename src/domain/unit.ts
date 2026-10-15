@@ -42,6 +42,10 @@ export class Unit {
   lastPower = -1;
   /** maior velocidade de queda desde que saiu do chão */
   fallSpeed = 0;
+  /** pendurada na corda ninja: ponto de apoio e comprimento */
+  rope: { ax: number; ay: number; len: number } | null = null;
+  /** paraquedas aberto */
+  chute = false;
   /** tamanho (1 = bolota normal; o chefão é bem maior) */
   size = 1;
   /** quem acertou esta bolota por último (para creditar a eliminação) */

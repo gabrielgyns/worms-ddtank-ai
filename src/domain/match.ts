@@ -6,6 +6,9 @@ import {
   stepUnit,
   unstick,
   walk,
+  castRope,
+  ROPE_MIN,
+  ROPE_RANGE,
   type Projectile,
   type SimWorld,
 } from './physics';
@@ -35,6 +38,8 @@ export type GameEvent =
   | { type: 'crateDrop'; crate: Crate }
   | { type: 'suddenDeath' }
   | { type: 'mineArmed'; mine: Mine }
+  | { type: 'rope'; unit: Unit; hit: boolean }
+  | { type: 'chute'; unit: Unit }
   | { type: 'waterRise'; y: number }
   | { type: 'cratePick'; crate: Crate; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
@@ -133,6 +138,8 @@ export interface MatchSnapshot {
     walkPhase: number;
     lastPower: number;
     fallSpeed: number;
+    rope?: { ax: number; ay: number; len: number } | null;
+    chute?: boolean;
   }>;
   projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number }>;
   terrain: string;
@@ -347,7 +354,8 @@ export class Match implements SimWorld {
     }
     for (const u of this.units) {
       h.num(u.x).num(u.y).num(u.vx).num(u.vy).num(u.hp).num(u.aim).int(u.facing);
-      h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0);
+      h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0).int(u.chute ? 1 : 0);
+      if (u.rope) h.num(u.rope.ax).num(u.rope.ay).num(u.rope.len);
     }
     for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
     for (const c of this.crates) h.int(c.id).num(c.x).num(c.y).num(c.vy).str(c.kind).int(c.landed ? 1 : 0);
@@ -394,6 +402,8 @@ export class Match implements SimWorld {
         walkPhase: u.walkPhase,
         lastPower: u.lastPower,
         fallSpeed: u.fallSpeed,
+        rope: u.rope ? { ...u.rope } : null,
+        chute: u.chute,
       })),
       projectiles: this.projectiles.map((p) => ({
         x: p.x,
@@ -503,7 +513,14 @@ export class Match implements SimWorld {
 
   walk(dir: 1 | -1, dt: number): void {
     if (!this.canAct() || this.charging) return;
-    walk(this.terrain, this.active!, dir, dt);
+    const u = this.active!;
+    if (u.rope) {
+      // na corda: balança
+      u.vx += dir * 340 * dt;
+      u.facing = dir;
+      return;
+    }
+    walk(this.terrain, u, dir, dt);
   }
 
   face(dir: 1 | -1): void {
@@ -513,6 +530,12 @@ export class Match implements SimWorld {
   jump(back = false): void {
     if (!this.canAct() || this.charging) return;
     const u = this.active!;
+    if (u.rope) {
+      // pular da corda: solta mantendo o embalo
+      u.rope = null;
+      u.vy -= 120;
+      return;
+    }
     if (!u.onGround) return;
     u.onGround = false;
     u.y -= 1;
@@ -527,7 +550,14 @@ export class Match implements SimWorld {
   }
 
   aimBy(delta: number): void {
-    if (this.phase !== 'turn' || !this.active) return;
+    if (!this.active) return;
+    const rope = this.active.rope;
+    if (rope && this.canAct()) {
+      // na corda: ↑ encurta, ↓ estica
+      rope.len = clamp(rope.len - delta * 160, ROPE_MIN, ROPE_RANGE);
+      return;
+    }
+    if (this.phase !== 'turn') return;
     this.active.aim = clamp(this.active.aim + delta, AIM_MIN, AIM_MAX);
   }
 
@@ -543,7 +573,16 @@ export class Match implements SimWorld {
 
   /** Começa a carregar a força (modo DDTank). `limit` é usado pela IA. */
   startCharge(limit = 1): void {
+    if (this.active?.rope && this.canAct()) {
+      // disparar de novo solta a corda
+      this.active.rope = null;
+      return;
+    }
     if (this.phase !== 'turn' || !this.active || this.hasFired) return;
+    if (this.weapon.mode === 'utility') {
+      this.useUtility();
+      return;
+    }
     if (this.weapon.mode === 'drop') {
       this.fireDrop();
       return;
@@ -608,6 +647,28 @@ export class Match implements SimWorld {
     this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
     this.beginRetreat(RETREAT_TIME);
     return true;
+  }
+
+  /** Corda ninja e paraquedas: não gastam a vez. */
+  private useUtility(): void {
+    const u = this.active!;
+    const team = u.team;
+    const id = this.weapon.id;
+    if (id === 'rope') {
+      const dx = Math.cos(u.aim) * u.facing;
+      const dy = -Math.sin(u.aim);
+      const hit = castRope(this.terrain, u.cx, u.cy, dx, dy);
+      this.emit({ type: 'rope', unit: u, hit: !!hit });
+      if (!hit) return;
+      u.rope = { ax: hit.x, ay: hit.y, len: Math.max(ROPE_MIN, Math.hypot(hit.x - u.cx, hit.y - u.cy)) };
+      u.onGround = false;
+      team.ammo.set(id, team.ammo.get(id)! - 1);
+    } else if (id === 'parachute') {
+      if (u.onGround || u.chute) return;
+      u.chute = true;
+      team.ammo.set(id, team.ammo.get(id)! - 1);
+      this.emit({ type: 'chute', unit: u });
+    }
   }
 
   private fireCharged(power: number): void {
@@ -737,6 +798,7 @@ export class Match implements SimWorld {
     if (this.charging) {
       this.charging = false;
     }
+    if (this.active) this.active.rope = null;
     this.phase = 'settle';
     this.settleClock = 0;
   }
@@ -797,7 +859,7 @@ export class Match implements SimWorld {
     const t = this.terrain;
     for (const u of this.units) {
       if (!u.alive) continue;
-      const fall = stepUnit(t, u, dt);
+      const fall = stepUnit(t, u, dt, this.wind);
       if (fall > 0) this.damage(u, fall, null);
       if (u.y > t.waterY + 6 || u.x < -200 || u.x > t.width + 200) {
         u.alive = false;

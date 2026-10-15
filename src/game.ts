@@ -8,7 +8,7 @@ import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
-import { drawBarrel, drawCrate, drawMine, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -133,6 +133,12 @@ export class Game {
           break;
         case 'mineArmed':
           s.beep();
+          break;
+        case 'rope':
+          s.rope(e.hit);
+          break;
+        case 'chute':
+          s.whoosh();
           break;
         case 'damage':
           s.ouch();
@@ -350,11 +356,14 @@ export class Game {
     else if (i.isDown('down')) out.aim = -aimSpeed * DT;
     if (i.wasPressed('jump')) out.jump = 'front';
     if (i.wasPressed('backflip')) out.jump = 'back';
-    if (i.wasPressed('fire')) {
+    const pressed = i.wasPressed('fire');
+    const released = i.wasReleased('fire');
+    if (pressed) {
       if (m.weapon.mode !== 'target') this.cam.manual = 0;
       out.charge = 'start';
-    }
-    if (i.wasReleased('fire')) out.charge = 'release';
+      // toque rápido (apertou e soltou no mesmo frame): solta no próximo tick
+      if (released) this.pending.charge = 'release';
+    } else if (released) out.charge = 'release';
     return out;
   }
 
@@ -442,6 +451,8 @@ export class Game {
     const holding = m.phase === 'turn' && !!m.active ? m.weapon.id : null;
     for (const u of m.units) {
       if (!u.alive) continue;
+      drawRope(c, u);
+      drawChute(c, u, t);
       const active = u === m.active && m.phase !== 'over';
       const celebrate = m.phase === 'over' && m.winner === u.team;
       drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate });
