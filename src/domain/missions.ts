@@ -5,7 +5,7 @@ import { THEMES, type ThemeId } from './theme';
 import type { WeaponId } from './weapons';
 
 /** Construtor de mapas por código (para as missões). */
-class MapBuilder {
+export class MapBuilder {
   readonly mask = new Uint8Array(WORLD_W * WORLD_H);
 
   /** Chão plano de x0 a x1 a partir da altura y até o fundo. */
@@ -53,7 +53,7 @@ export interface Mission {
   map(): string;
 }
 
-const G = 900; // altura padrão do chão
+export const G = 900; // altura padrão do chão
 
 export const MISSIONS: readonly Mission[] = [
   {

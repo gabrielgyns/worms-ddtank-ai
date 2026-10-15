@@ -38,6 +38,9 @@ import { BOSS_TEAM, bossHpFor, type MatchSetup } from './domain/match';
 import { MISSIONS, missionSetup, missionStars, type Mission } from './domain/missions';
 import { MISSION_REWARD, saveMissionResult } from './progress/missions';
 import { MissionsUi, starText } from './ui/missions';
+import { LESSONS, lessonSetup, TutorialRun } from './domain/tutorial';
+import { TutorialCard } from './ui/tutorial';
+import { store } from './services/store';
 import { highlightCommands } from './domain/highlight';
 import { ClipRecorder, shareClip } from './ui/clip';
 
@@ -170,6 +173,7 @@ function recordResult(g: Game, tracker: MatchTracker): void {
   unlocksEl.hidden = true;
   unlocksEl.innerHTML = '';
   $('#over-mission').hidden = true;
+  if (tutorial?.game === g) return;
   const me = myTeamIn(g);
   if (me === null) return;
   // co-op: vence o lado inteiro (mesmo que quem sobrou seja o aliado)
@@ -263,6 +267,11 @@ function launch(g: Game, original: Game = g): void {
   demo = null;
   hud.bind(g);
   document.body.classList.toggle('replay', g.isReplay);
+  if (tutorial?.game !== g) {
+    tutorial = null;
+    tutorialCard.hide();
+  }
+  $('#watch').hidden = false;
   $('#replay-bar b').textContent = g.highlight ? 'MELHOR LANCE' : 'REPLAY';
   document.body.classList.toggle('boss-fight', g.match.teams.some((t) => t.boss));
   g.match.on((e) => {
@@ -764,6 +773,7 @@ function loop(now: number): void {
   if (game) {
     game.frame(dt);
     hud.update(dt);
+    tutorialTick();
     netWatch();
   } else {
     demo?.frame(dt);
@@ -815,6 +825,89 @@ function startCustom(map: string, theme: ThemeId): void {
   );
 }
 const editor = new EditorUi(show, startCustom);
+
+// ─── tutorial ───
+const tutorialCard = new TutorialCard();
+let tutorial: { game: Game; run: TutorialRun; index: number; leaving: boolean } | null = null;
+/** moedas na primeira vez que termina o tutorial */
+const TUTORIAL_REWARD = 50;
+
+function startLesson(index: number): void {
+  sfx.unlock();
+  const lesson = LESSONS[index];
+  const p = loadProfile();
+  const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
+  const player: TeamSetup = { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook() };
+  const g = new Game(lessonSetup(lesson, player), { difficulty: settings.difficulty }, canvas, input, sfx);
+  tutorial = { game: g, run: new TutorialRun(g.match, lesson), index, leaving: false };
+  launch(g);
+  tutorialCard.show(tutorial.run, index);
+  hud.show(lesson.name, '#f2a81e', 1.4);
+}
+
+function startTutorial(): void {
+  store.set('tutorialSeen', true);
+  $('#tut-offer').hidden = true;
+  startLesson(0);
+}
+
+/** A cada frame: avança passos, troca de lição, recomeça se cair na água. */
+function tutorialTick(): void {
+  const t = tutorial;
+  if (!t || game !== t.game || t.leaving) return;
+  if (t.run.update()) {
+    sfx.pickup();
+    tutorialCard.show(t.run, t.index);
+    tutorialCard.pop();
+  }
+  if (t.run.finished) {
+    t.leaving = true;
+    tutorialCard.show(t.run, t.index);
+    hud.show('Muito bem!', '#4fbf3a', 1.4);
+    setTimeout(() => (t.index + 1 < LESSONS.length ? startLesson(t.index + 1) : finishTutorial()), 1700);
+  } else if (t.run.failed) {
+    t.leaving = true;
+    hud.show('Ops! De novo…', '#e2553c', 1.4);
+    setTimeout(() => startLesson(t.index), 1700);
+  }
+}
+
+function finishTutorial(): void {
+  const first = !store.get<boolean>('tutorialDone', false);
+  store.set('tutorialDone', true);
+  if (first) progress().addCoins(TUTORIAL_REWARD);
+  tutorial = null;
+  tutorialCard.hide();
+  game = null;
+  document.body.classList.remove('playing');
+  $('#over-title').textContent = 'Tutorial completo! 🎓';
+  $('#over-title').style.color = '#f2a81e';
+  $('#over-sub').textContent = 'Agora é com você. Que tal encarar a CPU?';
+  for (const id of ['#over-daily', '#over-mission', '#over-unlocks', '#best', '#share-clip', '#watch']) $(id).hidden = true;
+  const coins = $('#over-coins');
+  coins.hidden = !first;
+  coins.innerHTML = first ? `<b>+${TUTORIAL_REWARD} 🪙</b>` : '';
+  $('#again').textContent = 'Jogar contra a CPU';
+  finished = null;
+  show('over');
+}
+
+$('#tutorial-btn').addEventListener('click', startTutorial);
+$('#tut-offer-go').addEventListener('click', startTutorial);
+$('#tut-offer-no').addEventListener('click', () => {
+  store.set('tutorialSeen', true);
+  $('#tut-offer').hidden = true;
+});
+$('#tut-skip').addEventListener('click', (e) => {
+  e.stopPropagation();
+  tutorial = null;
+  tutorialCard.hide();
+  game = null;
+  document.body.classList.remove('playing');
+  show('menu');
+});
+// primeira visita: oferece o tutorial no menu
+$('#tut-offer').hidden = store.get<boolean>('tutorialSeen', false) || loadStats().games > 0;
 
 // ─── missões ───
 let missionGame: { game: Game; mission: Mission } | null = null;

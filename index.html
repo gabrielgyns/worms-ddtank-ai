@@ -51,6 +51,13 @@
         <div id="weapons"></div>
       </div>
       <div id="banner"></div>
+      <div id="tutorial" hidden>
+        <small id="tut-title"></small>
+        <p id="tut-text"></p>
+        <kbd id="tut-keys"></kbd>
+        <div id="tut-dots"></div>
+        <button id="tut-skip">Sair do tutorial</button>
+      </div>
       <div id="net-warn" hidden></div>
       <div id="boss-bar" hidden><b>👑 Rei Bolotão</b><div class="bar"><div class="fill"></div></div><span></span></div>
       <div id="emotes" hidden></div>
@@ -87,6 +94,7 @@
           <span id="wallet" class="chip coin" title="Bolotins">🪙 0</span>
           <button id="achievements-btn" class="chip">🏆 Conquistas</button>
           <button id="ranking-btn" class="chip">📊 Ranking</button>
+          <button id="tutorial-btn" class="chip">🎓 Tutorial</button>
           <button id="missions-btn" class="chip">🎯 Missões</button>
           <button id="editor-btn" class="chip">✏️ Mapas</button>
           <button id="shop-btn" class="chip">🛒 Loja</button>
@@ -97,6 +105,11 @@
         </nav>
         <h1><span>Bolotas</span><small>em</small><span>Guerra!</span></h1>
         <p class="tag">Artilharia por turnos no estilo Worms &amp; DDTank</p>
+        <div id="tut-offer" class="tut-offer" hidden>
+          <span>Primeira vez aqui? Aprenda em 2 minutos.</span>
+          <button id="tut-offer-go" class="chip">🎓 Fazer o tutorial</button>
+          <button id="tut-offer-no" class="chip">Agora não</button>
+        </div>
 
         <div class="opt"><label>Modo</label>
           <div class="seg" data-opt="mode">

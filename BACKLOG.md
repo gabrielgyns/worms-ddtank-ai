@@ -101,7 +101,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 
 > Foco no PC. Um commit e push na `main` por item, na ordem.
 
-- [ ] **F9-01** · P0 · M — Tutorial interativo de ~2 min: andar, mirar, força, vento, trocar arma, acertar o boneco. Oferecido na primeira vez; sempre acessível no menu.
+- [x] **F9-01** · P0 · M — Tutorial interativo de ~2 min: andar, mirar, força, vento, trocar arma, acertar o boneco. Oferecido na primeira vez; sempre acessível no menu. — 3 lições (`domain/tutorial.ts`), +50 🪙 na primeira vez.
 - [ ] **F9-02** · P0 · P — Prévia do raio de explosão na mira (círculo no fim da trajetória curta, só na vez do humano).
 - [ ] **F9-03** · P0 · P — Setinha na borda da tela apontando bolotas fora da câmera (cor do time, distância).
 - [ ] **F9-04** · P1 · M — Sensação dos golpes: pausa de impacto, rastro de quem é arremessado, falas engraçadas ao levar dano/eliminar.
