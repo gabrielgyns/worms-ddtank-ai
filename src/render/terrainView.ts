@@ -36,6 +36,11 @@ export class TerrainView {
     terrain.onBuild((x0, y0, x1, y1) => this.repaintMetal(x0 - 3, y0 - 3, x1 + 3, y1 + 3));
   }
 
+  /**
+   * Pinta o terreno como cenário de desenho animado:
+   * camadas de solo, pedras com volume, luz vindo de cima-esquerda,
+   * sombra embaixo das saliências e grama com tufos e franjas caindo.
+   */
   private paint(): void {
     const { width: w, height: h, solid } = this.terrain;
     const img = this.ctx.createImageData(w, h);
@@ -49,10 +54,36 @@ export class TerrainView {
     const ol = hex(this.theme.outline);
     const candy = this.theme.id === 'doce';
 
+    // distâncias até o ar: abaixo (para a sombra das saliências) e dos lados (luz lateral)
+    const below = new Uint16Array(w * h);
+    for (let x = 0; x < w; x++) {
+      let run = 0;
+      for (let y = h - 1; y >= 0; y--) {
+        const i = y * w + x;
+        run = solid[i] ? Math.min(run + 1, 999) : 0;
+        below[i] = run;
+      }
+    }
+    const fromLeft = new Uint16Array(w * h);
+    const fromRight = new Uint16Array(w * h);
+    for (let y = 0; y < h; y++) {
+      let run = 0;
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        run = solid[i] ? Math.min(run + 1, 999) : 0;
+        fromLeft[i] = run;
+      }
+      run = 0;
+      for (let x = w - 1; x >= 0; x--) {
+        const i = y * w + x;
+        run = solid[i] ? Math.min(run + 1, 999) : 0;
+        fromRight[i] = run;
+      }
+    }
+
     for (let x = 0; x < w; x++) {
       let depth = 0;
-      // grama com borda ondulada
-      const grassLen = 11 + Math.round(valueNoise(x * 0.08, 3) * 6);
+      const grassLen = 12 + Math.round(valueNoise(x * 0.08, 3) * 7);
       for (let y = 0; y < h; y++) {
         const i = y * w + x;
         if (!solid[i]) {
@@ -69,35 +100,112 @@ export class TerrainView {
           d[o + 3] = 255;
           continue;
         }
+        const edgeSide = fromLeft[i] <= 2 || fromRight[i] <= 2;
+        const bottomEdge = below[i] <= 2;
         let c: [number, number, number];
-        const edgeSide =
-          (x > 0 && !solid[i - 1]) || (x < w - 1 && !solid[i + 1]) || (x > 1 && !solid[i - 2]) || (x < w - 2 && !solid[i + 2]);
-        const below = y < h - 2 && !solid[i + w * 2];
-        if (depth <= 3 || edgeSide || below) c = ol;
+        if (depth <= 3 || edgeSide || bottomEdge) c = ol;
         else if (depth <= 6) c = g0;
-        else if (depth <= grassLen - 3) c = g1;
+        else if (depth <= grassLen - 4) c = g1;
         else if (depth <= grassLen) c = g2;
         else {
-          const n = valueNoise(x * 0.035, y * 0.035) * 0.6 + valueNoise(x * 0.12, y * 0.12) * 0.4;
+          // camadas de solo onduladas
+          const strata = Math.sin(y * 0.09 + valueNoise(x * 0.01, y * 0.004) * 6) * 0.5 + 0.5;
+          const n = valueNoise(x * 0.035, y * 0.035) * 0.55 + valueNoise(x * 0.12, y * 0.12) * 0.25 + strata * 0.2;
           const deep = Math.min(1, y / h) * 0.35;
-          const t = Math.min(1, Math.max(0, n * 0.9 + deep));
+          const t = Math.min(1, Math.max(0, n * 0.85 + deep));
           c = [d0[0] + (d1[0] - d0[0]) * t, d0[1] + (d1[1] - d0[1]) * t, d0[2] + (d1[2] - d0[2]) * t];
           const hv = hash2(x >> 2, y >> 2);
-          if (hv > 0.965) c = candy ? (hash2(x >> 2, (y >> 2) + 7) > 0.5 ? [255, 140, 200] : [140, 220, 255]) : sp;
-          // pedrinhas
-          const rock = valueNoise(x * 0.06 + 50, y * 0.06);
-          if (rock > 0.82) {
-            const k = rock > 0.86 ? 0.75 : 0.55;
-            c = [c[0] * k + 60 * (1 - k), c[1] * k + 50 * (1 - k), c[2] * k + 50 * (1 - k)];
+          if (hv > 0.968) c = candy ? (hash2(x >> 2, (y >> 2) + 7) > 0.5 ? [255, 140, 200] : [140, 220, 255]) : sp;
+          // pedras com volume: claro em cima-esquerda, escuro embaixo-direita
+          const rock = valueNoise(x * 0.05 + 50, y * 0.05);
+          if (rock > 0.8) {
+            // dentro da pedra o ruído sobe: borda de cima-esquerda tem o "de dentro" embaixo-direita → clara
+            const lit = valueNoise((x + 3) * 0.05 + 50, (y + 3) * 0.05) - valueNoise((x - 3) * 0.05 + 50, (y - 3) * 0.05);
+            const base = rock > 0.84 ? 0.78 : 0.62;
+            const k = base + lit * 3;
+            c = [c[0] * k + 70 * (1 - base), c[1] * k + 62 * (1 - base), c[2] * k + 60 * (1 - base)];
+            if (rock < 0.81) c = [c[0] * 0.55, c[1] * 0.5, c[2] * 0.5];
           }
+          // luz: borda de cima clara, saliência de baixo escura, lado direito mais escuro
+          let light = 0;
+          if (below[i] < 22) light -= (1 - below[i] / 22) * 0.45;
+          if (fromLeft[i] < 12) light += (1 - fromLeft[i] / 12) * 0.12;
+          if (fromRight[i] < 14) light -= (1 - fromRight[i] / 14) * 0.2;
+          if (depth < grassLen + 10) light -= (1 - (depth - grassLen) / 10) * 0.25; // sombra da grama
+          const mulK = 1 + light;
+          c = [c[0] * mulK, c[1] * mulK, c[2] * mulK];
         }
-        d[o] = c[0];
-        d[o + 1] = c[1];
-        d[o + 2] = c[2];
+        d[o] = Math.max(0, Math.min(255, c[0]));
+        d[o + 1] = Math.max(0, Math.min(255, c[1]));
+        d[o + 2] = Math.max(0, Math.min(255, c[2]));
         d[o + 3] = 255;
       }
     }
     this.ctx.putImageData(img, 0, 0);
+    this.paintGrass();
+  }
+
+  /** Tufos de grama no topo e franjas caindo das beiradas (desenhados por cima, com traço). */
+  private paintGrass(): void {
+    const { width: w, solid } = this.terrain;
+    const c = this.ctx;
+    const t = this.theme;
+    const surf = (x: number): number => {
+      for (let y = 0; y < this.terrain.height; y++) if (solid[y * w + x] && solid[y * w + x] !== METAL) return y;
+      return -1;
+    };
+    c.save();
+    c.lineCap = 'round';
+    let prev = surf(0);
+    for (let x = 4; x < w - 4; x += 5) {
+      const y = surf(x);
+      if (y < 0 || y > this.terrain.waterY - 4) {
+        prev = y;
+        continue;
+      }
+      // tufo: 3 folhinhas curvas
+      const k = hash2(x, 17);
+      if (k > 0.35) {
+        for (let b = 0; b < 3; b++) {
+          const bx = x + (b - 1) * 2.5;
+          const len = 5 + hash2(x, b) * 7;
+          const lean = (hash2(b, x) - 0.5) * 6;
+          c.strokeStyle = t.outline;
+          c.lineWidth = 3;
+          c.beginPath();
+          c.moveTo(bx, y + 3);
+          c.quadraticCurveTo(bx + lean * 0.3, y - len * 0.5, bx + lean, y - len);
+          c.stroke();
+          c.strokeStyle = b === 1 ? t.grass[0] : t.grass[1];
+          c.lineWidth = 1.6;
+          c.stroke();
+        }
+      }
+      // beirada: o terreno cai de repente ao lado → franja de grama pendurada
+      const next = surf(Math.min(w - 1, x + 5));
+      for (const [edgeY, dir] of [
+        [prev, -1],
+        [next, 1],
+      ] as const) {
+        if (edgeY < 0 || edgeY - y < 14) continue;
+        const ex = x + dir * 3;
+        for (let s2 = 0; s2 < 4; s2++) {
+          const len = 8 + hash2(x + s2, 5) * 16;
+          const sx = ex + (s2 - 1.5) * 2;
+          c.strokeStyle = t.outline;
+          c.lineWidth = 3;
+          c.beginPath();
+          c.moveTo(sx, y + 2);
+          c.quadraticCurveTo(sx + dir * 4, y + len * 0.5, sx + dir * 2, y + len);
+          c.stroke();
+          c.strokeStyle = s2 % 2 ? t.grass[1] : t.grass[2];
+          c.lineWidth = 1.7;
+          c.stroke();
+        }
+      }
+      prev = y;
+    }
+    c.restore();
   }
 
   private carve(x: number, y: number, r: number): void {
