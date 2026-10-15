@@ -267,7 +267,7 @@ function drawCatHead(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts, mood
   c.stroke();
 
   if (team.look.hat) drawHat(c, team, team.look.hat);
-  drawFace(c, u, mood, o, t, true);
+  drawFace(c, u, mood, o, t, 'cat');
 
   // narizinho de coração
   c.fillStyle = PINK;
@@ -443,8 +443,8 @@ function drawPaw(c: CanvasRenderingContext2D, color: string, x: number, y: numbe
   }
 }
 
-/** Boca de gato "ω" com presinha, variando com o humor; e a gota de suor do medo. */
-export function drawCatMouth(c: CanvasRenderingContext2D, mood: Mood, t: number): void {
+/** Boca de gato "ω" com presinha, variando com o humor. */
+export function drawCatMouth(c: CanvasRenderingContext2D, mood: Mood): void {
   const mx = 7.2;
   const my = 8.2;
   c.strokeStyle = INK;
@@ -523,17 +523,5 @@ export function drawCatMouth(c: CanvasRenderingContext2D, mood: Mood, t: number)
     default:
       omega();
       if (mood === 'aim') fang(mx + 1.6);
-  }
-  if (mood === 'worried' || mood === 'fall') {
-    const dy = (t * 6) % 6;
-    c.fillStyle = '#9fe0ff';
-    c.strokeStyle = INK;
-    c.lineWidth = 1.2;
-    c.beginPath();
-    c.moveTo(-6, -8 + dy);
-    c.quadraticCurveTo(-3.6, -3.5 + dy, -6, -2.6 + dy);
-    c.quadraticCurveTo(-8.4, -3.5 + dy, -6, -8 + dy);
-    c.fill();
-    c.stroke();
   }
 }

@@ -2,6 +2,7 @@ import type { Unit } from '../domain/unit';
 import type { WeaponId } from '../domain/weapons';
 import { danceTransform, drawBody, drawEyewear, drawHat, drawSpeciesBack, drawSpeciesFace } from './cosmetics';
 import { drawCat, drawCatMouth } from './cat';
+import { drawHamster, drawHamsterMouth } from './hamster';
 import { drawHeldWeapon, INK } from './sprites';
 
 export interface UnitDrawOpts {
@@ -100,8 +101,11 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   }
 
   // o gato é um personagem inteiro (corpo, patas, rabo), não uma bola com orelhas
-  if (team.look.species === 'species-gato') {
-    drawCat(c, u, o, { mood, sx, sy, hop: mood === 'walk' ? -Math.abs(Math.sin(u.walkPhase)) * 1.6 : 0, walk: Math.sin(u.walkPhase), t, air });
+  const species = team.look.species;
+  if (species === 'species-gato' || species === 'species-hamster') {
+    const pose = { mood, sx, sy, hop: mood === 'walk' ? -Math.abs(Math.sin(u.walkPhase)) * 1.6 : 0, walk: Math.sin(u.walkPhase), t, air };
+    if (species === 'species-gato') drawCat(c, u, o, pose);
+    else drawHamster(c, u, o, pose);
     c.restore();
     return;
   }
@@ -304,7 +308,11 @@ function drawShadedBody(c: CanvasRenderingContext2D, u: Unit): void {
 }
 
 /** Olhos de anime, sobrancelhas, boca e blush conforme o humor. */
-export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawOpts, t: number, cat = false): void {
+/** Que bicho é o dono do rosto: muda íris, pupila, blush e boca. */
+export type FaceKind = 'bolota' | 'cat' | 'hamster';
+
+export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawOpts, t: number, kind: FaceKind = 'bolota'): void {
+  const cat = kind === 'cat';
   const blink = mood !== 'hurt' && mood !== 'celebrate' && (t + u.seed) % 3.7 < 0.11;
   const lookX = Math.cos(u.aim) * 1.1;
   const lookY = -Math.sin(u.aim) * 1.3;
@@ -356,7 +364,7 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
     c.clip();
     const g = c.createLinearGradient(0, iy - ir * 1.3, 0, iy + ir * 1.3);
     g.addColorStop(0, cat ? '#2f6b1c' : '#1a1210');
-    g.addColorStop(1, cat ? '#d9f26a' : u.team.boss ? '#8a1c1c' : u.team.dark);
+    g.addColorStop(1, cat ? '#d9f26a' : kind === 'hamster' ? '#7a4a2a' : u.team.boss ? '#8a1c1c' : u.team.dark);
     c.fillStyle = g;
     ellipse(c, ix, iy, ir, ir * 1.25);
     c.fill();
@@ -412,7 +420,7 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
   c.stroke();
 
   // blush tracejado de anime
-  const bo = cat ? -2.6 : 0;
+  const bo = cat ? -2.6 : kind === 'hamster' ? -0.8 : 0;
   c.strokeStyle = 'rgba(255,90,120,0.75)';
   c.lineWidth = 1;
   c.beginPath();
@@ -425,7 +433,13 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
   ellipse(c, 3.2 + bo, 8, 3.2, 1.6);
   c.fill();
   if (cat) {
-    drawCatMouth(c, mood, t);
+    drawCatMouth(c, mood);
+    drawSweat(c, mood, t);
+    return;
+  }
+  if (kind === 'hamster') {
+    drawHamsterMouth(c, mood);
+    drawSweat(c, mood, t);
     return;
   }
 
@@ -490,18 +504,21 @@ export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: Un
       c.stroke();
   }
 
-  // gota de suor: medo e vida baixa
-  if (mood === 'worried' || mood === 'fall') {
-    const dy = (t * 6) % 6;
-    c.fillStyle = '#9fe0ff';
-    c.strokeStyle = INK;
-    c.lineWidth = 1.2;
-    c.beginPath();
-    c.moveTo(-6, -8 + dy);
-    c.quadraticCurveTo(-3.6, -3.5 + dy, -6, -2.6 + dy);
-    c.quadraticCurveTo(-8.4, -3.5 + dy, -6, -8 + dy);
-    c.fill();
-    c.stroke();
-  }
+  drawSweat(c, mood, t);
   void o;
+}
+
+/** Gota de suor: medo e vida baixa. */
+export function drawSweat(c: CanvasRenderingContext2D, mood: Mood, t: number): void {
+  if (mood !== 'worried' && mood !== 'fall') return;
+  const dy = (t * 6) % 6;
+  c.fillStyle = '#9fe0ff';
+  c.strokeStyle = INK;
+  c.lineWidth = 1.2;
+  c.beginPath();
+  c.moveTo(-6, -8 + dy);
+  c.quadraticCurveTo(-3.6, -3.5 + dy, -6, -2.6 + dy);
+  c.quadraticCurveTo(-8.4, -3.5 + dy, -6, -8 + dy);
+  c.fill();
+  c.stroke();
 }
