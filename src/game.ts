@@ -11,6 +11,7 @@ import { HighlightRecorder, type Highlight } from './domain/highlight';
 import { GIRDER, WEAPONS, weaponKeyCodes, type WeaponId } from './domain/weapons';
 import { ITEMS, type ItemId } from './domain/items';
 import { Background, drawWater } from './render/background';
+import { WaterRipples } from './render/water';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { a11y, TEAM_MARK } from './render/a11y';
@@ -74,6 +75,8 @@ export class Game {
   /** pausa de impacto: segura a simulação uns milésimos num golpe forte (só tempo real, a regra não muda) */
   private hitstop = 0;
   /** visual novo na GPU (um só para a página; null = clássico) */
+  /** ondas dos impactos na água (só visual) */
+  private ripples = new WaterRipples();
   /** falas gravadas dos pacotes de voz */
   private voices: VoiceDirector;
   static gpu: GpuStage | null = null;
@@ -137,6 +140,8 @@ export class Game {
       switch (e.type) {
         case 'explosion':
           s.explosion(e.r);
+          // explosão rente à água levanta onda
+          if (e.y > this.match.terrain.waterY - e.r * 1.2) this.ripples.add(e.x, Math.min(14, e.r * 0.25));
           if (!s.muted && !this.replay) vibrate(Math.min(120, 20 + e.r));
           break;
         case 'fire':
@@ -156,6 +161,7 @@ export class Game {
           break;
         case 'splash':
           s.splash();
+          this.ripples.add(e.x, e.big ? 10 : 6);
           break;
         case 'death':
           s.death();
@@ -299,6 +305,7 @@ export class Game {
   frame(realDt: number): void {
     this.lastDt = Math.min(0.1, realDt);
     this.voices.update(this.lastDt);
+    this.ripples.update(this.lastDt);
     if (this.quality !== LOW && this.meter.sample(realDt)) this.setQuality(LOW);
     if (this.paused) {
       this.input.endFrame();
@@ -535,9 +542,10 @@ export class Game {
     if (!this.waterDrawY || this.waterDrawY < terr.waterY) this.waterDrawY = terr.waterY;
     this.waterDrawY += (terr.waterY - this.waterDrawY) * 0.03;
     const wy = this.waterDrawY;
-    if (gpu) gpu.render({ match: m, cam: this.cam, terrain: this.terrainView, w, h, time: t, dt: this.lastDt, waterY: wy, shakeX, shakeY });
+    const ripple = this.ripples.active ? this.ripples.at : undefined;
+    if (gpu) gpu.render({ match: m, cam: this.cam, terrain: this.terrainView, w, h, time: t, dt: this.lastDt, waterY: wy, shakeX, shakeY, ripple });
     else {
-      drawWater(c, m.theme, wy, x0, right, bottom, t, false);
+      drawWater(c, m.theme, wy, x0, right, bottom, t, false, ripple);
       c.drawImage(this.terrainView.canvas, 0, 0);
     }
     if (m.hill) {
@@ -613,7 +621,7 @@ export class Game {
       c.fill();
     }
 
-    drawWater(c, m.theme, wy, x0, right, bottom, t, true);
+    drawWater(c, m.theme, wy, x0, right, bottom, t, true, ripple);
     c.restore();
     this.drawOffscreen(c, w, h);
     c.restore();

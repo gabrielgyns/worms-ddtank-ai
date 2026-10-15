@@ -126,6 +126,8 @@ export class Vfx {
   /** em coordenadas de tela: flash, linhas de velocidade */
   readonly screen = new Pool(80);
   private match: Match | null = null;
+  /** colunas de fumaça saindo das crateras recentes */
+  private plumes: Array<{ x: number; y: number; t: number; clock: number; size: number }> = [];
   private trailClock = 0;
   /** pontos de impacto recentes para o quadro de impacto (mundo) */
   private impacts: Array<{ x: number; y: number; power: number }> = [];
@@ -138,6 +140,7 @@ export class Vfx {
     this.back.clear();
     this.front.clear();
     this.screen.clear();
+    this.plumes = [];
     m.on((e) => {
       if (this.match === m) this.onEvent(m, e);
     });
@@ -168,6 +171,7 @@ export class Vfx {
         break;
       }
       case 'splash':
+        this.splash(e.x, e.y, e.big);
         for (let i = 0; i < (e.big ? 26 : 12); i++)
           this.front.spawn(this.tex.glow, {
             x: e.x + (r() - 0.5) * 20,
@@ -313,7 +317,62 @@ export class Vfx {
         this.front.spawn(T.flame, { x: fx + (k - 1) * 4, y: fy + 4, anchorY: 0.95, s0: 0.24, s1: 0.34, life, palette: FIRE.slice(1, 5), flicker: 0.3 });
       this.front.spawn(T.glow, { x: fx, y: fy - 8, s0: 0.4, s1: 0.5, life, blend: 'add', a0: 0.6, tint: 0xff8a2a, flicker: 0.4 });
     }
+    // coluna de fumaça que continua subindo da cratera por alguns segundos
+    this.plumes.push({ x, y: y - rad * 0.3, t: big ? 4 : 2.2, clock: 0, size: rad / 128 });
+    if (this.plumes.length > 8) this.plumes.shift();
+    // onda de poeira correndo rente ao chão nos dois sentidos
+    if (big) {
+      const dust = parseInt(m.theme.dirt[0].slice(1), 16);
+      for (let i = 0; i < 12; i++) {
+        const dir = i % 2 ? 1 : -1;
+        this.back.spawn(T.smoke[i % 3], {
+          x: x + dir * rad * 0.6,
+          y: y + rad * 0.45,
+          vx: dir * (220 + r() * 220),
+          vy: -10 - r() * 30,
+          drag: 3.2,
+          s0: 0.2,
+          s1: 0.65 + r() * 0.3,
+          life: 0.7 + r() * 0.5,
+          a0: 0.6,
+          tint: dust,
+        });
+      }
+    }
     if (big) this.impacts.push({ x, y, power: Math.min(1, rad / 80) });
+  }
+
+  /** Respingo: coluna d'água que sobe e desaba, espuma que fica boiando um pouco. */
+  private splash(x: number, y: number, big: boolean): void {
+    const T = this.tex;
+    const h = big ? 1 : 0.6;
+    for (let i = 0; i < (big ? 8 : 5); i++)
+      this.front.spawn(T.smoke[i % 3], {
+        x: x + (r() - 0.5) * 10,
+        y,
+        vx: (r() - 0.5) * 50,
+        vy: -(260 + r() * 260) * h,
+        gravity: 820,
+        drag: 0.6,
+        s0: 0.12,
+        s1: 0.32 * h + 0.1,
+        life: 0.8 + r() * 0.3,
+        a0: 0.85,
+        tint: i % 2 ? 0xffffff : 0xd8f2ff,
+      });
+    for (let i = 0; i < (big ? 12 : 7); i++)
+      this.front.spawn(T.smoke[i % 3], {
+        x: x + (r() - 0.5) * 30,
+        y: y + 2,
+        vx: (r() - 0.5) * 140,
+        vy: -8 - r() * 10,
+        drag: 3,
+        s0: 0.12,
+        s1: 0.32 + r() * 0.15,
+        life: 1.2 + r() * 0.9,
+        a0: 0.75,
+        tint: 0xffffff,
+      });
   }
 
   /** Rastro de fogo e fumaça dos mísseis, a cada frame. */
@@ -332,6 +391,28 @@ export class Vfx {
         }
       }
     }
+    for (const p of this.plumes) {
+      p.t -= dt;
+      p.clock -= dt;
+      if (p.clock > 0) continue;
+      p.clock = 0.11;
+      const fade = Math.min(1, p.t / 1.5);
+      // na frente do terreno: explosão dentro do morro também solta fumaça visível
+      this.front.spawn(this.tex.smoke[(Math.random() * 3) | 0], {
+        x: p.x + (r() - 0.5) * 10,
+        y: p.y,
+        vx: (m?.wind ?? 0) * 2.5 + (r() - 0.5) * 12,
+        vy: -45 - r() * 25,
+        drag: 0.3,
+        s0: 0.18 + p.size * 0.3,
+        s1: 0.6 + p.size * 1.2,
+        life: 2.4 + r(),
+        a0: 0.3 * fade,
+        spin: (r() - 0.5) * 0.5,
+        tint: [0x4a4246, 0x5a5254, 0x6a6264][(Math.random() * 3) | 0],
+      });
+    }
+    this.plumes = this.plumes.filter((p) => p.t > 0);
     this.back.update(dt);
     this.front.update(dt);
     this.screen.update(dt);

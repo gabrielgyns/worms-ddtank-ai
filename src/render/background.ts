@@ -140,16 +140,18 @@ export function drawWater(
   bottom: number,
   time: number,
   front: boolean,
+  ripple?: (x: number) => number,
 ): void {
   const amp = front ? 6 : 8;
   const off = front ? 0 : -14;
   const speed = front ? 1.6 : -1.1;
+  // com onda de impacto passando, o contorno precisa de mais pontos para não ficar quadrado
+  const step = ripple ? 6 : 16;
+  const rip = (x: number) => (ripple ? ripple(x) * (front ? 1 : 0.7) : 0);
+  const surf = (x: number) => waterY + off + Math.sin(x * 0.02 + time * speed) * amp + Math.sin(x * 0.047 - time * 2.1) * amp * 0.4 + rip(x);
   c.beginPath();
   c.moveTo(x0, bottom);
-  for (let x = x0; x <= x1 + 16; x += 16) {
-    const y = waterY + off + Math.sin(x * 0.02 + time * speed) * amp + Math.sin(x * 0.047 - time * 2.1) * amp * 0.4;
-    c.lineTo(x, y);
-  }
+  for (let x = x0; x <= x1 + step; x += step) c.lineTo(x, surf(x));
   c.lineTo(x1 + 16, bottom);
   c.closePath();
   const g = c.createLinearGradient(0, waterY - 20, 0, bottom);
@@ -160,14 +162,30 @@ export function drawWater(
   c.fill();
   c.globalAlpha = 1;
   if (front) {
+    // espuma na crista
     c.strokeStyle = 'rgba(255,255,255,0.7)';
     c.lineWidth = 3;
     c.beginPath();
-    for (let x = x0; x <= x1 + 16; x += 16) {
-      const y = waterY + Math.sin(x * 0.02 + time * speed) * amp + Math.sin(x * 0.047 - time * 2.1) * amp * 0.4;
-      if (x === x0) c.moveTo(x, y);
-      else c.lineTo(x, y);
+    for (let x = x0; x <= x1 + step; x += step) {
+      if (x === x0) c.moveTo(x, surf(x));
+      else c.lineTo(x, surf(x));
     }
     c.stroke();
+    // reflexos do céu: tracinhos claros que deslizam logo abaixo da superfície
+    c.strokeStyle = 'rgba(255,255,255,0.45)';
+    c.lineWidth = 2;
+    c.lineCap = 'round';
+    c.beginPath();
+    const gap = 70;
+    const slide = (time * 18) % gap;
+    for (let x = Math.floor(x0 / gap) * gap - gap + slide; x <= x1; x += gap) {
+      const k = Math.sin(x * 0.37) * 0.5 + 0.5;
+      const len = 8 + k * 14;
+      const y = surf(x) + 7 + k * 10;
+      c.moveTo(x, y);
+      c.lineTo(x + len, y);
+    }
+    c.stroke();
+    c.lineCap = 'butt';
   }
 }

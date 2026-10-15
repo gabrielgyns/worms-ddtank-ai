@@ -19,6 +19,8 @@ export interface GpuFrame {
   /** deslocamento da tremida de tela (o mesmo do desenho 2D, para as camadas não descolarem) */
   shakeX: number;
   shakeY: number;
+  /** ondulação dos impactos na água (deslocamento vertical por x) */
+  ripple?: (x: number) => number;
 }
 
 /**
@@ -134,7 +136,8 @@ export class GpuStage {
     const bottom = f.cam.y + f.h / 2 / f.cam.zoom + 40;
     g.clear();
     g.moveTo(left, bottom);
-    for (let x = left; x <= right; x += 16) g.lineTo(x, f.waterY - 14 + Math.sin(x * 0.02 + f.time * 1.6) * 5);
+    const step = f.ripple ? 6 : 16;
+    for (let x = left; x <= right; x += step) g.lineTo(x, f.waterY - 14 + Math.sin(x * 0.02 + f.time * 1.6) * 5 + (f.ripple ? f.ripple(x) * 0.7 : 0));
     g.lineTo(right, bottom);
     g.closePath();
     g.fill({ color: m.theme.water[1], alpha: 0.85 });

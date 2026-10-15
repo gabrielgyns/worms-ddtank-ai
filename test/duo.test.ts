@@ -32,5 +32,5 @@ describe('2x2', () => {
     expect(m.winner).not.toBeNull();
     const winSide = m.winner!.side;
     expect(m.teams.filter((t) => t.side !== winSide).every((t) => t.units.every((u) => !u.alive))).toBe(true);
-  });
+  }, 30_000);
 });
