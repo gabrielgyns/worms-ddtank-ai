@@ -97,6 +97,23 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 
 ---
 
+## Fase 9 — Polimento e gameplay
+
+> Foco no PC. Um commit e push na `main` por item, na ordem.
+
+- [ ] **F9-01** · P0 · M — Tutorial interativo de ~2 min: andar, mirar, força, vento, trocar arma, acertar o boneco. Oferecido na primeira vez; sempre acessível no menu.
+- [ ] **F9-02** · P0 · P — Prévia do raio de explosão na mira (círculo no fim da trajetória curta, só na vez do humano).
+- [ ] **F9-03** · P0 · P — Setinha na borda da tela apontando bolotas fora da câmera (cor do time, distância).
+- [ ] **F9-04** · P1 · M — Sensação dos golpes: pausa de impacto, rastro de quem é arremessado, falas engraçadas ao levar dano/eliminar.
+- [ ] **F9-05** · P1 · M — Configurações: volume de música e efeitos, tempo de turno, velocidade da CPU, tremida de tela, paleta para daltonismo.
+- [ ] **F9-06** · P1 · G — Itens de turno estilo DDTank (+50% dano, tiro duplo, escudo), gastos sem passar a vez.
+- [ ] **F9-07** · P1 · M — Ovelha andante e bomba banana.
+- [ ] **F9-08** · P1 · M — Modo 2x2 (local, contra CPU e online).
+- [ ] **F9-09** · P2 · M — Míssil teleguiado e taco de beisebol.
+- [ ] **F9-10** · P2 · M — Viga: construir pontes e muros.
+- [ ] **F9-11** · P2 · G — Modo rei da colina.
+- [ ] **F9-12** · P2 · M — Balanceamento por simulação: CPU x CPU em massa por arma, relatório e ajustes.
+
 ## Fase 8 — Celular de verdade (futuro)
 
 > Foco atual é o PC (ROADMAP D14). Nada aqui começa antes de o PC estar redondo.
@@ -110,27 +127,13 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 Ideias soltas para avaliar. Promova para uma fase quando fizer sentido.
 
 **Armas e utilitários**
-- Ovelha andante, bomba banana, míssil teleguiado, taco de beisebol, soco de fogo.
-- Corda ninja e paraquedas (mobilidade é o que deixa o Worms profundo).
-- Viga para construir pontes e muros.
-- Itens estilo DDTank, gastos no turno: "+50% dano", "tiro duplo", "voo", "escudo".
+- Soco de fogo; item "voo".
 
 **Modos**
-- Missões/quebra-cabeças: "derrube as 3 bolotas com vento 10 usando 2 tiros". Bom para ensinar e para conquistas.
-- 2x2 (casal contra casal de amigos).
 - Forte: cada time constrói sua base antes de começar.
-- Rei da colina, capturar a bandeira.
+- Capturar a bandeira.
 - Treino com prévia da trajetória.
 
 **Social e diversão**
-- Câmera lenta no tiro final + replay automático do melhor lance da partida.
-- Gerar GIF/vídeo do lance para mandar no WhatsApp.
 - Espectador: amigos assistem à partida ao vivo.
-- Bolotas com nomes dados pelos jogadores, falas engraçadas ao levar dano.
-
-**Qualidade de vida**
-- Pré-visualização do raio de explosão na mira.
-- Indicador fora da tela apontando inimigos.
-- Tutorial interativo de 2 minutos.
-- Configurações: velocidade da CPU, tempo de turno, volume separado de música e efeitos.
-- Acessibilidade: paleta para daltonismo nos times, reduzir tremida de tela.
+- Bolotas com nomes dados pelos jogadores.

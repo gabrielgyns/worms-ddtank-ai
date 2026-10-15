@@ -8,7 +8,7 @@ Planejado de trás para frente: primeiro o destino, depois o que precisa existir
 
 ## Estado: V1 ✅
 
-Todas as fases abaixo estão entregues (itens marcados no [BACKLOG](BACKLOG.md)). A versão de antes da V1 ficou guardada no branch `v0`. Daqui para frente, o banco de ideias do BACKLOG é a fila.
+Todas as fases abaixo estão entregues (itens marcados no [BACKLOG](BACKLOG.md)). A versão de antes da V1 ficou guardada no branch `v0`. Daqui para frente a fila é a Fase 9 (polimento e gameplay).
 
 **Foco agora: PC.** No celular a V1 ficou com bugs. Em vez de remendar a versão web para toque, o celular vira trabalho futuro, possivelmente nativo (ver D14 e a Fase 8). O jogo continua abrindo no celular, mas sem garantia.
 
@@ -71,6 +71,10 @@ Novas armas, modos (co-op contra chefão, 2x2, missões), editor de mapas. Ver b
 ### Fase 8 — Celular de verdade (futuro, não iniciada)
 - Levantar os bugs do celular na V1 (lista no BACKLOG `F8-01`).
 - Decidir entre web consertada, casca nativa (Capacitor) ou motor nativo (Godot/Unity), pesando o online entre PC e celular (D14).
+
+### Fase 9 — Polimento e gameplay (PC)
+De trás para frente: amigos chegam por link e entendem o jogo sozinhos (tutorial, mira clara), cada partida rende história (golpes com peso, falas, armas engraçadas) e o casal joga junto contra outro casal (2x2).
+Itens `F9-01..F9-12` no BACKLOG, na ordem.
 
 ## Decisões técnicas recomendadas
 
