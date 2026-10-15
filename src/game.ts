@@ -459,7 +459,7 @@ export class Game {
     c.imageSmoothingEnabled = true;
     const m = this.match;
     const t = this.time;
-    this.bg.draw(c, this.cam, w, h, t);
+    this.bg.draw(c, this.cam, w, h, t, dpr);
 
     c.save();
     const z = this.cam.zoom;

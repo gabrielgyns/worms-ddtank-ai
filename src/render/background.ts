@@ -51,9 +51,11 @@ export class Background {
     }
   }
 
-  draw(c: CanvasRenderingContext2D, cam: Camera, w: number, h: number, time: number): void {
+  /** `w`/`h` em pixels CSS; `dpr` converte para os pixels reais do canvas. */
+  draw(c: CanvasRenderingContext2D, cam: Camera, w: number, h: number, time: number, dpr: number): void {
     const t = this.theme;
-    c.setTransform(1, 0, 0, 1, 0, 0);
+    // sem o dpr, em tela retina o céu só cobriria 1/4 do canvas e o resto ficaria com o frame anterior
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
     const g = c.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, t.sky[0]);
     g.addColorStop(0.6, t.sky[1]);
