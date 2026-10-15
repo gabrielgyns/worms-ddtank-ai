@@ -1,6 +1,7 @@
 import type { Unit } from '../domain/unit';
 import type { WeaponId } from '../domain/weapons';
 import { danceTransform, drawBody, drawEyewear, drawHat, drawSpeciesBack, drawSpeciesFace } from './cosmetics';
+import { drawCat, drawCatMouth } from './cat';
 import { drawHeldWeapon, INK } from './sprites';
 
 export interface UnitDrawOpts {
@@ -15,7 +16,7 @@ export interface UnitDrawOpts {
 }
 
 /** O que a bolota está "sentindo" — escolhe olhos, boca, braços e pose. */
-type Mood = 'idle' | 'walk' | 'aim' | 'charge' | 'jump' | 'fall' | 'hurt' | 'worried' | 'celebrate';
+export type Mood = 'idle' | 'walk' | 'aim' | 'charge' | 'jump' | 'fall' | 'hurt' | 'worried' | 'celebrate';
 
 /** Memória de animação por bolota (aterrissagem, para achatar e esticar). Só visual. */
 const anim = new WeakMap<Unit, { wasGround: boolean; land: number; lastT: number }>();
@@ -96,6 +97,13 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
     c.fillStyle = 'rgba(0,0,0,0.22)';
     ellipse(c, 0, 0.5, 12 * sx, 3);
     c.fill();
+  }
+
+  // o gato é um personagem inteiro (corpo, patas, rabo), não uma bola com orelhas
+  if (team.look.species === 'species-gato') {
+    drawCat(c, u, o, { mood, sx, sy, hop: mood === 'walk' ? -Math.abs(Math.sin(u.walkPhase)) * 1.6 : 0, walk: Math.sin(u.walkPhase), t, air });
+    c.restore();
+    return;
   }
 
   const hasTwoHands = o.holding === 'bazooka' || o.holding === 'triple' || o.holding === 'cluster' || o.holding === 'homing';
@@ -222,7 +230,7 @@ function drawHeadband(c: CanvasRenderingContext2D, color: string, dark: string, 
   c.stroke();
 }
 
-function drawHand(c: CanvasRenderingContext2D, color: string, x: number, y: number): void {
+export function drawHand(c: CanvasRenderingContext2D, color: string, x: number, y: number): void {
   c.fillStyle = color;
   c.strokeStyle = INK;
   c.lineWidth = 2;
@@ -296,7 +304,7 @@ function drawShadedBody(c: CanvasRenderingContext2D, u: Unit): void {
 }
 
 /** Olhos de anime, sobrancelhas, boca e blush conforme o humor. */
-function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawOpts, t: number): void {
+export function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawOpts, t: number, cat = false): void {
   const blink = mood !== 'hurt' && mood !== 'celebrate' && (t + u.seed) % 3.7 < 0.11;
   const lookX = Math.cos(u.aim) * 1.1;
   const lookY = -Math.sin(u.aim) * 1.3;
@@ -347,13 +355,15 @@ function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawO
     ellipse(c, ex, ey, rx, ry);
     c.clip();
     const g = c.createLinearGradient(0, iy - ir * 1.3, 0, iy + ir * 1.3);
-    g.addColorStop(0, '#1a1210');
-    g.addColorStop(1, u.team.boss ? '#8a1c1c' : u.team.dark);
+    g.addColorStop(0, cat ? '#2f6b1c' : '#1a1210');
+    g.addColorStop(1, cat ? '#d9f26a' : u.team.boss ? '#8a1c1c' : u.team.dark);
     c.fillStyle = g;
     ellipse(c, ix, iy, ir, ir * 1.25);
     c.fill();
     c.fillStyle = '#0d0907';
-    ellipse(c, ix, iy + 0.2, ir * 0.5, ir * 0.62);
+    // gato: pupila em fenda quando foca, redonda e enorme quando assusta
+    if (cat && !wide) ellipse(c, ix, iy + 0.2, ir * (mood === 'aim' || mood === 'charge' ? 0.18 : 0.32), ir * 1.05);
+    else ellipse(c, ix, iy + 0.2, ir * (cat ? 0.85 : 0.5), ir * (cat ? 0.95 : 0.62));
     c.fill();
     // pálpebra de cima: foco (mirando/carregando) corta o olho
     if (mood === 'aim' || mood === 'charge') {
@@ -402,17 +412,22 @@ function drawFace(c: CanvasRenderingContext2D, u: Unit, mood: Mood, o: UnitDrawO
   c.stroke();
 
   // blush tracejado de anime
+  const bo = cat ? -2.6 : 0;
   c.strokeStyle = 'rgba(255,90,120,0.75)';
   c.lineWidth = 1;
   c.beginPath();
   for (const bx of [1.5, 3.3, 5.1]) {
-    c.moveTo(bx, 7.2);
-    c.lineTo(bx - 1.2, 9);
+    c.moveTo(bx + bo, 7.2);
+    c.lineTo(bx + bo - 1.2, 9);
   }
   c.stroke();
   c.fillStyle = 'rgba(255,90,120,0.28)';
-  ellipse(c, 3.2, 8, 3.2, 1.6);
+  ellipse(c, 3.2 + bo, 8, 3.2, 1.6);
   c.fill();
+  if (cat) {
+    drawCatMouth(c, mood, t);
+    return;
+  }
 
   // boca
   c.strokeStyle = INK;
