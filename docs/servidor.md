@@ -12,14 +12,18 @@ O servidor liga o que precisa ser compartilhado: **contas, amigos, quem está on
    - **Email**: ligado (link mágico).
    - **Anonymous sign-ins**: ligado (conta convidado).
    - **Google** (opcional): siga o guia do Supabase para criar o client OAuth.
-4. Em **Authentication → URL Configuration**, coloque a URL do jogo (ex.: `https://SEU-USUARIO.github.io/worms-ddtank-ai/`) em *Site URL* e *Redirect URLs*.
+4. Em **Authentication → URL Configuration**, coloque a URL do jogo (`https://worms-ddtank-ai.vercel.app`) em *Site URL* e *Redirect URLs*; para as prévias da Vercel, acrescente também `https://worms-ddtank-*-gabriel-silva-soares-projects.vercel.app/**`.
 
 ## 2. Ligar no jogo
 
 Pegue em **Project Settings → API** a *Project URL* e a *anon public key* (são públicas por natureza; a segurança está nas regras RLS das migrações).
 
 - **Local:** copie `.env.example` para `.env` e preencha.
-- **GitHub Pages:** em *Settings → Secrets and variables → Actions → Variables*, crie `SUPABASE_URL` e `SUPABASE_ANON_KEY`. O próximo deploy já sai com contas ligadas.
+- **Vercel:** em *Settings → Environment Variables*, crie `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Production e Preview) e faça **Redeploy**: as variáveis entram no build.
+
+## Contas criadas antes das migrações
+
+O perfil nasce por gatilho no cadastro. Se alguém se cadastrou antes de as migrações rodarem, a migração 9 (`backfill_profiles()`) cria o que falta; pode rodar `select public.backfill_profiles();` de novo quando quiser.
 
 ## 3. Testes das regras
 

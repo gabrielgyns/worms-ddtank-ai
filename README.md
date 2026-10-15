@@ -11,7 +11,7 @@ npm test           # testes (Vitest): regras, determinismo, rede, SQL no PGlite
 npm run build      # typecheck + dist/index.html (arquivo único, abre direto no navegador)
 ```
 
-O push na `main` publica no GitHub Pages (`.github/workflows/deploy.yml`). Para isso, uma vez só: **Settings → Pages → Source: GitHub Actions**.
+No ar em **https://worms-ddtank-ai.vercel.app**: cada push na `main` publica sozinho pela Vercel.
 
 ## Modos
 

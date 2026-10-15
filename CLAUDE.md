@@ -78,4 +78,4 @@ Sem as variáveis `VITE_SUPABASE_*`, o jogo roda 100% local.
 
 ## Deploy
 
-Push na `main` → GitHub Actions roda CI e publica no GitHub Pages (precisa de Settings → Pages → Source: GitHub Actions). `npm run build` também gera `dist/index.html` autocontido. Servidor opcional: `docs/servidor.md`.
+Produção: **https://worms-ddtank-ai.vercel.app** (Vercel, ligada ao GitHub). Push na `main` publica sozinho; outros branches viram prévias. As variáveis `VITE_SUPABASE_*` ficam na Vercel e entram no build: mudou, faça Redeploy. CI (testes) roda no GitHub Actions. Servidor: `docs/servidor.md`.
