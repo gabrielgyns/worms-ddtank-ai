@@ -1,6 +1,11 @@
 import { PGlite } from '@electric-sql/pglite';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { vi } from 'vitest';
+
+// cada teste sobe um Postgres inteiro com todas as migrações (~2–5 s);
+// com a máquina ocupada pelos outros testes isso passava do limite padrão de 5 s
+vi.setConfig({ testTimeout: 30_000 });
 
 const root = join(import.meta.dirname, '..', '..');
 
