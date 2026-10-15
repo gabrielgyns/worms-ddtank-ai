@@ -1768,3 +1768,29 @@ body.boss-fight #banner {
   opacity: 0.45;
   text-decoration: line-through;
 }
+
+/* ───────── missões ───────── */
+.missions .mission.done {
+  cursor: pointer;
+}
+.missions .mission.done:hover {
+  transform: translateY(-1px);
+}
+.missions .medal {
+  min-width: 28px;
+  text-align: center;
+  font: 20px var(--font-title);
+}
+.missions .ammo {
+  opacity: 0.55 !important;
+}
+.mission .rw,
+.mission-result {
+  color: #e0a400;
+  letter-spacing: 1px;
+}
+.mission-result {
+  font: 30px var(--font-title);
+  margin: 4px 0 10px;
+  -webkit-text-stroke: 1.5px var(--ink);
+}

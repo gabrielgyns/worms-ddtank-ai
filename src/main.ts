@@ -35,6 +35,9 @@ import { TEAM_COLORS } from './domain/teamColors';
 import { savedName } from './ui/lobby';
 import type { Room } from './net/room';
 import { BOSS_TEAM, bossHpFor, type MatchSetup } from './domain/match';
+import { MISSIONS, missionSetup, missionStars, type Mission } from './domain/missions';
+import { MISSION_REWARD, saveMissionResult } from './progress/missions';
+import { MissionsUi, starText } from './ui/missions';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 
@@ -145,11 +148,26 @@ function myTeamIn(g: Game): number | null {
   return local.length === 1 ? local[0].id : null;
 }
 
+/** Missão cumprida (ou não): estrelas pelos tiros e moedas na primeira vez. */
+function recordMission(shots: number, damage: number, won: boolean, p: ReturnType<typeof progress>): void {
+  const m = missionGame!.mission;
+  const stars = missionStars(m, won, shots);
+  const r = saveMissionResult(m.id, stars);
+  if (r.first) p.addCoins(MISSION_REWARD);
+  const el = $('#over-mission');
+  el.hidden = false;
+  el.textContent = starText(stars) + (r.first ? `  +${MISSION_REWARD} 🪙` : r.better ? '  recorde!' : '');
+  $('#over-coins').hidden = true;
+  $('#over-daily').hidden = true;
+  addHistory({ at: Date.now(), mode: 'local', opponent: `Missão: ${m.name}`, result: won ? 'win' : 'loss', damage });
+}
+
 /** Fim de partida: soma nas estatísticas e relata ao servidor. */
 function recordResult(g: Game, tracker: MatchTracker): void {
   const unlocksEl = $('#over-unlocks');
   unlocksEl.hidden = true;
   unlocksEl.innerHTML = '';
+  $('#over-mission').hidden = true;
   const me = myTeamIn(g);
   if (me === null) return;
   // co-op: vence o lado inteiro (mesmo que quem sobrou seja o aliado)
@@ -163,6 +181,10 @@ function recordResult(g: Game, tracker: MatchTracker): void {
   const coinsEl = $('#over-coins');
   const mode: MatchMode = g === mailGame ? 'mail' : g.online ? 'online' : g.match.teams.some((t) => t.control === 'cpu') ? 'cpu' : 'local';
   const p = progress();
+  if (missionGame && g === missionGame.game) {
+    recordMission(s.shots, s.damage, won, p);
+    return;
+  }
   const fresh = evaluate(
     { stats: s, won, mode, difficulty: mode === 'cpu' ? settings.difficulty : null, unitsPerTeam: g.setup.unitsPerTeam, career: loadStats() },
     p.state.unlocked,
@@ -251,6 +273,17 @@ function launch(g: Game, original: Game = g): void {
         return;
       }
       const bossFight = g.match.teams.some((t) => t.boss);
+      const mission = missionGame?.game === original ? missionGame.mission : null;
+      $('#again').textContent = mission ? 'Tentar de novo' : 'Revanche!';
+      if (mission) {
+        const ok = e.winner?.side === 0;
+        $('#over-title').textContent = ok ? 'Missão cumprida!' : 'Missão falhou';
+        $('#over-title').style.color = ok ? '#f2a81e' : '#e2553c';
+        const next = MISSIONS[MISSIONS.indexOf(mission) + 1];
+        $('#over-sub').textContent = g.isReplay ? 'Fim do replay.' : ok ? (next ? `Próxima: ${next.name}` : 'Você zerou todas as missões! 🎉') : 'Acabou a munição. Tente outro caminho!';
+        show('over');
+        return;
+      }
       $('#over-title').textContent = !e.winner
         ? 'Empate!'
         : bossFight
@@ -461,6 +494,7 @@ $('#play').addEventListener('click', startGame);
 $('#again').addEventListener('click', () => {
   if (session) hostStart();
   else if (game && game === mailGame) startMail(null);
+  else if (missionGame && (game === missionGame.game || finished === missionGame.game)) startMission(missionGame.mission);
   else startGame();
 });
 $('#watch').addEventListener('click', startReplay);
@@ -722,6 +756,20 @@ function startCustom(map: string, theme: ThemeId): void {
   );
 }
 const editor = new EditorUi(show, startCustom);
+
+// ─── missões ───
+let missionGame: { game: Game; mission: Mission } | null = null;
+function startMission(m: Mission): void {
+  sfx.unlock();
+  const p = loadProfile();
+  const mine = TEAM_COLORS[p.color] ?? TEAM_COLORS[0];
+  const player: TeamSetup = { name: p.teamName, color: mine.color, light: mine.light, dark: mine.dark, control: 'human', names: NAMES_A, look: myLook() };
+  const g = new Game(missionSetup(m, player), { difficulty: settings.difficulty }, canvas, input, sfx);
+  missionGame = { game: g, mission: m };
+  launch(g);
+  hud.show(m.name, '#f2a81e', 1.8);
+}
+new MissionsUi(show, startMission);
 
 // ─── desafio do dia ───
 let dailyGame: Game | null = null;

@@ -56,6 +56,10 @@ export interface TeamSetup {
   side?: number;
   /** time do chefão: uma bolota gigante */
   boss?: boolean;
+  /** posições fixas (missões): uma bolota por entrada, com vida opcional */
+  spawns?: Array<{ x: number; hp?: number }>;
+  /** munição fixa (missões): só estas armas, nestas quantidades */
+  ammo?: Partial<Record<WeaponId, number>>;
 }
 
 export interface MatchSetup {
@@ -74,6 +78,10 @@ export interface MatchSetup {
   objects?: boolean;
   /** mapa desenhado no editor (máscara codificada); sem isso, o terreno é gerado */
   map?: string;
+  /** vento fixo em todos os turnos (missões) */
+  wind?: number;
+  /** barris e minas em posições fixas (missões) */
+  props?: { barrels: number[]; mines: number[] };
 }
 
 export const BOSS_SIZE = 2.2;
@@ -218,15 +226,25 @@ export class Match implements SimWorld {
         control: ts.control,
         units: [],
         cursor: 0,
-        ammo: new Map(WEAPONS.map((w) => [w.id, w.ammo])),
+        ammo: new Map(WEAPONS.map((w) => [w.id, ts.ammo ? (ts.ammo[w.id] ?? 0) : w.ammo])),
         weapon: 'bazooka',
         look: ts.look ?? {},
         side: ts.side ?? i,
         boss: !!ts.boss,
       });
     });
+    this.windFixed = setup.wind ?? null;
     this.spawnUnits(setup);
-    if (setup.objects ?? true) this.spawnProps();
+    if (setup.props) this.placeProps(setup.props);
+    else if (setup.objects ?? true) this.spawnProps();
+  }
+
+  private readonly windFixed: number | null;
+
+  private placeProps(p: { barrels: number[]; mines: number[] }): void {
+    const t = this.terrain;
+    for (const x of p.barrels) this.barrels.push({ id: this.nextPropId++, x, y: t.surfaceY(x), vy: 0, landed: false, fuse: null });
+    for (const x of p.mines) this.mines.push({ id: this.nextPropId++, x, y: t.surfaceY(x), vy: 0, landed: false, fuse: null });
   }
 
   /** Vigas de metal, barris e minas espalhados longe das bolotas. */
@@ -267,7 +285,7 @@ export class Match implements SimWorld {
   }
 
   private spawnUnits(setup: MatchSetup): void {
-    const players = this.teams.filter((t) => !t.boss);
+    const players = this.teams.filter((t) => !t.boss && !setup.teams[t.id].spawns);
     const total = setup.unitsPerTeam * players.length;
     const t = this.terrain;
     const slots: number[] = [];
@@ -297,6 +315,20 @@ export class Match implements SimWorld {
         this.units.push(u);
       }
     }
+    // posições fixas (missões)
+    for (const team of this.teams) {
+      const spawns = setup.teams[team.id].spawns;
+      if (!spawns) continue;
+      spawns.forEach((sp, n) => {
+        const names = setup.teams[team.id].names;
+        const u = new Unit(id++, team, names[n % names.length], sp.x, t.surfaceY(sp.x));
+        if (sp.hp) u.hp = sp.hp;
+        u.facing = sp.x < t.width / 2 ? 1 : -1;
+        unstick(t, u);
+        team.units.push(u);
+        this.units.push(u);
+      });
+    }
     // chefão: gigante, no centro do mapa, num pedaço de chão firme
     for (const team of this.teams.filter((t) => t.boss)) {
       let x = t.width / 2;
@@ -309,6 +341,10 @@ export class Match implements SimWorld {
       team.units.push(u);
       this.units.push(u);
     }
+  }
+
+  private hasAttackAmmo(t: Team): boolean {
+    return WEAPONS.some((w) => w.mode !== 'utility' && w.id !== 'teleport' && (t.ammo.get(w.id) ?? 0) > 0);
   }
 
   /** Lados que ainda têm alguém vivo. */
@@ -579,6 +615,7 @@ export class Match implements SimWorld {
       return;
     }
     if (this.phase !== 'turn' || !this.active || this.hasFired) return;
+    if (this.ammoOf(this.weapon.id) <= 0) return;
     if (this.weapon.mode === 'utility') {
       this.useUtility();
       return;
@@ -602,6 +639,7 @@ export class Match implements SimWorld {
   /** Para armas de alvo (ataque aéreo, teletransporte). */
   fireAt(x: number, y: number): boolean {
     if (this.phase !== 'turn' || !this.active || this.hasFired || this.weapon.mode !== 'target') return false;
+    if (this.ammoOf(this.weapon.id) <= 0) return false;
     const u = this.active;
     if (this.weapon.id === 'teleport') {
       const t = this.terrain;
@@ -660,8 +698,10 @@ export class Match implements SimWorld {
       const hit = castRope(this.terrain, u.cx, u.cy, dx, dy);
       this.emit({ type: 'rope', unit: u, hit: !!hit });
       if (!hit) return;
-      u.rope = { ax: hit.x, ay: hit.y, len: Math.max(ROPE_MIN, Math.hypot(hit.x - u.cx, hit.y - u.cy)) };
+      // a corda já nasce um pouco curta: tira a bolota do chão
+      u.rope = { ax: hit.x, ay: hit.y, len: Math.max(ROPE_MIN, Math.hypot(hit.x - u.cx, hit.y - u.cy) - 10) };
       u.onGround = false;
+      u.y -= 3;
       team.ammo.set(id, team.ammo.get(id)! - 1);
     } else if (id === 'parachute') {
       if (u.onGround || u.chute) return;
@@ -735,11 +775,20 @@ export class Match implements SimWorld {
       this.emit({ type: 'gameOver', winner: this.winner });
       return;
     }
+    // missão: sem munição de ataque e com alvos de pé = não deu
+    const players = this.teams.filter((t) => t.control !== 'dummy');
+    if (players.length < this.teams.length && players.every((t) => !this.hasAttackAmmo(t))) {
+      this.phase = 'over';
+      this.active = null;
+      this.winner = this.teams.find((t) => t.control === 'dummy' && t.units.some((u) => u.alive)) ?? null;
+      this.emit({ type: 'gameOver', winner: this.winner });
+      return;
+    }
     let team: Team;
     do {
       this.teamCursor = (this.teamCursor + 1) % this.teams.length;
       team = this.teams[this.teamCursor];
-    } while (!team.units.some((u) => u.alive));
+    } while (!team.units.some((u) => u.alive) || team.control === 'dummy');
 
     let unit: Unit;
     do {
@@ -758,13 +807,14 @@ export class Match implements SimWorld {
     }
     this.active = unit;
     this.wind = Math.round(this.rng.range(-10, 10));
+    if (this.windFixed !== null) this.wind = this.windFixed;
     if (this.cratesOn && this.turnNumber > 1 && this.rng.next() < CRATE_CHANCE) this.dropCrate();
     this.turnTimer = this.turnTime;
     this.phase = 'turn';
     this.charging = false;
     this.power = 0;
     this.hasFired = false;
-    if (this.ammoOf(team.weapon) <= 0) team.weapon = 'bazooka';
+    if (this.ammoOf(team.weapon) <= 0) team.weapon = WEAPONS.find((w) => this.ammoOf(w.id) > 0)?.id ?? 'bazooka';
     this.emit({ type: 'turnStart', unit });
   }
 

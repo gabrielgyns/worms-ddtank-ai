@@ -217,7 +217,7 @@ export function blastDamage(blast: number, damage: number, ex: number, ey: numbe
   return Math.round(damage * (0.35 + 0.65 * f));
 }
 
-export const ROPE_RANGE = 320;
+export const ROPE_RANGE = 480;
 export const ROPE_MIN = 24;
 
 /** Lança a corda na direção (dx, dy). Devolve o ponto onde prendeu, ou null. */
@@ -262,11 +262,22 @@ export function stepRope(t: Terrain, u: Unit, dt: number): number {
         u.vy -= radial * ny;
       }
     }
-    const footY = py + 12 * u.size;
+    let footY = py + 12 * u.size;
     if (bodyCollides(t, px, footY, u.size)) {
-      u.vx *= -0.25;
-      u.vy *= -0.25;
-      break;
+      // raspou no chão: tenta deslizar por cima de degraus pequenos
+      let lifted = false;
+      for (let up = 1; up <= 6; up++) {
+        if (!bodyCollides(t, px, footY - up, u.size)) {
+          footY -= up;
+          lifted = true;
+          break;
+        }
+      }
+      if (!lifted) {
+        u.vx *= -0.25;
+        u.vy *= -0.25;
+        break;
+      }
     }
     u.x = px;
     u.y = footY;

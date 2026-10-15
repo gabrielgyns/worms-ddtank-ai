@@ -1,7 +1,8 @@
 import type { Look } from './cosmetics';
 import type { WeaponId } from './weapons';
 
-export type Control = 'human' | 'cpu';
+/** dummy: alvo parado das missões, nunca joga */
+export type Control = 'human' | 'cpu' | 'dummy';
 
 export interface Team {
   id: number;

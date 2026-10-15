@@ -87,6 +87,7 @@
           <span id="wallet" class="chip coin" title="Bolotins">🪙 0</span>
           <button id="achievements-btn" class="chip">🏆 Conquistas</button>
           <button id="ranking-btn" class="chip">📊 Ranking</button>
+          <button id="missions-btn" class="chip">🎯 Missões</button>
           <button id="editor-btn" class="chip">✏️ Mapas</button>
           <button id="shop-btn" class="chip">🛒 Loja</button>
           <button id="closet-btn" class="chip">👕 Visual</button>
@@ -228,6 +229,14 @@
       </div>
     </div>
 
+    <div id="missions" class="screen">
+      <div class="card">
+        <h2>Missões</h2>
+        <div id="missions-body" class="stack"></div>
+        <button class="back" data-back>Voltar</button>
+      </div>
+    </div>
+
     <div id="editor" class="screen">
       <div class="card wide">
         <h2>Editor de mapas</h2>
@@ -303,6 +312,7 @@
         <h2 id="over-title"></h2>
         <p id="over-sub"></p>
         <p id="over-daily" class="daily-result" hidden></p>
+        <p id="over-mission" class="mission-result" hidden></p>
         <div id="over-coins" class="coins-box" hidden></div>
         <ul id="over-unlocks" class="achs" hidden></ul>
         <button id="again" class="big">Revanche!</button>

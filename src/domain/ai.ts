@@ -165,9 +165,12 @@ export class AiController {
 
   private *think(m: Match, u: Unit): Generator<void, Plan, void> {
     let best: Plan = { weapon: 'bazooka', facing: u.facing, aim: 0.6, power: 0.5, score: -Infinity };
-    const candidates: WeaponId[] = ['bazooka', 'grenade'];
+    // só armas com munição (nas missões a bazuca pode estar zerada)
+    const candidates = (['bazooka', 'grenade', 'triple', 'cluster'] as WeaponId[]).filter((id) => m.ammoOf(id) > 0);
+    const basic = candidates.filter((id) => id === 'bazooka' || id === 'grenade');
+    const searched = basic.length ? basic : candidates.slice(0, 1);
     let budget = 0;
-    for (const id of candidates) {
+    for (const id of searched) {
       const w = weaponById(id);
       const spec = w.projectile!;
       for (const facing of [1, -1] as const) {
@@ -202,13 +205,20 @@ export class AiController {
       }
     }
 
-    // sem tiro bom? chama o ataque aéreo
-    if (best.score < 18 && m.ammoOf('airstrike') > 0) {
-      const enemy = m.units
-        .filter((o) => o.alive && o.team.side !== u.team.side)
-        .sort((a, b) => a.hp - b.hp)[0];
-      if (enemy && Math.abs(enemy.x - u.x) > 120) {
-        best = { weapon: 'airstrike', facing: u.facing, aim: u.aim, power: 0, score: 30, target: { x: enemy.x, y: enemy.y } };
+    // ataque aéreo: estima os 5 mísseis caindo em volta de cada inimigo
+    if (m.ammoOf('airstrike') > 0) {
+      const spec = weaponById('airstrike').projectile!;
+      for (const enemy of m.units.filter((o) => o.alive && o.team.side !== u.team.side)) {
+        if (Math.abs(enemy.x - u.x) < 120) continue;
+        let s = 0;
+        for (let i = 0; i < 5; i++) {
+          const x = enemy.x + (i - 2) * 34;
+          s += scoreImpact(m, u, x, m.terrain.surfaceY(x), spec.blast, spec.damage) * 0.8;
+        }
+        // guarda o ataque aéreo para quando ele rende mais que o tiro normal
+        if (s > best.score * 1.3 && s > 25) {
+          best = { weapon: 'airstrike', facing: u.facing, aim: u.aim, power: 0, score: s, target: { x: enemy.x, y: enemy.y } };
+        }
       }
     }
     return best;
