@@ -16,6 +16,7 @@ export interface WireSetup {
   crates?: boolean;
   suddenDeath?: number;
   bossHp?: number;
+  objects?: boolean;
 }
 
 export interface LobbyPlayer {

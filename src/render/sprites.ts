@@ -1,6 +1,7 @@
 import type { Projectile } from '../domain/physics';
 import type { Unit } from '../domain/unit';
 import type { Crate } from '../domain/crates';
+import type { Barrel, Mine } from '../domain/props';
 import type { WeaponId } from '../domain/weapons';
 import type { Look } from '../domain/cosmetics';
 import { danceTransform, drawBody, drawEyewear, drawGraveLook, drawHat, drawPineapple } from './cosmetics';
@@ -592,6 +593,69 @@ export function drawCrate(c: CanvasRenderingContext2D, crate: Crate, time: numbe
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillText('?', 0, -8.5);
+  }
+  c.restore();
+}
+
+export function drawBarrel(c: CanvasRenderingContext2D, b: Barrel, time: number): void {
+  c.save();
+  c.translate(b.x, b.y);
+  if (b.fuse !== null) c.translate((Math.random() - 0.5) * 2, 0);
+  c.lineWidth = 2.5;
+  c.strokeStyle = INK;
+  c.fillStyle = '#d8402e';
+  c.beginPath();
+  c.roundRect(-8, -22, 16, 22, 4);
+  c.fill();
+  c.stroke();
+  c.fillStyle = '#9c2a1c';
+  c.fillRect(-8, -16, 16, 2.5);
+  c.fillRect(-8, -7, 16, 2.5);
+  c.fillStyle = 'rgba(255,255,255,0.35)';
+  c.fillRect(-5, -20, 2.5, 18);
+  // símbolo de perigo
+  c.fillStyle = '#ffe14a';
+  c.beginPath();
+  c.moveTo(0, -15);
+  c.lineTo(5, -6);
+  c.lineTo(-5, -6);
+  c.closePath();
+  c.fill();
+  c.lineWidth = 1.2;
+  c.stroke();
+  if (b.fuse !== null && Math.sin(time * 40) > 0) {
+    c.fillStyle = 'rgba(255,240,150,0.6)';
+    c.beginPath();
+    c.arc(0, -11, 13, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.restore();
+}
+
+export function drawMine(c: CanvasRenderingContext2D, m: Mine, time: number): void {
+  c.save();
+  c.translate(m.x, m.y);
+  c.lineWidth = 2;
+  c.strokeStyle = INK;
+  c.fillStyle = '#3a3f47';
+  c.beginPath();
+  c.arc(0, 0, 7, Math.PI, 0);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.fillRect(-8, -1.5, 16, 3);
+  c.strokeRect(-8, -1.5, 16, 3);
+  const blink = m.fuse !== null ? Math.sin(time * 30) > 0 : Math.sin(time * 3 + m.id) > 0.6;
+  c.fillStyle = blink ? '#ff3b3b' : '#6a1d1d';
+  c.beginPath();
+  c.arc(0, -6, 2.2, 0, Math.PI * 2);
+  c.fill();
+  if (m.fuse !== null) {
+    c.strokeStyle = 'rgba(255,60,60,0.6)';
+    c.lineWidth = 2;
+    c.beginPath();
+    c.arc(0, -4, 10 + Math.sin(time * 20) * 3, 0, Math.PI * 2);
+    c.stroke();
   }
   c.restore();
 }

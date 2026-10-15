@@ -113,6 +113,9 @@ export class Sfx {
   pickup(): void {
     [660, 880, 1320].forEach((f, i) => this.tone(f, 0.12, 'triangle', 0.15, undefined, i * 0.07));
   }
+  beep(): void {
+    [0, 0.25, 0.5, 0.75, 1.0, 1.2].forEach((d) => this.tone(1400, 0.06, 'square', 0.07, undefined, d));
+  }
   whoosh(): void {
     this.burst(0.8, 1200, 0.15, 2);
   }

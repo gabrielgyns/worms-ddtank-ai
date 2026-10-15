@@ -8,7 +8,7 @@ import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
-import { drawCrate, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawBarrel, drawCrate, drawMine, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -130,6 +130,9 @@ export class Game {
           break;
         case 'crateDrop':
           s.whoosh();
+          break;
+        case 'mineArmed':
+          s.beep();
           break;
         case 'damage':
           s.ouch();
@@ -430,6 +433,8 @@ export class Game {
     c.drawImage(this.terrainView.canvas, 0, 0);
     this.fx.drawGraves(c);
     for (const crate of m.crates) drawCrate(c, crate, t);
+    for (const b of m.barrels) drawBarrel(c, b, t);
+    for (const mn of m.mines) drawMine(c, mn, t);
 
     const holding = m.phase === 'turn' && !!m.active ? m.weapon.id : null;
     for (const u of m.units) {

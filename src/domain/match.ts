@@ -12,6 +12,7 @@ import {
 import { DT, type TickInput } from './commands';
 import { decodeMask, encodeMask } from './codec';
 import { CRATE_CHANCE, CRATE_HEALTH, CRATE_WEAPONS, stepCrate, touches, type Crate } from './crates';
+import { BARREL_BLAST, MINE_BLAST, MINE_FUSE, nearMine, stepFalling, type Barrel, type Mine } from './props';
 import type { Look } from './cosmetics';
 import { Terrain } from './terrain';
 import type { Theme } from './theme';
@@ -33,6 +34,7 @@ export type GameEvent =
   | { type: 'select'; weapon: WeaponId }
   | { type: 'crateDrop'; crate: Crate }
   | { type: 'suddenDeath' }
+  | { type: 'mineArmed'; mine: Mine }
   | { type: 'waterRise'; y: number }
   | { type: 'cratePick'; crate: Crate; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
@@ -63,6 +65,8 @@ export interface MatchSetup {
   suddenDeath?: number;
   /** vida do chefão (modo co-op) */
   bossHp?: number;
+  /** barris, minas e vigas de metal (padrão: sim) */
+  objects?: boolean;
 }
 
 export const BOSS_SIZE = 2.2;
@@ -130,6 +134,9 @@ export interface MatchSnapshot {
   crates: Crate[];
   nextCrateId: number;
   waterY: number;
+  barrels: Barrel[];
+  mines: Mine[];
+  nextPropId: number;
 }
 
 const RETREAT_TIME = 3;
@@ -147,6 +154,9 @@ export class Match implements SimWorld {
   readonly units: Unit[] = [];
   readonly projectiles: Projectile[] = [];
   readonly crates: Crate[] = [];
+  readonly barrels: Barrel[] = [];
+  readonly mines: Mine[] = [];
+  private nextPropId = 1;
   private nextCrateId = 1;
   /** caixas ligadas nesta partida */
   readonly cratesOn: boolean;
@@ -201,6 +211,35 @@ export class Match implements SimWorld {
       });
     });
     this.spawnUnits(setup);
+    if (setup.objects ?? true) this.spawnProps();
+  }
+
+  /** Vigas de metal, barris e minas espalhados longe das bolotas. */
+  private spawnProps(): void {
+    const t = this.terrain;
+    t.addGirders(this.rng, this.rng.int(1, 3));
+    const taken: number[] = this.units.map((u) => u.x);
+    const place = (): { x: number; y: number } | null => {
+      for (let tries = 0; tries < 30; tries++) {
+        const x = Math.round(this.rng.range(240, t.width - 240));
+        const y = t.surfaceY(x);
+        if (y > t.waterY - 30) continue;
+        if (taken.some((o) => Math.abs(o - x) < 70)) continue;
+        taken.push(x);
+        return { x, y };
+      }
+      return null;
+    };
+    const barrels = this.rng.int(3, 5);
+    for (let i = 0; i < barrels; i++) {
+      const p = place();
+      if (p) this.barrels.push({ id: this.nextPropId++, x: p.x, y: p.y, vy: 0, landed: false, fuse: null });
+    }
+    const mines = this.rng.int(3, 5);
+    for (let i = 0; i < mines; i++) {
+      const p = place();
+      if (p) this.mines.push({ id: this.nextPropId++, x: p.x, y: p.y, vy: 0, landed: false, fuse: null });
+    }
   }
 
   on(fn: (e: GameEvent) => void): void {
@@ -303,6 +342,8 @@ export class Match implements SimWorld {
     }
     for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
     for (const c of this.crates) h.int(c.id).num(c.x).num(c.y).num(c.vy).str(c.kind).int(c.landed ? 1 : 0);
+    for (const b of this.barrels) h.int(b.id).num(b.x).num(b.y).num(b.vy).num(b.fuse ?? -1);
+    for (const mn of this.mines) h.int(mn.id).num(mn.x).num(mn.y).num(mn.vy).num(mn.fuse ?? -1);
     h.bytes(this.terrain.solid);
     return h.value;
   }
@@ -360,6 +401,9 @@ export class Match implements SimWorld {
       crates: this.crates.map((c) => ({ ...c })),
       nextCrateId: this.nextCrateId,
       waterY: this.terrain.waterY,
+      barrels: this.barrels.map((b) => ({ ...b })),
+      mines: this.mines.map((mn) => ({ ...mn })),
+      nextPropId: this.nextPropId,
     };
   }
 
@@ -395,6 +439,11 @@ export class Match implements SimWorld {
     for (const c of s.crates ?? []) this.crates.push({ ...c });
     this.nextCrateId = s.nextCrateId ?? 1;
     if (s.waterY !== undefined) this.terrain.waterY = s.waterY;
+    this.barrels.length = 0;
+    for (const b of s.barrels ?? []) this.barrels.push({ ...b });
+    this.mines.length = 0;
+    for (const mn of s.mines ?? []) this.mines.push({ ...mn });
+    this.nextPropId = s.nextPropId ?? 1;
     const mask = new Uint8Array(this.terrain.solid.length);
     decodeMask(s.terrain, mask);
     this.terrain.replace(mask);
@@ -711,7 +760,12 @@ export class Match implements SimWorld {
   }
 
   private updateSettle(dt: number): void {
-    const busy = this.projectiles.length > 0 || this.units.some((u) => u.alive && !u.onGround) || this.crates.some((c) => !c.landed);
+    const busy =
+      this.projectiles.length > 0 ||
+      this.units.some((u) => u.alive && !u.onGround) ||
+      this.crates.some((c) => !c.landed) ||
+      this.barrels.some((b) => !b.landed || b.fuse !== null) ||
+      this.mines.some((mn) => !mn.landed || mn.fuse !== null);
     if (busy) {
       this.settleClock = 0;
       return;
@@ -743,6 +797,34 @@ export class Match implements SimWorld {
         this.emit({ type: 'splash', x: u.x, y: t.waterY, big: true });
         this.emit({ type: 'death', unit: u, by: u.lastHitBy });
         if (u === this.active && (this.phase === 'turn' || this.phase === 'retreat')) this.endTurn();
+      }
+    }
+
+    for (let i = this.barrels.length - 1; i >= 0; i--) {
+      const b = this.barrels[i];
+      if (!stepFalling(t, b, dt, 7)) {
+        this.barrels.splice(i, 1);
+        continue;
+      }
+      if (b.fuse !== null && (b.fuse -= dt) <= 0) {
+        this.barrels.splice(i, 1);
+        this.explode(b.x, b.y - 10, BARREL_BLAST.r, BARREL_BLAST.dmg, -1);
+      }
+    }
+    for (let i = this.mines.length - 1; i >= 0; i--) {
+      const mn = this.mines[i];
+      if (!stepFalling(t, mn, dt, 6)) {
+        this.mines.splice(i, 1);
+        continue;
+      }
+      if (mn.fuse === null) {
+        if (this.units.some((u) => u.alive && nearMine(mn, u))) {
+          mn.fuse = MINE_FUSE;
+          this.emit({ type: 'mineArmed', mine: mn });
+        }
+      } else if ((mn.fuse -= dt) <= 0) {
+        this.mines.splice(i, 1);
+        this.explode(mn.x, mn.y - 4, MINE_BLAST.r, MINE_BLAST.dmg, -1);
       }
     }
 
@@ -800,6 +882,9 @@ export class Match implements SimWorld {
       u.onGround = false;
       u.fallSpeed = 0;
     }
+    // explosão perto de barril ou mina: reação em cadeia
+    for (const b of this.barrels) if (b.fuse === null && Math.hypot(b.x - x, b.y - 10 - y) < r + 14) b.fuse = 0.15;
+    for (const mn of this.mines) if (Math.hypot(mn.x - x, mn.y - 4 - y) < r + 10) mn.fuse = Math.min(mn.fuse ?? 0.3, 0.3);
     // caixas no raio da explosão viram pó
     for (let i = this.crates.length - 1; i >= 0; i--) {
       const c = this.crates[i];

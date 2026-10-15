@@ -1,4 +1,8 @@
-/** Codificação compacta da máscara do terreno: run-length + varint + base64. */
+/**
+ * Codificação compacta da máscara do terreno: pares (valor, comprimento da
+ * corrida em varint) + base64. Aceita qualquer valor por pixel
+ * (0 = ar, 1 = terra, 2 = metal).
+ */
 
 export function encodeMask(mask: Uint8Array): string {
   const out: number[] = [];
@@ -9,18 +13,15 @@ export function encodeMask(mask: Uint8Array): string {
     }
     out.push(n);
   };
-  // corridas alternadas começando por 0 (ar)
-  let cur = 0;
-  let run = 0;
-  for (let i = 0; i < mask.length; i++) {
-    if (mask[i] === cur) run++;
-    else {
-      push(run);
-      cur = mask[i];
-      run = 1;
-    }
+  let i = 0;
+  while (i < mask.length) {
+    const v = mask[i];
+    let run = 1;
+    while (i + run < mask.length && mask[i + run] === v) run++;
+    out.push(v);
+    push(run);
+    i += run;
   }
-  push(run);
   return toBase64(Uint8Array.from(out));
 }
 
@@ -28,8 +29,8 @@ export function decodeMask(data: string, into: Uint8Array): void {
   const bytes = fromBase64(data);
   let i = 0;
   let pos = 0;
-  let cur = 0;
   while (i < bytes.length) {
+    const v = bytes[i++];
     let n = 0;
     let shift = 0;
     let b: number;
@@ -38,9 +39,8 @@ export function decodeMask(data: string, into: Uint8Array): void {
       n |= (b & 0x7f) << shift;
       shift += 7;
     } while (b & 0x80);
-    into.fill(cur, pos, pos + n);
+    into.fill(v, pos, pos + n);
     pos += n;
-    cur ^= 1;
   }
 }
 

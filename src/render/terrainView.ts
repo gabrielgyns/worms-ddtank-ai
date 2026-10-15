@@ -1,10 +1,20 @@
 import { hash2, valueNoise } from '../core/math';
-import type { Terrain } from '../domain/terrain';
+import { METAL, type Terrain } from '../domain/terrain';
 import type { Theme } from '../domain/theme';
 
 function hex(c: string): [number, number, number] {
   const n = parseInt(c.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/** Viga de metal: cinza com borda escura, faixa clara e rebites. */
+function metalColor(x: number, y: number, solid: Uint8Array, i: number, w: number): [number, number, number] {
+  const edge = solid[i - w] !== METAL || solid[i + w] !== METAL || solid[i - 1] !== METAL || solid[i + 1] !== METAL;
+  if (edge) return [42, 32, 30];
+  if (solid[i - 2 * w] !== METAL) return [214, 220, 228];
+  const rivet = (x % 18 === 6 || x % 18 === 7) && (solid[i - 4 * w] !== METAL || solid[i + 4 * w] !== METAL);
+  if (rivet) return [90, 96, 108];
+  return y % 2 ? [150, 158, 170] : [160, 168, 180];
 }
 
 /** Pinta a máscara do terreno numa textura cartoon e mantém a cratera atualizada. */
@@ -50,6 +60,14 @@ export class TerrainView {
         }
         depth++;
         const o = i * 4;
+        if (solid[i] === METAL) {
+          const m = metalColor(x, y, solid, i, w);
+          d[o] = m[0];
+          d[o + 1] = m[1];
+          d[o + 2] = m[2];
+          d[o + 3] = 255;
+          continue;
+        }
         let c: [number, number, number];
         const edgeSide =
           (x > 0 && !solid[i - 1]) || (x < w - 1 && !solid[i + 1]) || (x > 1 && !solid[i - 2]) || (x < w - 2 && !solid[i + 2]);
@@ -101,5 +119,34 @@ export class TerrainView {
     c.arc(x, y, r, 0, Math.PI * 2);
     c.fill();
     c.restore();
+    this.repaintMetal(x - r - 12, y - r - 12, x + r + 12, y + r + 12);
+  }
+
+  /** O metal não queima nem some: repinta o que a explosão sujou. */
+  private repaintMetal(x0: number, y0: number, x1: number, y1: number): void {
+    const { width: w, height: h, solid } = this.terrain;
+    const ax = Math.max(0, Math.floor(x0));
+    const ay = Math.max(0, Math.floor(y0));
+    const bx = Math.min(w, Math.ceil(x1));
+    const by = Math.min(h, Math.ceil(y1));
+    if (bx <= ax || by <= ay) return;
+    let any = false;
+    for (let y = ay; y < by && !any; y++) for (let x = ax; x < bx; x++) if (solid[y * w + x] === METAL) { any = true; break; }
+    if (!any) return;
+    const img = this.ctx.getImageData(ax, ay, bx - ax, by - ay);
+    const d = img.data;
+    for (let y = ay; y < by; y++) {
+      for (let x = ax; x < bx; x++) {
+        const i = y * w + x;
+        if (solid[i] !== METAL) continue;
+        const o = ((y - ay) * (bx - ax) + (x - ax)) * 4;
+        const m = metalColor(x, y, solid, i, w);
+        d[o] = m[0];
+        d[o + 1] = m[1];
+        d[o + 2] = m[2];
+        d[o + 3] = 255;
+      }
+    }
+    this.ctx.putImageData(img, ax, ay);
   }
 }

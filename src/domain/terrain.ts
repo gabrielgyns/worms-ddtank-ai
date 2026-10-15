@@ -4,8 +4,13 @@ export interface CarveListener {
   (cx: number, cy: number, r: number): void;
 }
 
+export const AIR = 0;
+export const DIRT = 1;
+/** metal: sólido e indestrutível */
+export const METAL = 2;
+
 /**
- * Terreno destrutível: uma máscara de bits (1 = chão sólido).
+ * Terreno destrutível: uma máscara por pixel (0 ar, 1 terra, 2 metal).
  * Não sabe desenhar — avisa os ouvintes quando é escavado.
  */
 export class Terrain {
@@ -40,7 +45,7 @@ export class Terrain {
     const xi = x | 0;
     const yi = y | 0;
     if (xi < 0 || xi >= this.width || yi < 0 || yi >= this.height) return false;
-    return this.solid[yi * this.width + xi] === 1;
+    return this.solid[yi * this.width + xi] !== AIR;
   }
 
   carve(cx: number, cy: number, r: number): void {
@@ -134,6 +139,21 @@ export class Terrain {
     }
   }
 
+  /** Vigas de metal flutuando acima do chão (indestrutíveis). */
+  addGirders(rng: Rng, count: number): Array<{ x: number; y: number; w: number; h: number }> {
+    const out: Array<{ x: number; y: number; w: number; h: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const w = Math.round(rng.range(90, 150));
+      const h = 12;
+      const x = Math.round(rng.range(200, this.width - 200 - w));
+      const ground = this.surfaceY(x + w / 2);
+      const y = Math.round(Math.max(120, Math.min(this.waterY - 140, ground - rng.range(90, 190))));
+      for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) this.solid[yy * this.width + xx] = METAL;
+      out.push({ x, y, w, h });
+    }
+    return out;
+  }
+
   private fillCircle(cx: number, cy: number, r: number, value: 0 | 1): void {
     const r2 = r * r;
     const x0 = Math.max(0, Math.floor(cx - r));
@@ -144,7 +164,8 @@ export class Terrain {
       const dy = y - cy;
       for (let x = x0; x <= x1; x++) {
         const dx = x - cx;
-        if (dx * dx + dy * dy <= r2) this.solid[y * this.width + x] = value;
+        const i = y * this.width + x;
+        if (dx * dx + dy * dy <= r2 && this.solid[i] !== METAL) this.solid[i] = value;
       }
     }
   }

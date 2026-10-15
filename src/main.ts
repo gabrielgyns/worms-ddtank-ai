@@ -65,6 +65,7 @@ const settings = {
   units: 3,
   theme: 'random' as ThemeId | 'random',
   crates: true,
+  objects: true,
   sudden: 20,
 };
 
@@ -115,6 +116,7 @@ function startGame(): void {
         seed: (Math.random() * 2 ** 31) | 0,
         turnTime: 30,
         crates: settings.crates,
+        objects: settings.objects,
         suddenDeath: settings.sudden,
         bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
       },
@@ -444,7 +446,7 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
       group.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
       b.classList.add('on');
       const v = b.dataset.v!;
-      (settings as Record<string, unknown>)[key] = key === 'units' || key === 'sudden' ? Number(v) : key === 'crates' ? v === 'true' : v;
+      (settings as Record<string, unknown>)[key] = key === 'units' || key === 'sudden' ? Number(v) : key === 'crates' || key === 'objects' ? v === 'true' : v;
       $('#diff-row').style.display = settings.mode === 'pvp' ? 'none' : '';
       sfx.unlock();
       sfx.select();
