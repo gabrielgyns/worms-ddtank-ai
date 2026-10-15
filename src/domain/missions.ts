@@ -178,7 +178,7 @@ const TARGETS: TeamSetup = {
 export function missionSetup(m: Mission, player: TeamSetup): MatchSetup {
   return {
     teams: [
-      { ...player, spawns: m.player.map((x) => ({ x })), ammo: m.ammo, side: 0 },
+      { ...player, spawns: m.player.map((x) => ({ x })), ammo: m.ammo, items: {}, side: 0 },
       { ...TARGETS, spawns: m.targets, side: 1 },
     ],
     unitsPerTeam: 1,

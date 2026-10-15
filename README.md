@@ -34,6 +34,7 @@ Fora da partida: perfil, conquistas (fácil → lendária), moedas, loja e baús
 | Espaço (segurar) | carregar força e atirar |
 | Enter / Backspace | pulo / mortal pra trás |
 | 1–9, Q/E, Tab | trocar arma |
+| Z / X / C | itens: força +50%, tiro duplo, escudo |
 | Clique no mapa | ataque aéreo / teletransporte |
 | Arrastar / roda do mouse | mover câmera / zoom |
 | T | emotes |
@@ -43,7 +44,7 @@ No celular: mira arrastando (estilingue), pinça para zoom e botões na tela.
 
 ## Arsenal
 
-Bazuca, Granada (pavio de 3 s, quica), Tiro Triplo, Fragmentação, Dinamite, Ataque Aéreo, Teletransporte, **Corda Ninja** e **Paraquedas**. Pelo mapa: caixas de munição e vida, barris explosivos, minas e vigas de metal indestrutíveis. Morte súbita faz a água subir.
+Bazuca, Granada (pavio de 3 s, quica), Tiro Triplo, Fragmentação, Dinamite, Ataque Aéreo, Teletransporte, **Corda Ninja** e **Paraquedas**. Itens de turno (um de cada por partida): **força +50%**, **tiro duplo** e **escudo**. Pelo mapa: caixas de munição e vida, barris explosivos, minas e vigas de metal indestrutíveis. Morte súbita faz a água subir.
 
 ## Arquitetura
 

@@ -1,3 +1,4 @@
+import type { ItemId } from './items';
 import type { WeaponId } from './weapons';
 
 /** Passo fixo da simulação. */
@@ -22,6 +23,8 @@ export interface TickInput {
   chargeLimit?: number;
   /** alvo de armas de clique (ataque aéreo, teletransporte) */
   target?: { x: number; y: number };
+  /** item de turno a usar (força, tiro duplo, escudo) */
+  item?: ItemId;
   /** time que abandonou a partida (desconectou por tempo demais) */
   forfeit?: number;
 }

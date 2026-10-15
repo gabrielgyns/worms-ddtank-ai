@@ -1,3 +1,4 @@
+import { ITEMS, ITEMS_START, POWER_MULT, SHIELD_MULT, type ItemId } from './items';
 import { clamp, DEG, Hasher, Rng } from '../core/math';
 import {
   blastDamage,
@@ -42,6 +43,7 @@ export type GameEvent =
   | { type: 'chute'; unit: Unit }
   | { type: 'waterRise'; y: number }
   | { type: 'cratePick'; crate: Crate; unit: Unit }
+  | { type: 'item'; item: ItemId; unit: Unit }
   | { type: 'gameOver'; winner: Team | null };
 
 export interface TeamSetup {
@@ -60,6 +62,8 @@ export interface TeamSetup {
   spawns?: Array<{ x: number; hp?: number }>;
   /** munição fixa (missões): só estas armas, nestas quantidades */
   ammo?: Partial<Record<WeaponId, number>>;
+  /** itens de turno no começo (padrão: um de cada; chefão e alvos: nenhum) */
+  items?: Partial<Record<ItemId, number>>;
 }
 
 export interface MatchSetup {
@@ -130,7 +134,9 @@ export interface MatchSnapshot {
   winner: number;
   time: number;
   rng: number;
-  teams: Array<{ cursor: number; weapon: WeaponId; ammo: Array<[WeaponId, number]> }>;
+  teams: Array<{ cursor: number; weapon: WeaponId; ammo: Array<[WeaponId, number]>; items?: Array<[ItemId, number]> }>;
+  /** itens ligados nesta vez */
+  boost?: { power: boolean; double: boolean };
   units: Array<{
     x: number;
     y: number;
@@ -148,6 +154,7 @@ export interface MatchSnapshot {
     fallSpeed: number;
     rope?: { ax: number; ay: number; len: number } | null;
     chute?: boolean;
+    shield?: boolean;
   }>;
   projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number }>;
   terrain: string;
@@ -197,6 +204,8 @@ export class Match implements SimWorld {
   private teamCursor = -1;
   private settleClock = 0;
   private hasFired = false;
+  /** itens ativos na vez atual (somem quando a vez acaba) */
+  readonly boost = { power: false, double: false };
   turnNumber = 0;
   /** ticks simulados desde o início */
   tick = 0;
@@ -231,6 +240,7 @@ export class Match implements SimWorld {
         look: ts.look ?? {},
         side: ts.side ?? i,
         boss: !!ts.boss,
+        items: new Map(ITEMS.map((it) => [it.id, ts.items ? (ts.items[it.id] ?? 0) : ts.boss || ts.control === 'dummy' ? 0 : ITEMS_START[it.id]])),
       });
     });
     this.windFixed = setup.wind ?? null;
@@ -383,14 +393,15 @@ export class Match implements SimWorld {
     const h = new Hasher();
     h.int(this.tick).str(this.phase).int(this.wind).int(this.turnNumber).int(this.rng.state).num(this.terrain.waterY);
     h.num(this.turnTimer).num(this.retreatTimer).num(this.power).int(this.charging ? 1 : 0);
-    h.int(this.active?.id ?? -1);
+    h.int(this.active?.id ?? -1).int(this.boost.power ? 1 : 0).int(this.boost.double ? 1 : 0);
     for (const t of this.teams) {
       h.int(t.cursor).str(t.weapon);
       for (const [id, n] of t.ammo) h.str(id).num(n);
+      for (const [id, n] of t.items) h.str(id).num(n);
     }
     for (const u of this.units) {
       h.num(u.x).num(u.y).num(u.vx).num(u.vy).num(u.hp).num(u.aim).int(u.facing);
-      h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0).int(u.chute ? 1 : 0);
+      h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0).int(u.chute ? 1 : 0).int(u.shield ? 1 : 0);
       if (u.rope) h.num(u.rope.ax).num(u.rope.ay).num(u.rope.len);
     }
     for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind);
@@ -422,7 +433,8 @@ export class Match implements SimWorld {
       winner: this.winner?.id ?? -1,
       time: this.time,
       rng: this.rng.state,
-      teams: this.teams.map((t) => ({ cursor: t.cursor, weapon: t.weapon, ammo: [...t.ammo].map(([id, n]) => [id, inf(n)]) })),
+      teams: this.teams.map((t) => ({ cursor: t.cursor, weapon: t.weapon, ammo: [...t.ammo].map(([id, n]) => [id, inf(n)]), items: [...t.items] })),
+      boost: { ...this.boost },
       units: this.units.map((u) => ({
         x: u.x,
         y: u.y,
@@ -440,6 +452,7 @@ export class Match implements SimWorld {
         fallSpeed: u.fallSpeed,
         rope: u.rope ? { ...u.rope } : null,
         chute: u.chute,
+        shield: u.shield,
       })),
       projectiles: this.projectiles.map((p) => ({
         x: p.x,
@@ -479,10 +492,13 @@ export class Match implements SimWorld {
     this.winner = this.teams.find((t) => t.id === s.winner) ?? null;
     this.time = s.time;
     this.rng.state = s.rng;
+    this.boost.power = s.boost?.power ?? false;
+    this.boost.double = s.boost?.double ?? false;
     s.teams.forEach((st, i) => {
       const t = this.teams[i];
       t.cursor = st.cursor;
       t.weapon = st.weapon;
+      if (st.items) t.items = new Map(st.items);
       t.ammo = new Map(st.ammo.map(([id, n]) => [id, n < 0 ? Infinity : n]));
     });
     s.units.forEach((su, i) => Object.assign(this.units[i], su));
@@ -523,10 +539,29 @@ export class Match implements SimWorld {
     if (i.aim !== undefined) this.aimBy(i.aim);
     if (i.aimTo !== undefined && this.active) this.aimBy(i.aimTo - this.active.aim);
     if (i.jump !== undefined) this.jump(i.jump === 'back');
+    if (i.item !== undefined) this.useItem(i.item);
     if (i.charge === 'start') this.startCharge(i.chargeLimit ?? 1);
     if (i.charge === 'release') this.releaseCharge();
     if (i.target !== undefined) this.fireAt(i.target.x, i.target.y);
     if (i.forfeit !== undefined) this.forfeit(i.forfeit);
+  }
+
+  /** Gasta um item de turno. Vale antes de atirar; não passa a vez. */
+  useItem(id: ItemId): boolean {
+    const u = this.active;
+    if (!u || this.phase !== 'turn' || this.hasFired || this.charging) return false;
+    const team = u.team;
+    if ((team.items.get(id) ?? 0) <= 0) return false;
+    if (id === 'shield') {
+      if (u.shield) return false;
+      u.shield = true;
+    } else {
+      if (this.boost[id]) return false;
+      this.boost[id] = true;
+    }
+    team.items.set(id, team.items.get(id)! - 1);
+    this.emit({ type: 'item', item: id, unit: u });
+    return true;
   }
 
   /** O time desistiu (ou caiu de vez): todas as bolotas dele saem do jogo. */
@@ -776,6 +811,12 @@ export class Match implements SimWorld {
   }
 
   private beginRetreat(time: number): void {
+    // tiro duplo: o primeiro tiro não encerra a vez
+    if (this.boost.double && this.weapon.mode === 'charge' && this.phase === 'turn') {
+      this.boost.double = false;
+      this.hasFired = false;
+      return;
+    }
     this.phase = 'retreat';
     this.retreatTimer = time;
   }
@@ -835,6 +876,10 @@ export class Match implements SimWorld {
     this.charging = false;
     this.power = 0;
     this.hasFired = false;
+    this.boost.power = false;
+    this.boost.double = false;
+    // o escudo vale até a próxima vez do próprio time
+    for (const tu of team.units) tu.shield = false;
     if (this.ammoOf(team.weapon) <= 0) team.weapon = WEAPONS.find((w) => this.ammoOf(w.id) > 0)?.id ?? 'bazooka';
     this.emit({ type: 'turnStart', unit });
   }
@@ -1012,8 +1057,10 @@ export class Match implements SimWorld {
     this.emit({ type: 'explosion', x, y, r, by: attacker });
     for (const u of this.units) {
       if (!u.alive || u === spare) continue;
-      const d = blastDamage(r, dmg, x, y, u);
+      let d = blastDamage(r, dmg, x, y, u);
       if (d <= 0) continue;
+      if (this.boost.power && attacker && attacker === this.active) d = Math.round(d * POWER_MULT);
+      if (u.shield) d = Math.max(1, Math.round(d * SHIELD_MULT));
       this.damage(u, d, attacker);
       const dx = u.cx - x;
       const dy = u.cy - y - 6;

@@ -6,11 +6,12 @@ import { DT, isEmptyInput, NO_INPUT, type Command, type TickInput } from './doma
 import { Match, type MatchSetup } from './domain/match';
 import { HighlightRecorder, type Highlight } from './domain/highlight';
 import { WEAPONS, type WeaponId } from './domain/weapons';
+import { ITEMS, type ItemId } from './domain/items';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { a11y, TEAM_MARK } from './render/a11y';
-import { drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -162,6 +163,9 @@ export class Game {
         case 'chute':
           s.whoosh();
           break;
+        case 'item':
+          s.pickup();
+          break;
         case 'damage':
           s.ouch();
           // golpe forte = um instante de pausa, para o impacto "pesar"
@@ -251,6 +255,10 @@ export class Game {
   /** Pedido de troca de arma vindo da interface. */
   requestWeapon(id: WeaponId): void {
     if (this.humanTurn && !this.paused) this.pending.weapon = id;
+  }
+
+  requestItem(id: ItemId): void {
+    if (this.humanTurn && !this.paused) this.pending.item = id;
   }
 
   hover(px: number, py: number): void {
@@ -391,6 +399,8 @@ export class Game {
     for (const code of i.takeKeys()) {
       const w = WEAPONS.find((w) => `Digit${w.key}` === code || `Numpad${w.key}` === code);
       if (w) out.weapon = w.id;
+      const it = ITEMS.find((x) => x.key === code);
+      if (it) out.item = it.id;
       if (code === 'Tab' || code === 'KeyE' || code === 'KeyQ') {
         const next = this.nextWeapon(code === 'KeyQ' ? -1 : 1);
         if (next) out.weapon = next;
@@ -504,7 +514,9 @@ export class Game {
       drawChute(c, u, t);
       const active = u === m.active && m.phase !== 'over';
       const celebrate = m.phase === 'over' && m.winner === u.team;
+      if (active && m.boost.power) drawPowerAura(c, u, t);
       drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate });
+      if (u.shield) drawShield(c, u, t);
     }
     if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') {
       const u = m.active;

@@ -448,6 +448,38 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.restore();
 }
 
+/** Força +50%: brilho vermelho pulsando atrás da bolota. */
+export function drawPowerAura(c: CanvasRenderingContext2D, u: Unit, time: number): void {
+  const r = 26 * u.size + Math.sin(time * 8) * 3;
+  const g = c.createRadialGradient(u.cx, u.cy, r * 0.3, u.cx, u.cy, r);
+  g.addColorStop(0, 'rgba(255, 90, 40, 0.55)');
+  g.addColorStop(1, 'rgba(255, 90, 40, 0)');
+  c.fillStyle = g;
+  c.beginPath();
+  c.arc(u.cx, u.cy, r, 0, Math.PI * 2);
+  c.fill();
+}
+
+/** Escudo: bolha azul translúcida. */
+export function drawShield(c: CanvasRenderingContext2D, u: Unit, time: number): void {
+  const r = 22 * u.size;
+  c.save();
+  c.globalAlpha = 0.85;
+  c.fillStyle = 'rgba(120, 200, 255, 0.18)';
+  c.strokeStyle = 'rgba(160, 225, 255, 0.9)';
+  c.lineWidth = 2.5;
+  c.beginPath();
+  c.arc(u.cx, u.cy, r, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  // reflexo girando
+  c.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+  c.beginPath();
+  c.arc(u.cx, u.cy, r - 4, time * 1.5, time * 1.5 + 0.9);
+  c.stroke();
+  c.restore();
+}
+
 /** Tamanho real da explosão da arma, em volta da mira. */
 export function drawBlastPreview(c: CanvasRenderingContext2D, x: number, y: number, blast: number, time: number): void {
   c.save();

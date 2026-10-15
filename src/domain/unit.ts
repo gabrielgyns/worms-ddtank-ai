@@ -1,4 +1,5 @@
 import type { Look } from './cosmetics';
+import type { ItemId } from './items';
 import type { WeaponId } from './weapons';
 
 /** dummy: alvo parado das missões, nunca joga */
@@ -23,6 +24,8 @@ export interface Team {
   side: number;
   /** é o time do chefão */
   boss: boolean;
+  /** itens de turno que ainda tem */
+  items: Map<ItemId, number>;
 }
 
 /** Uma "bolota": o soldadinho redondo controlado por um time. */
@@ -47,6 +50,8 @@ export class Unit {
   rope: { ax: number; ay: number; len: number } | null = null;
   /** paraquedas aberto */
   chute = false;
+  /** escudo de turno: metade do dano até a próxima vez do seu time */
+  shield = false;
   /** tamanho (1 = bolota normal; o chefão é bem maior) */
   size = 1;
   /** quem acertou esta bolota por último (para creditar a eliminação) */

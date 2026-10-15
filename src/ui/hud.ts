@@ -1,6 +1,7 @@
 import type { Input, Action } from '../core/input';
 import type { Game } from '../game';
 import { WEAPONS } from '../domain/weapons';
+import { ITEMS, type ItemId } from '../domain/items';
 import { drawWeaponIcon } from '../render/sprites';
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
@@ -24,6 +25,7 @@ export class Hud {
   private bossBar = $('#boss-bar');
   private bossMax = 0;
   private buttons = new Map<string, { el: HTMLButtonElement; ammo: HTMLElement }>();
+  private itemButtons = new Map<ItemId, { el: HTMLButtonElement; count: HTMLElement }>();
   private teamBars: Array<{ fill: HTMLElement; num: HTMLElement; max: number }> = [];
   private last = new Map<string, string>();
   private bannerTimer = 0;
@@ -51,6 +53,22 @@ export class Hud {
       });
       this.bar.append(el);
       this.buttons.set(w.id, { el, ammo });
+    }
+    const items = $('#items');
+    for (const it of ITEMS) {
+      const el = document.createElement('button');
+      el.className = 'item';
+      el.title = `${it.name} [${it.key.replace('Key', '')}] — ${it.hint}`;
+      el.innerHTML = `<span></span><i></i><em></em>`;
+      el.querySelector('span')!.textContent = it.icon;
+      el.querySelector('i')!.textContent = it.key.replace('Key', '');
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.game?.requestItem(it.id);
+        el.blur();
+      });
+      items.append(el);
+      this.itemButtons.set(it.id, { el, count: el.querySelector('em')! });
     }
   }
 
@@ -159,6 +177,18 @@ export class Hud {
         b.ammo.textContent = ammo === Infinity ? '∞' : String(ammo);
         b.el.classList.toggle('active', m.weapon.id === w.id);
         b.el.disabled = !canPick || ammo <= 0;
+      });
+    }
+
+    const canItem = canPick && !m.charging && !!u && !u.team.boss;
+    for (const it of ITEMS) {
+      const b = this.itemButtons.get(it.id)!;
+      const n = team?.items.get(it.id) ?? 0;
+      const on = it.id === 'shield' ? !!u?.shield : m.boost[it.id];
+      this.set(`i-${it.id}`, `${n}|${on}|${canItem}`, () => {
+        b.count.textContent = String(n);
+        b.el.classList.toggle('active', on);
+        b.el.disabled = !canItem || n <= 0 || on;
       });
     }
 

@@ -4,7 +4,7 @@ import type { ThemeId } from '../domain/theme';
 import type { Look } from '../domain/cosmetics';
 
 /** Suba quando mudar mensagens ou regras que afetem a simulação. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** MatchSetup em forma de JSON (tema por id). */
 export interface WireSetup {

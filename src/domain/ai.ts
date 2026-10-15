@@ -1,4 +1,5 @@
 import { DEG } from '../core/math';
+import type { ItemId } from './items';
 import { DT, NO_INPUT, type TickInput } from './commands';
 import type { Match } from './match';
 import { blastDamage, stepProjectile, type Projectile } from './physics';
@@ -77,6 +78,8 @@ export class AiController {
   private walkDir: 1 | -1 = 1;
   private turnSeen = -1;
   private walked = false;
+  /** itens a gastar antes de mirar nesta vez */
+  private itemQueue: ItemId[] = [];
 
   constructor(private readonly difficulty: Difficulty) {}
 
@@ -90,6 +93,7 @@ export class AiController {
       this.plan = null;
       this.search = null;
       this.walked = false;
+      this.itemQueue = [];
       this.wait = NOISE[this.difficulty].think;
     }
     if (this.wait > 0) {
@@ -120,9 +124,11 @@ export class AiController {
         }
       }
       this.plan = this.applyNoise(plan);
+      this.itemQueue = this.chooseItems(m, u, plan);
       return { weapon: this.plan.weapon };
     }
 
+    if (this.itemQueue.length && !m.charging) return { item: this.itemQueue.shift()! };
     const p = this.plan;
     if (p.target) return { target: { x: p.target.x, y: p.target.y } };
     if (u.facing !== p.facing) {
@@ -135,6 +141,18 @@ export class AiController {
     }
     if (!m.charging) return { charge: 'start', chargeLimit: p.power };
     return NO_INPUT;
+  }
+
+  /** Itens de turno: força e tiro duplo quando o tiro promete; escudo quando está mal. */
+  private chooseItems(m: Match, u: Unit, plan: Plan): ItemId[] {
+    const has = (id: ItemId) => (u.team.items.get(id) ?? 0) > 0;
+    const out: ItemId[] = [];
+    if (this.difficulty !== 'facil') {
+      if (plan.score > 40 && has('power')) out.push('power');
+      if (plan.score > 55 && !plan.target && has('double') && (m.activeTeam?.ammo.get(plan.weapon) ?? 0) >= 2) out.push('double');
+    }
+    if (u.hp < 50 && has('shield')) out.push('shield');
+    return out;
   }
 
   private nearestEnemy(m: Match, u: Unit): Unit | null {
