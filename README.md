@@ -20,6 +20,7 @@ No ar em **https://worms-ddtank-ai.vercel.app**: cada push na `main` publica soz
 - **Online**: crie uma sala, mande o código/link, a outra pessoa entra (WebRTC, sem servidor).
 - **Por link**: cada jogada vira um link para mandar no WhatsApp; quem recebe assiste ao lance e responde.
 - **Co-op contra o Rei Bolotão**: você + aliado (CPU ou amigo online) contra um chefão com ataques próprios.
+- **Rei da colina** (opção em qualquer modo, menos chefão): quem fica sozinho no topo ao fim da vez marca ponto; 6 pontos vence.
 - **Missões**: 8 quebra-cabeças com munição limitada e vento fixo; menos tiros, mais estrelas.
 - **Desafio do dia**: mesmo mapa e mesma semente para todo mundo, com placar.
 - **Editor de mapas**: desenhe terra e metal, teste e compartilhe por link.

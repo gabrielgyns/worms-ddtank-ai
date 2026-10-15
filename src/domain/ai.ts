@@ -113,6 +113,14 @@ export class AiController {
       if (!r.done) return NO_INPUT;
       this.search = null;
       const plan = r.value;
+      // rei da colina: se o topo está perto e eu não estou nele, vou primeiro para lá
+      const h = m.hill;
+      if (h && !this.walked && Math.hypot(u.cx - h.x, u.cy - h.y) > h.r * 0.7 && Math.abs(u.x - h.x) < 520) {
+        this.walked = true;
+        this.walkDir = h.x > u.x ? 1 : -1;
+        this.walkTime = Math.min(2.4, Math.abs(h.x - u.x) / 60);
+        return NO_INPUT;
+      }
       if (plan.score <= 2 && !this.walked) {
         // nada bom daqui: anda um pouco na direção do inimigo e tenta de novo
         const enemy = this.nearestEnemy(m, u);

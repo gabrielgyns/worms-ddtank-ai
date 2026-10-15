@@ -18,6 +18,7 @@ export interface WireSetup {
   bossHp?: number;
   objects?: boolean;
   map?: string;
+  hill?: number;
 }
 
 export interface LobbyPlayer {
@@ -35,6 +36,8 @@ export interface LobbyState {
   themeId: ThemeId | 'random';
   /** duelo (um contra o outro), chefão (juntos contra o Rei Bolotão) ou 2x2 (dupla em cada aparelho) */
   mode?: 'duel' | 'boss' | 'duo';
+  /** rei da colina ligado */
+  hill?: boolean;
   /** nome do mapa desenhado escolhido pelo host (o mapa vai no setup) */
   mapName?: string;
 }

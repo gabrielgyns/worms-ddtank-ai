@@ -11,7 +11,7 @@ import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
 import { a11y, TEAM_MARK } from './render/a11y';
-import { drawGirderGhost, drawHomingMark, drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawHill, drawGirderGhost, drawHomingMark, drawPowerAura, drawShield, drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -510,6 +510,11 @@ export class Game {
     const wy = this.waterDrawY;
     drawWater(c, m.theme, wy, x0, right, bottom, t, false);
     c.drawImage(this.terrainView.canvas, 0, 0);
+    if (m.hill) {
+      const on = m.sidesOnHill();
+      const owner = on.length === 1 ? m.teams.find((tm) => tm.side === on[0]) : null;
+      drawHill(c, m.hill.x, m.hill.y, m.hill.r, owner?.color ?? '#ffffff', t);
+    }
     this.fx.drawGraves(c);
     for (const crate of m.crates) drawCrate(c, crate, t);
     for (const b of m.barrels) drawBarrel(c, b, t);
@@ -584,8 +589,11 @@ export class Game {
     const cx = w / 2;
     const cy = (top + bottom) / 2;
     const placed: Array<{ x: number; y: number }> = [];
-    for (const u of this.match.units) {
-      if (!u.alive) continue;
+    // a colina entra como mais um alvo, em dourado
+    const hillAt = this.match.hill;
+    const targets = this.match.units.filter((u) => u.alive).map((u) => ({ cx: u.cx, cy: u.cy, color: u.team.color, mark: a11y.colorblind ? `${TEAM_MARK[u.team.id % TEAM_MARK.length]} ` : '', strong: u === this.match.active }));
+    if (hillAt) targets.push({ cx: hillAt.x, cy: hillAt.y, color: '#ffd24a', mark: '⛰️ ', strong: true });
+    for (const u of targets) {
       const sx = (u.cx - this.cam.x) * z + cx;
       const sy = (u.cy - this.cam.y) * z + h / 2;
       if (sx >= side && sx <= w - side && sy >= top && sy <= bottom) continue;
@@ -606,7 +614,7 @@ export class Game {
       const meters = Math.round(Math.hypot(sx - ax, sy - ay) / z / 10);
       c.save();
       c.translate(ax, ay);
-      c.globalAlpha = u === this.match.active ? 1 : 0.85;
+      c.globalAlpha = u.strong ? 1 : 0.85;
       c.save();
       c.rotate(ang);
       c.beginPath();
@@ -615,14 +623,14 @@ export class Game {
       c.lineTo(-4, 0);
       c.lineTo(-8, 10);
       c.closePath();
-      c.fillStyle = u.team.color;
+      c.fillStyle = u.color;
       c.strokeStyle = '#2a1a12';
       c.lineWidth = 3;
       c.lineJoin = 'round';
       c.stroke();
       c.fill();
       c.restore();
-      const mark = a11y.colorblind ? `${TEAM_MARK[u.team.id % TEAM_MARK.length]} ` : '';
+      const mark = u.mark;
       if (meters > 0 || mark) {
         c.font = "13px 'Lilita One', sans-serif";
         c.textAlign = 'center';

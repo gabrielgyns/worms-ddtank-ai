@@ -24,6 +24,8 @@ export class Hud {
   private banner = $('#banner');
   private bossBar = $('#boss-bar');
   private bossMax = 0;
+  private hillBar = $('#hill-bar');
+  private hillDots: HTMLElement[][] = [];
   private buttons = new Map<string, { el: HTMLButtonElement; ammo: HTMLElement }>();
   private itemButtons = new Map<ItemId, { el: HTMLButtonElement; count: HTMLElement }>();
   private teamBars: Array<{ fill: HTMLElement; num: HTMLElement; max: number }> = [];
@@ -77,6 +79,30 @@ export class Hud {
     const boss = game.match.units.find((u) => u.team.boss);
     this.bossMax = boss ? boss.hp : 0;
     this.bossBar.hidden = !boss;
+    // rei da colina: um placar por lado
+    const hill = game.match.hill;
+    this.hillBar.hidden = !hill;
+    this.hillBar.innerHTML = '';
+    this.hillDots = [];
+    if (hill) {
+      const sides = [...new Set(game.match.teams.map((t) => t.side))];
+      this.hillBar.append('⛰️');
+      for (const side of sides) {
+        const t = game.match.teams.find((x) => x.side === side)!;
+        const box = document.createElement('span');
+        box.className = 'pts';
+        box.style.setProperty('--c', t.color);
+        box.title = game.match.teams.filter((x) => x.side === side).map((x) => x.name).join(' & ');
+        const dots: HTMLElement[] = [];
+        for (let i = 0; i < hill.target; i++) {
+          const d = document.createElement('i');
+          box.append(d);
+          dots.push(d);
+        }
+        this.hillDots[side] = dots;
+        this.hillBar.append(box);
+      }
+    }
     this.teams.innerHTML = '';
     this.teamBars = [];
     this.last.clear();
@@ -93,6 +119,9 @@ export class Hud {
       if (e.type === 'turnStart') {
         const human = game.isLocal(e.unit.team.id) && !game.isReplay;
         this.show(human ? `Sua vez, ${e.unit.name}!` : `Vez de ${e.unit.name}`, e.unit.team.color);
+      } else if (e.type === 'hillScore') {
+        const t = game.match.teams.find((x) => x.side === e.side);
+        if (t) this.show(`+1 ⛰️ ${t.name} (${e.points}/${game.match.hill?.target})`, t.color, 1.4);
       } else if (e.type === 'suddenDeath') {
         this.show('Morte súbita! A água vai subir 🌊', '#3d6fd8', 2.6);
       } else if (e.type === 'gameOver') {
@@ -189,6 +218,12 @@ export class Hud {
         b.count.textContent = String(n);
         b.el.classList.toggle('active', on);
         b.el.disabled = !canItem || n <= 0 || on;
+      });
+    }
+
+    if (m.hill) {
+      this.set('hill', m.hillScore.join(','), () => {
+        m.hillScore.forEach((p, side) => this.hillDots[side]?.forEach((d, i) => d.classList.toggle('on', i < (p ?? 0))));
       });
     }
 

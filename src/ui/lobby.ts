@@ -181,6 +181,11 @@ export class Lobby {
         <div class="other">${otherLine}</div>
         <span class="lbl">Modo</span>
         <div class="seg">${modes}</div>
+        <span class="lbl">Objetivo</span>
+        <div class="seg">
+          <button data-hill="0" class="${this.state.hill ? '' : 'on'}" ${host ? '' : 'disabled'}>Eliminar todos</button>
+          <button data-hill="1" class="${this.state.hill ? 'on' : ''}" ${host ? '' : 'disabled'}>Rei da colina ⛰️</button>
+        </div>
         <span class="lbl">Mapa</span>
         ${
           host
@@ -230,6 +235,12 @@ export class Lobby {
     this.root.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) =>
       b.addEventListener('click', () => {
         this.state.mode = b.dataset.mode as 'duel' | 'boss' | 'duo';
+        this.broadcast();
+      }),
+    );
+    this.root.querySelectorAll<HTMLButtonElement>('[data-hill]').forEach((b) =>
+      b.addEventListener('click', () => {
+        this.state.hill = b.dataset.hill === '1';
         this.broadcast();
       }),
     );

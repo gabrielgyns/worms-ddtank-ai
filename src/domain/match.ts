@@ -46,6 +46,7 @@ export type GameEvent =
   | { type: 'item'; item: ItemId; unit: Unit }
   | { type: 'bat'; x: number; y: number; unit: Unit }
   | { type: 'girder'; x: number; y: number; unit: Unit }
+  | { type: 'hillScore'; side: number; points: number }
   | { type: 'gameOver'; winner: Team | null };
 
 export interface TeamSetup {
@@ -88,7 +89,13 @@ export interface MatchSetup {
   wind?: number;
   /** barris e minas em posições fixas (missões) */
   props?: { barrels: number[]; mines: number[] };
+  /** rei da colina: pontos para vencer (sem isso, só vence eliminando) */
+  hill?: number;
 }
+
+/** Raio da colina e pontos padrão. */
+export const HILL_RADIUS = 110;
+export const HILL_POINTS = 6;
 
 export const BOSS_SIZE = 2.2;
 export const WORLD_W = 2800;
@@ -160,6 +167,7 @@ export interface MatchSnapshot {
   }>;
   projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number; dir?: 1 | -1; tx?: number; ty?: number }>;
   homingTarget?: { x: number; y: number } | null;
+  hillScore?: number[];
   terrain: string;
   crates: Crate[];
   nextCrateId: number;
@@ -207,6 +215,9 @@ export class Match implements SimWorld {
   private teamCursor = -1;
   private settleClock = 0;
   private hasFired = false;
+  /** rei da colina: onde fica e pontos de cada lado */
+  readonly hill: { x: number; y: number; r: number; target: number } | null = null;
+  hillScore: number[] = [];
   /** marca do míssil teleguiado nesta vez */
   homingTarget: { x: number; y: number } | null = null;
   /** itens ativos na vez atual (somem quando a vez acaba) */
@@ -249,6 +260,10 @@ export class Match implements SimWorld {
       });
     });
     this.windFixed = setup.wind ?? null;
+    if (setup.hill) {
+      this.hill = { ...this.findHill(), r: HILL_RADIUS, target: setup.hill };
+      this.hillScore = new Array(Math.max(...this.teams.map((t) => t.side)) + 1).fill(0);
+    }
     this.spawnUnits(setup);
     if (setup.props) this.placeProps(setup.props);
     else if (setup.objects ?? true) this.spawnProps();
@@ -400,6 +415,7 @@ export class Match implements SimWorld {
     h.num(this.turnTimer).num(this.retreatTimer).num(this.power).int(this.charging ? 1 : 0);
     h.int(this.active?.id ?? -1).int(this.boost.power ? 1 : 0).int(this.boost.double ? 1 : 0);
     if (this.homingTarget) h.num(this.homingTarget.x).num(this.homingTarget.y);
+    for (const p of this.hillScore) h.int(p ?? 0);
     for (const t of this.teams) {
       h.int(t.cursor).str(t.weapon);
       for (const [id, n] of t.ammo) h.str(id).num(n);
@@ -475,6 +491,7 @@ export class Match implements SimWorld {
         ty: p.ty,
       })),
       homingTarget: this.homingTarget ? { ...this.homingTarget } : null,
+      hillScore: [...this.hillScore],
       terrain: encodeMask(this.terrain.solid),
       crates: this.crates.map((c) => ({ ...c })),
       nextCrateId: this.nextCrateId,
@@ -503,6 +520,7 @@ export class Match implements SimWorld {
     this.time = s.time;
     this.rng.state = s.rng;
     this.homingTarget = s.homingTarget ? { ...s.homingTarget } : null;
+    this.hillScore = [...(s.hillScore ?? [])];
     this.boost.power = s.boost?.power ?? false;
     this.boost.double = s.boost?.double ?? false;
     s.teams.forEach((st, i) => {
@@ -923,7 +941,45 @@ export class Match implements SimWorld {
     this.phase = 'settle';
   }
 
+  /** O ponto mais alto do meio do mapa (determinístico: só depende do terreno). */
+  private findHill(): { x: number; y: number } {
+    const t = this.terrain;
+    let best = { x: t.width / 2, y: t.height };
+    for (let x = Math.round(t.width * 0.35); x <= t.width * 0.65; x += 8) {
+      const y = t.surfaceY(x);
+      if (y < best.y && y < t.waterY - 40) best = { x, y };
+    }
+    return { x: best.x, y: Math.max(40, best.y - 24) };
+  }
+
+  /** Lados com bolota viva dentro da colina. */
+  sidesOnHill(): number[] {
+    const h = this.hill;
+    if (!h) return [];
+    const sides = new Set<number>();
+    for (const u of this.units) if (u.alive && Math.hypot(u.cx - h.x, u.cy - h.y) < h.r) sides.add(u.team.side);
+    return [...sides];
+  }
+
+  /** Fim de uma vez no rei da colina: quem estiver sozinho no topo marca. */
+  private scoreHill(): boolean {
+    const h = this.hill;
+    if (!h || this.turnNumber === 0) return false;
+    const on = this.sidesOnHill();
+    if (on.length !== 1) return false;
+    const side = on[0];
+    this.hillScore[side] = (this.hillScore[side] ?? 0) + 1;
+    this.emit({ type: 'hillScore', side, points: this.hillScore[side] });
+    if (this.hillScore[side] < h.target) return false;
+    this.phase = 'over';
+    this.active = null;
+    this.winner = this.teams.find((t) => t.side === side && t.units.some((u) => u.alive)) ?? this.teams.find((t) => t.side === side) ?? null;
+    this.emit({ type: 'gameOver', winner: this.winner });
+    return true;
+  }
+
   private nextTurn(): void {
+    if (this.scoreHill()) return;
     const alive = this.aliveTeams();
     if (this.aliveSides().length <= 1) {
       this.phase = 'over';

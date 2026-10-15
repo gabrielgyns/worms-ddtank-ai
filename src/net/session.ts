@@ -6,11 +6,11 @@ import type { MsgOf, WireSetup } from './protocol';
 import type { Room } from './room';
 
 export function toWire(s: MatchSetup): WireSetup {
-  return { teams: s.teams, unitsPerTeam: s.unitsPerTeam, themeId: s.theme.id, seed: s.seed, turnTime: s.turnTime, crates: s.crates, suddenDeath: s.suddenDeath, bossHp: s.bossHp, objects: s.objects, map: s.map };
+  return { teams: s.teams, unitsPerTeam: s.unitsPerTeam, themeId: s.theme.id, seed: s.seed, turnTime: s.turnTime, crates: s.crates, suddenDeath: s.suddenDeath, bossHp: s.bossHp, objects: s.objects, map: s.map, hill: s.hill };
 }
 
 export function fromWire(w: WireSetup): MatchSetup {
-  return { teams: w.teams, unitsPerTeam: w.unitsPerTeam, theme: THEMES[w.themeId], seed: w.seed, turnTime: w.turnTime, crates: w.crates, suddenDeath: w.suddenDeath, bossHp: w.bossHp, objects: w.objects, map: w.map };
+  return { teams: w.teams, unitsPerTeam: w.unitsPerTeam, theme: THEMES[w.themeId], seed: w.seed, turnTime: w.turnTime, crates: w.crates, suddenDeath: w.suddenDeath, bossHp: w.bossHp, objects: w.objects, map: w.map, hill: w.hill };
 }
 
 /** Atraso-alvo do convidado em ticks: absorve variação de rede sem travar. */

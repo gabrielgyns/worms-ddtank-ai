@@ -551,6 +551,39 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.restore();
 }
 
+/** Rei da colina: anel dourado e bandeira na cor de quem domina agora. */
+export function drawHill(c: CanvasRenderingContext2D, x: number, y: number, r: number, flag: string, time: number): void {
+  c.save();
+  c.fillStyle = 'rgba(255, 210, 74, 0.13)';
+  c.strokeStyle = 'rgba(255, 210, 74, 0.85)';
+  c.lineWidth = 3;
+  c.setLineDash([10, 8]);
+  c.lineDashOffset = -time * 15;
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.setLineDash([]);
+  // mastro e bandeira tremulando
+  c.strokeStyle = INK;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(x, y + 20);
+  c.lineTo(x, y - 46);
+  c.stroke();
+  const wave = Math.sin(time * 5) * 3;
+  c.fillStyle = flag;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(x, y - 46);
+  c.quadraticCurveTo(x + 14, y - 42 + wave, x + 28, y - 38);
+  c.quadraticCurveTo(x + 14, y - 32 - wave, x, y - 28);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.restore();
+}
+
 /** Prévia da viga onde o mouse está: verde cabe, vermelha não. */
 export function drawGirderGhost(c: CanvasRenderingContext2D, x: number, y: number, angle: number, len: number, thick: number, ok: boolean): void {
   c.save();

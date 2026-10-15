@@ -1966,3 +1966,38 @@ input.vol {
     transform: scale(0.85);
   }
 }
+
+/* ───────── rei da colina ───────── */
+#hill-bar {
+  position: absolute;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 14px;
+  background: rgba(255, 248, 236, 0.94);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 3px 0 var(--ink);
+  font: 15px var(--font-title);
+  white-space: nowrap;
+}
+#hill-bar[hidden] {
+  display: none;
+}
+#hill-bar .pts {
+  display: inline-flex;
+  gap: 3px;
+}
+#hill-bar .pts i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: #fff;
+}
+#hill-bar .pts i.on {
+  background: var(--c);
+}

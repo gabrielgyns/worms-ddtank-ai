@@ -34,7 +34,7 @@ import { decodeLetter, encodeLetter, letterFromUrl, letterLink, MailDriver, type
 import { TEAM_COLORS } from './domain/teamColors';
 import { savedName } from './ui/lobby';
 import type { Room } from './net/room';
-import { BOSS_TEAM, bossHpFor, type MatchSetup } from './domain/match';
+import { BOSS_TEAM, bossHpFor, HILL_POINTS, type MatchSetup } from './domain/match';
 import { MISSIONS, missionSetup, missionStars, type Mission } from './domain/missions';
 import { MISSION_REWARD, saveMissionResult } from './progress/missions';
 import { MissionsUi, starText } from './ui/missions';
@@ -77,6 +77,8 @@ let prefs: Prefs = loadPrefs();
 
 const settings = {
   mode: 'cpu' as 'cpu' | 'pvp' | 'boss' | 'duo',
+  /** rei da colina em vez de eliminar todos */
+  hill: false,
   /** no 2x2 local: parceiro é a CPU ou outra pessoa no mesmo PC */
   partner: 'cpu' as 'cpu' | 'human',
   difficulty: 'normal' as Difficulty,
@@ -156,6 +158,7 @@ function startGame(): void {
         objects: settings.objects,
         suddenDeath: settings.sudden,
         bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
+        hill: settings.hill && settings.mode !== 'boss' ? HILL_POINTS : undefined,
       },
       { difficulty: settings.difficulty },
       canvas,
@@ -332,6 +335,8 @@ function launch(g: Game, original: Game = g): void {
           ? e.winner.boss
             ? 'O Rei Bolotão venceu!'
             : 'Rei Bolotão derrotado!'
+          : g.match.hill && (g.match.hillScore[e.winner.side] ?? 0) >= g.match.hill.target
+          ? `${g.match.teams.filter((t) => t.side === e.winner!.side).map((t) => t.name).join(' & ')} dominou a colina! ⛰️`
           : (() => {
               const duo = g.match.teams.filter((t) => t.side === e.winner!.side);
               return duo.length > 1 ? `${duo.map((t) => t.name).join(' & ')} venceram!` : `${e.winner!.name} venceu!`;
@@ -396,6 +401,7 @@ function hostStart(): void {
     turnTime: prefs.turnTime,
     bossHp: lobby.state.mode === 'boss' ? bossHpFor(lobby.state.units * 2) : undefined,
     map: lobby.map(),
+    hill: lobby.state.hill && lobby.state.mode !== 'boss' ? HILL_POINTS : undefined,
   };
   const guestTeams = lobby.guestTeams();
   session.room.link.send({ t: 'start', setup: toWire(setup), guestTeam: guestTeams[0], guestTeams });
@@ -535,7 +541,7 @@ document.querySelectorAll<HTMLElement>('[data-opt]').forEach((group) => {
       group.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
       b.classList.add('on');
       const v = b.dataset.v!;
-      (settings as Record<string, unknown>)[key] = key === 'units' || key === 'sudden' ? Number(v) : key === 'crates' || key === 'objects' ? v === 'true' : v;
+      (settings as Record<string, unknown>)[key] = key === 'units' || key === 'sudden' ? Number(v) : key === 'crates' || key === 'objects' || key === 'hill' ? v === 'true' : v;
       $('#diff-row').style.display = settings.mode === 'pvp' ? 'none' : '';
       $('#partner-row').style.display = settings.mode === 'duo' ? '' : 'none';
       sfx.unlock();
@@ -857,6 +863,7 @@ function startCustom(map: string, theme: ThemeId): void {
         suddenDeath: settings.sudden,
         map,
         bossHp: settings.mode === 'boss' ? bossHpFor(settings.units * 2, settings.difficulty) : undefined,
+        hill: settings.hill && settings.mode !== 'boss' ? HILL_POINTS : undefined,
       },
       { difficulty: settings.difficulty },
       canvas,
