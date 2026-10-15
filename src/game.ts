@@ -9,7 +9,7 @@ import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
-import { drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
+import { drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
 import { deviceProfile, vibrate } from './platform/device';
@@ -491,7 +491,16 @@ export class Game {
       const celebrate = m.phase === 'over' && m.winner === u.team;
       drawUnit(c, u, { active, holding: active ? holding : null, hurt: this.fx.hurt.get(u.id) ?? 0, time: t, celebrate });
     }
-    if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') drawCrosshair(c, m.active, t);
+    if (m.active && m.phase === 'turn' && m.weapon.mode === 'charge') {
+      const u = m.active;
+      const spec = m.weapon.projectile;
+      // prévia só para quem está jogando neste aparelho
+      if (this.humanTurn && spec) {
+        drawBlastPreview(c, u.cx + Math.cos(u.aim) * u.facing * 72, u.cy - Math.sin(u.aim) * 72, spec.blast, t);
+        drawPreviewPath(c, m.previewShot(0.4));
+      }
+      drawCrosshair(c, u, t);
+    }
     if (this.dragAim && m.active) drawDragPower(c, m.active, this.dragAim.power, z);
     for (const p of m.projectiles) drawProjectile(c, p, t, m.units.find((u) => u.id === p.ownerId)?.team.look);
     this.fx.draw(c);
@@ -508,7 +517,7 @@ export class Game {
       c.lineWidth = 3;
       c.setLineDash([6, 5]);
       c.beginPath();
-      c.arc(x, y, 18, 0, Math.PI * 2);
+      c.arc(x, y, m.weapon.projectile?.blast ?? 18, 0, Math.PI * 2);
       c.stroke();
       c.setLineDash([]);
       c.fillStyle = m.weapon.id === 'teleport' ? '#b49bff' : '#ff4a4a';

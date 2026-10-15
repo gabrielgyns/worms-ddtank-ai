@@ -714,14 +714,7 @@ export class Match implements SimWorld {
   private fireCharged(power: number): void {
     const u = this.active!;
     const w = this.weapon;
-    const spec = w.projectile!;
-    const speed = w.maxSpeed * Math.max(0.06, power);
-    for (const extra of w.spread ?? [0]) {
-      const a = u.aim + extra * DEG;
-      const dx = Math.cos(a) * u.facing;
-      const dy = -Math.sin(a);
-      this.projectiles.push(this.makeProjectile(u.cx + dx * 16 * u.size, u.cy + dy * 16 * u.size, dx * speed, dy * speed, spec, u.id));
-    }
+    for (const extra of w.spread ?? [0]) this.projectiles.push(this.launch(u, extra, power));
     u.lastPower = power;
     this.consumeAmmo();
     this.emit({ type: 'fire', weapon: w.id, unit: u });
@@ -742,6 +735,34 @@ export class Match implements SimWorld {
     this.consumeAmmo();
     this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
     this.beginRetreat(RETREAT_TIME + 1);
+  }
+
+  /** O projétil que sairia agora do cano (o tiro de verdade e a prévia usam o mesmo). */
+  private launch(u: Unit, extraDeg: number, power: number): Projectile {
+    const w = this.weapon;
+    const speed = w.maxSpeed * Math.max(0.06, power);
+    const a = u.aim + extraDeg * DEG;
+    const dx = Math.cos(a) * u.facing;
+    const dy = -Math.sin(a);
+    return this.makeProjectile(u.cx + dx * 16 * u.size, u.cy + dy * 16 * u.size, dx * speed, dy * speed, w.projectile!, u.id);
+  }
+
+  /**
+   * Começo da trajetória do tiro que está sendo carregado, para a prévia na
+   * mira. Curta de propósito: mostra força e vento sem entregar onde cai.
+   * Só consulta; a partida não muda.
+   */
+  previewShot(seconds: number): Array<{ x: number; y: number }> {
+    const u = this.active;
+    if (!u || !this.charging || this.weapon.mode !== 'charge' || !this.weapon.projectile) return [];
+    const p = this.launch(u, 0, this.power);
+    const pts = [{ x: p.x, y: p.y }];
+    for (let i = 0; i < seconds * 60; i++) {
+      const r = stepProjectile(p, DT, this);
+      if (r !== 'fly' && r !== 'bounce') break;
+      if (i % 3 === 2) pts.push({ x: p.x, y: p.y });
+    }
+    return pts;
   }
 
   makeProjectile(x: number, y: number, vx: number, vy: number, spec: ProjectileSpec, ownerId: number): Projectile {

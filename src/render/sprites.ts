@@ -446,6 +446,34 @@ export function drawCrosshair(c: CanvasRenderingContext2D, u: Unit, time: number
   c.restore();
 }
 
+/** Tamanho real da explosão da arma, em volta da mira. */
+export function drawBlastPreview(c: CanvasRenderingContext2D, x: number, y: number, blast: number, time: number): void {
+  c.save();
+  c.fillStyle = 'rgba(255, 120, 60, 0.10)';
+  c.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+  c.lineWidth = 2;
+  c.setLineDash([6, 6]);
+  c.lineDashOffset = -time * 20;
+  c.beginPath();
+  c.arc(x, y, blast, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.restore();
+}
+
+/** Começo da trajetória enquanto carrega: pontos que somem aos poucos. */
+export function drawPreviewPath(c: CanvasRenderingContext2D, pts: ReadonlyArray<{ x: number; y: number }>): void {
+  c.save();
+  for (let i = 1; i < pts.length; i++) {
+    const k = 1 - i / pts.length;
+    c.fillStyle = `rgba(255, 255, 255, ${0.15 + 0.7 * k})`;
+    c.beginPath();
+    c.arc(pts[i].x, pts[i].y, 2 + 2.5 * k, 0, Math.PI * 2);
+    c.fill();
+  }
+  c.restore();
+}
+
 export function drawGrave(c: CanvasRenderingContext2D, x: number, y: number, color: string, look?: Look): void {
   if (drawGraveLook(c, x, y, color, look?.grave)) return;
   c.save();
