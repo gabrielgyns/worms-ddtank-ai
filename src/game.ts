@@ -9,6 +9,7 @@ import { WEAPONS, type WeaponId } from './domain/weapons';
 import { Background, drawWater } from './render/background';
 import { Camera } from './render/camera';
 import { Effects } from './render/effects';
+import { a11y, TEAM_MARK } from './render/a11y';
 import { drawBlastPreview, drawPreviewPath, drawBarrel, drawChute, drawCrate, drawMine, drawRope, drawCrosshair, drawDragPower, drawLabel, drawProjectile, drawUnit } from './render/sprites';
 import { FrameMeter, HIGH, LOW, type Quality } from './render/quality';
 import { TerrainView } from './render/terrainView';
@@ -67,6 +68,8 @@ export class Game {
   private highlightDone = false;
   /** pausa de impacto: segura a simulação uns milésimos num golpe forte (só tempo real, a regra não muda) */
   private hitstop = 0;
+  /** acelera a partida na vez da CPU (preferência do jogador; nunca online) */
+  cpuSpeed = 1;
   /** velocidade da simulação (replay pode ir em 2x, 4x) */
   speed = 1;
   private quality: Quality = HIGH;
@@ -289,6 +292,7 @@ export class Game {
       this.render();
       return;
     }
+    if (!this.replay && !this.driver) this.speed = this.match.activeTeam?.control === 'cpu' ? this.cpuSpeed : 1;
     this.acc += Math.min(0.1, realDt) * this.speed;
     const d = this.driver;
     d?.beforeFrame?.(this);
@@ -474,7 +478,8 @@ export class Game {
     c.save();
     const z = this.cam.zoom;
     c.setTransform(dpr * z, 0, 0, dpr * z, dpr * (w / 2 - this.cam.x * z), dpr * (h / 2 - this.cam.y * z));
-    if (this.cam.shake > 0) c.translate((Math.random() - 0.5) * this.cam.shake, (Math.random() - 0.5) * this.cam.shake);
+    const shake = this.cam.shake * a11y.shake;
+    if (shake > 0) c.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
     const left = this.cam.x - w / 2 / z - 20;
     const right = this.cam.x + w / 2 / z + 20;
@@ -592,7 +597,8 @@ export class Game {
       c.stroke();
       c.fill();
       c.restore();
-      if (meters > 0) {
+      const mark = a11y.colorblind ? `${TEAM_MARK[u.team.id % TEAM_MARK.length]} ` : '';
+      if (meters > 0 || mark) {
         c.font = "13px 'Lilita One', sans-serif";
         c.textAlign = 'center';
         c.textBaseline = 'middle';
@@ -601,8 +607,9 @@ export class Game {
         c.fillStyle = '#fff';
         const lx = -Math.cos(ang) * 24;
         const ly = -Math.sin(ang) * 20;
-        c.strokeText(`${meters} m`, lx, ly);
-        c.fillText(`${meters} m`, lx, ly);
+        const label = `${mark}${meters > 0 ? `${meters} m` : ''}`;
+        c.strokeText(label, lx, ly);
+        c.fillText(label, lx, ly);
       }
       c.restore();
     }

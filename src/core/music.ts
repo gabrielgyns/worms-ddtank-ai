@@ -19,12 +19,19 @@ export class Music {
   private timer: ReturnType<typeof setInterval> | null = null;
   private rng = 1;
   enabled = true;
+  private volume = 0.7;
+
+  /** 0..1 */
+  setVolume(v: number): void {
+    this.volume = v;
+    if (this.out) this.out.gain.value = 0.26 * v;
+  }
 
   attach(ctx: AudioContext, destination: AudioNode): void {
     if (this.ctx) return;
     this.ctx = ctx;
     this.out = ctx.createGain();
-    this.out.gain.value = 0.18;
+    this.out.gain.value = 0.26 * this.volume;
     this.out.connect(destination);
   }
 

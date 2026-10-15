@@ -105,7 +105,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F9-02** · P0 · P — Prévia do raio de explosão na mira (círculo no fim da trajetória curta, só na vez do humano). — anel do raio real em volta da mira e 0,4 s de trajetória enquanto carrega (`Match.previewShot`, mesma física do tiro).
 - [x] **F9-03** · P0 · P — Setinha na borda da tela apontando bolotas fora da câmera (cor do time, distância).
 - [x] **F9-04** · P1 · M — Sensação dos golpes: pausa de impacto, rastro de quem é arremessado, falas engraçadas ao levar dano/eliminar. — falas em `render/quips.ts` (catálogo).
-- [ ] **F9-05** · P1 · M — Configurações: volume de música e efeitos, tempo de turno, velocidade da CPU, tremida de tela, paleta para daltonismo.
+- [x] **F9-05** · P1 · M — Configurações: volume de música e efeitos, tempo de turno, velocidade da CPU, tremida de tela, paleta para daltonismo.
 - [ ] **F9-06** · P1 · G — Itens de turno estilo DDTank (+50% dano, tiro duplo, escudo), gastos sem passar a vez.
 - [ ] **F9-07** · P1 · M — Ovelha andante e bomba banana.
 - [ ] **F9-08** · P1 · M — Modo 2x2 (local, contra CPU e online).

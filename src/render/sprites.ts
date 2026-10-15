@@ -1,3 +1,4 @@
+import { a11y, TEAM_MARK } from './a11y';
 import type { Projectile } from '../domain/physics';
 import type { Unit } from '../domain/unit';
 import type { Crate } from '../domain/crates';
@@ -371,13 +372,14 @@ export function drawLabel(c: CanvasRenderingContext2D, u: Unit, active: boolean,
   c.textAlign = 'center';
   c.textBaseline = 'middle';
   const hp = String(Math.max(0, Math.ceil(u.hp)));
-  const nameW = c.measureText(u.name).width + 12;
+  const name = a11y.colorblind ? `${TEAM_MARK[u.team.id % TEAM_MARK.length]} ${u.name}` : u.name;
+  const nameW = c.measureText(name).width + 12;
   // nome
   c.lineWidth = 3.5;
   c.strokeStyle = INK;
-  c.strokeText(u.name, 0, -18);
+  c.strokeText(name, 0, -18);
   c.fillStyle = '#fff';
-  c.fillText(u.name, 0, -18);
+  c.fillText(name, 0, -18);
   // pílula de vida
   const pw = Math.max(34, c.measureText(hp).width + 16);
   roundRect(c, -pw / 2, -8, pw, 16, 8);

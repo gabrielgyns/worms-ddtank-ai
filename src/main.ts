@@ -41,6 +41,9 @@ import { MissionsUi, starText } from './ui/missions';
 import { LESSONS, lessonSetup, TutorialRun } from './domain/tutorial';
 import { TutorialCard } from './ui/tutorial';
 import { store } from './services/store';
+import { loadPrefs, type Prefs } from './progress/prefs';
+import { PrefsUi } from './ui/prefs';
+import { a11y } from './render/a11y';
 import { highlightCommands } from './domain/highlight';
 import { ClipRecorder, shareClip } from './ui/clip';
 
@@ -68,6 +71,9 @@ function startDemo(): void {
     if (e.type === 'gameOver') setTimeout(() => !game && startDemo(), 3000);
   });
 }
+
+/** preferências do aparelho (volume, turno, CPU, acessibilidade) */
+let prefs: Prefs = loadPrefs();
 
 const settings = {
   mode: 'cpu' as 'cpu' | 'pvp' | 'boss',
@@ -124,7 +130,7 @@ function startGame(): void {
         unitsPerTeam: settings.units,
         theme: THEMES[themeId],
         seed: (Math.random() * 2 ** 31) | 0,
-        turnTime: 30,
+        turnTime: prefs.turnTime,
         crates: settings.crates,
         objects: settings.objects,
         suddenDeath: settings.sudden,
@@ -265,6 +271,7 @@ function launch(g: Game, original: Game = g): void {
   if (isTouchDevice()) void enterFullscreen();
   game = g;
   demo = null;
+  g.cpuSpeed = prefs.cpuSpeed;
   hud.bind(g);
   document.body.classList.toggle('replay', g.isReplay);
   if (tutorial?.game !== g) {
@@ -357,7 +364,7 @@ function hostStart(): void {
     unitsPerTeam: lobby.state.units,
     theme: THEMES[lobby.themeId()],
     seed: (Math.random() * 2 ** 31) | 0,
-    turnTime: 30,
+    turnTime: prefs.turnTime,
     bossHp: lobby.state.mode === 'boss' ? bossHpFor(lobby.state.units * 2) : undefined,
     map: lobby.map(),
   };
@@ -810,7 +817,7 @@ function startCustom(map: string, theme: ThemeId): void {
         unitsPerTeam: settings.units,
         theme: THEMES[theme],
         seed: (Math.random() * 2 ** 31) | 0,
-        turnTime: 30,
+        turnTime: prefs.turnTime,
         crates: settings.crates,
         objects: settings.objects,
         suddenDeath: settings.sudden,
@@ -825,6 +832,16 @@ function startCustom(map: string, theme: ThemeId): void {
   );
 }
 const editor = new EditorUi(show, startCustom);
+
+// ─── ajustes ───
+new PrefsUi(show, (p) => {
+  prefs = p;
+  sfx.setVolume(p.sfx);
+  sfx.music.setVolume(p.music);
+  a11y.colorblind = p.colorblind;
+  a11y.shake = p.shake ? 1 : 0;
+  if (game) game.cpuSpeed = p.cpuSpeed;
+});
 
 // ─── tutorial ───
 const tutorialCard = new TutorialCard();

@@ -9,6 +9,15 @@ export class Sfx {
   private chargeOsc: OscillatorNode | null = null;
   private chargeGain: GainNode | null = null;
   muted = false;
+  /** volume dos efeitos, 0..1 (o mudo continua por cima) */
+  private volume = 0.8;
+
+  private bus: GainNode | null = null;
+
+  setVolume(v: number): void {
+    this.volume = v;
+    if (this.master) this.master.gain.value = 0.6 * v;
+  }
 
   unlock(): void {
     if (this.ctx) {
@@ -17,10 +26,14 @@ export class Sfx {
     }
     try {
       this.ctx = new AudioContext();
+      // efeitos (master) e música entram no barramento geral, onde fica o mudo
+      this.bus = this.ctx.createGain();
+      this.bus.gain.value = this.muted ? 0 : 1;
+      this.bus.connect(this.ctx.destination);
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.5;
-      this.master.connect(this.ctx.destination);
-      this.music.attach(this.ctx, this.master);
+      this.master.gain.value = 0.6 * this.volume;
+      this.master.connect(this.bus);
+      this.music.attach(this.ctx, this.bus);
       const len = this.ctx.sampleRate;
       this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noise.getChannelData(0);
@@ -34,17 +47,17 @@ export class Sfx {
 
   /** Som do jogo como stream (para gravar vídeo junto com a imagem). */
   stream(): MediaStream | null {
-    if (!this.ctx || !this.master) return null;
+    if (!this.ctx || !this.bus) return null;
     if (!this.tap) {
       this.tap = this.ctx.createMediaStreamDestination();
-      this.master.connect(this.tap);
+      this.bus.connect(this.tap);
     }
     return this.tap.stream;
   }
 
   toggleMute(): boolean {
     this.muted = !this.muted;
-    if (this.master) this.master.gain.value = this.muted ? 0 : 0.5;
+    if (this.bus) this.bus.gain.value = this.muted ? 0 : 1;
     return this.muted;
   }
 

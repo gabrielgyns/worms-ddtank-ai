@@ -1879,3 +1879,10 @@ body.boss-fight #banner {
 .tut-offer[hidden] {
   display: none;
 }
+
+/* ───────── ajustes ───────── */
+input.vol {
+  width: 100%;
+  accent-color: #f2a81e;
+  height: 28px;
+}
