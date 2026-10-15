@@ -1,5 +1,8 @@
+import { Music } from './music';
+
 /** Efeitos sonoros sintetizados na hora com WebAudio — nenhum arquivo externo. */
 export class Sfx {
+  readonly music = new Music();
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
@@ -17,6 +20,7 @@ export class Sfx {
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.5;
       this.master.connect(this.ctx.destination);
+      this.music.attach(this.ctx, this.master);
       const len = this.ctx.sampleRate;
       this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
       const d = this.noise.getChannelData(0);

@@ -1763,3 +1763,8 @@ body.boss-fight #banner {
   -webkit-text-stroke: 3px var(--ink);
   paint-order: stroke fill;
 }
+
+#hud-buttons button.off {
+  opacity: 0.45;
+  text-decoration: line-through;
+}

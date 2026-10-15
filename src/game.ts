@@ -312,6 +312,9 @@ export class Game {
       this.sfx.chargeLevel(m.power);
     } else if (wasCharging) this.sfx.chargeStop();
 
+    // trilha: tensa nos últimos 5 s da vez, calma no resto, silêncio no fim
+    if (!this.replay) this.sfx.music.setMood(m.phase === 'over' ? 'off' : m.phase === 'turn' && m.turnTimer <= 5 ? 'tense' : 'calm');
+
     if (m.phase === 'turn' && m.turnTimer <= 5) {
       const s = Math.ceil(m.turnTimer);
       if (s !== this.lastTick && s > 0) {

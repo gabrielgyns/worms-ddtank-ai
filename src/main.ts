@@ -481,6 +481,7 @@ for (const sel of ['#quit', '#to-menu']) {
   $(sel).addEventListener('click', () => {
     if (session) leaveOnline();
     game = null;
+    sfx.music.setMood('off');
     document.body.classList.remove('playing');
     show('menu');
     startDemo();
@@ -522,6 +523,30 @@ $('#emote-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   $('#emotes').hidden = !$('#emotes').hidden;
 });
+
+// música: lembra a escolha
+{
+  const on = (() => {
+    try {
+      return localStorage.getItem('bolotas-music') !== 'off';
+    } catch {
+      return true;
+    }
+  })();
+  sfx.music.setEnabled(on);
+  $('#music-btn').classList.toggle('off', !on);
+  $('#music-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const next = !sfx.music.enabled;
+    sfx.music.setEnabled(next);
+    $('#music-btn').classList.toggle('off', !next);
+    try {
+      localStorage.setItem('bolotas-music', next ? 'on' : 'off');
+    } catch {
+      // sem storage
+    }
+  });
+}
 
 $('#mute').addEventListener('click', (e) => {
   e.stopPropagation();
