@@ -1,4 +1,6 @@
+import { quip, type QuipKind } from './quips';
 import type { GameEvent, Match } from '../domain/match';
+import type { Unit } from '../domain/unit';
 import type { Camera } from './camera';
 import type { Look } from '../domain/cosmetics';
 import { weaponById } from '../domain/weapons';
@@ -37,7 +39,8 @@ const COMIC = ['BUM!', 'POW!', 'KABUM!', 'BAM!', 'CABRUM!'];
 export class Effects {
   private parts: Particle[] = [];
   readonly graves: Grave[] = [];
-  private bubbles: Array<{ teamId: number; text: string; life: number }> = [];
+  /** balões: de um time (emotes) ou de uma bolota específica (falas) */
+  private bubbles: Array<{ teamId: number; unitId?: number; text: string; life: number; max: number }> = [];
   private trailClock = 0;
   readonly hurt = new Map<number, number>();
   quality: Quality = HIGH;
@@ -74,6 +77,10 @@ export class Effects {
         break;
       case 'damage': {
         this.hurt.set(e.unit.id, 1.2);
+        if (e.unit.alive && e.amount >= 8 && Math.random() < 0.75) {
+          const own = e.by && e.by.team === e.unit.team;
+          this.speak(e.unit, e.by === e.unit ? 'self' : own ? 'friendly' : e.amount >= 35 ? 'big' : 'ouch');
+        }
         this.add({
           x: e.unit.cx,
           y: e.unit.y - 50,
@@ -105,6 +112,7 @@ export class Effects {
         }
         break;
       case 'death':
+        if (e.by && e.by.alive && e.by.team !== e.unit.team && Math.random() < 0.8) this.speak(e.by, 'taunt');
         if (!e.unit.drowned) this.graves.push({ x: e.unit.x, y: e.unit.y, vy: -120, color: e.unit.team.color, look: e.unit.team.look });
         break;
       case 'teleport':
@@ -266,7 +274,13 @@ export class Effects {
   /** Balão de fala sobre uma bolota do time. */
   say(teamId: number, text: string): void {
     this.bubbles = this.bubbles.filter((b) => b.teamId !== teamId);
-    this.bubbles.push({ teamId, text, life: 2.8 });
+    this.bubbles.push({ teamId, text, life: 2.8, max: 2.8 });
+  }
+
+  /** Fala de uma bolota (dano, eliminação). Não atropela emote nem outra fala dela. */
+  speak(u: Unit, kind: QuipKind): void {
+    if (this.bubbles.some((b) => b.unitId === u.id || (b.unitId === undefined && b.teamId === u.team.id))) return;
+    this.bubbles.push({ teamId: u.team.id, unitId: u.id, text: quip(kind), life: 1.9, max: 1.9 });
   }
 
   update(dt: number): void {
@@ -280,6 +294,23 @@ export class Effects {
     this.trailClock += dt;
     if (this.trailClock > 0.025) {
       this.trailClock = 0;
+      // bolota arremessada deixa rastro de poeira
+      for (const u of this.m.units) {
+        if (!u.alive || u.onGround || u.rope || u.chute) continue;
+        if (u.vx * u.vx + u.vy * u.vy < 260 * 260) continue;
+        this.add({
+          x: u.cx + (Math.random() - 0.5) * 8,
+          y: u.cy + (Math.random() - 0.5) * 8,
+          vx: -u.vx * 0.08,
+          vy: -u.vy * 0.08,
+          life: 0.5,
+          max: 0.5,
+          size: 6 * u.size,
+          grow: 10,
+          color: u.team.light,
+          drag: 2,
+        });
+      }
       for (const p of this.m.projectiles) {
         if (p.spec.kind === 'missile' || p.spec.kind === 'cluster') {
           const owner = this.m.units.find((u) => u.id === p.ownerId);
@@ -352,9 +383,12 @@ export class Effects {
     for (const b of this.bubbles) {
       const team = this.m.teams[b.teamId];
       if (!team) continue;
-      const u = (this.m.active?.team === team ? this.m.active : null) ?? team.units.find((x) => x.alive);
+      const u =
+        b.unitId !== undefined
+          ? team.units.find((x) => x.id === b.unitId && x.alive)
+          : ((this.m.active?.team === team ? this.m.active : null) ?? team.units.find((x) => x.alive));
       if (!u) continue;
-      const pop = Math.min(1, (2.8 - b.life) * 6);
+      const pop = Math.min(1, (b.max - b.life) * 6);
       c.save();
       c.translate(u.x, u.y - 82);
       c.scale(s * pop, s * pop);

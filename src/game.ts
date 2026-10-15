@@ -65,6 +65,8 @@ export class Game {
   /** chamado uma vez quando o melhor lance termina */
   onHighlightEnd: (() => void) | null = null;
   private highlightDone = false;
+  /** pausa de impacto: segura a simulação uns milésimos num golpe forte (só tempo real, a regra não muda) */
+  private hitstop = 0;
   /** velocidade da simulação (replay pode ir em 2x, 4x) */
   speed = 1;
   private quality: Quality = HIGH;
@@ -159,6 +161,8 @@ export class Game {
           break;
         case 'damage':
           s.ouch();
+          // golpe forte = um instante de pausa, para o impacto "pesar"
+          if (e.amount >= 20) this.hitstop = Math.max(this.hitstop, Math.min(0.13, 0.03 + e.amount / 500));
           if (!s.muted && e.unit.team.control === 'human' && !this.replay) vibrate([30, 40, 30]);
           break;
         case 'gameOver':
@@ -278,6 +282,12 @@ export class Game {
       }
       // mira passa rápido; o voo e a explosão, devagar
       this.speed = this.match.projectiles.length > 0 || this.match.phase === 'settle' ? 0.4 : 3;
+    }
+    if (this.hitstop > 0) {
+      this.hitstop -= realDt;
+      this.fx.update(realDt * 0.25);
+      this.render();
+      return;
     }
     this.acc += Math.min(0.1, realDt) * this.speed;
     const d = this.driver;
@@ -543,6 +553,7 @@ export class Game {
     if (bottom - top < 80) return;
     const cx = w / 2;
     const cy = (top + bottom) / 2;
+    const placed: Array<{ x: number; y: number }> = [];
     for (const u of this.match.units) {
       if (!u.alive) continue;
       const sx = (u.cx - this.cam.x) * z + cx;
@@ -552,8 +563,15 @@ export class Game {
       const dx = sx - cx;
       const dy = sy - cy;
       const k = Math.min(Math.abs((cx - side) / (dx || 1e-6)), Math.abs((cy - top) / (dy || 1e-6)));
-      const ax = cx + dx * k;
-      const ay = cy + dy * k;
+      let ax = cx + dx * k;
+      let ay = cy + dy * k;
+      // várias na mesma direção: escorrega ao longo da borda para não empilhar
+      const vertical = Math.abs(ax - cx) >= cx - side - 1;
+      for (let tries = 0; tries < 8 && placed.some((q) => Math.hypot(q.x - ax, q.y - ay) < 30); tries++) {
+        if (vertical) ay = Math.min(bottom, Math.max(top, ay + 30));
+        else ax = Math.min(w - side, Math.max(side, ax + 44));
+      }
+      placed.push({ x: ax, y: ay });
       const ang = Math.atan2(dy, dx);
       const meters = Math.round(Math.hypot(sx - ax, sy - ay) / z / 10);
       c.save();
