@@ -725,6 +725,10 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyF' && game) void toggleFullscreen();
   if (e.code === 'KeyT' && game) $('#emotes').hidden = !$('#emotes').hidden;
   if (e.code === 'KeyM') $('#mute').textContent = sfx.toggleMute() ? '🔇' : '🔊';
+  if (e.code === 'F3') {
+    e.preventDefault();
+    togglePerf();
+  }
   if ((e.code === 'Enter' || e.code === 'Space') && !game && $('#menu').classList.contains('open')) startGame();
   if (e.code === 'Escape' && !game && !$('#menu').classList.contains('open')) online.leave();
   if (e.code === 'Tab') e.preventDefault();
@@ -828,9 +832,44 @@ document.addEventListener('visibilitychange', () => {
 });
 
 let last = performance.now();
+/**
+ * Medidor de desempenho (F3): quadros por segundo, o pior quadro e quanto do quadro
+ * é trabalho do jogo (o resto é o navegador e a placa de vídeo desenhando).
+ */
+const perf = { el: null as HTMLElement | null, frames: 0, work: 0, worst: 0, clock: 0 };
+function perfTick(dt: number, workMs: number): void {
+  if (!perf.el) return;
+  perf.frames++;
+  perf.work += workMs;
+  perf.worst = Math.max(perf.worst, dt * 1000);
+  perf.clock += dt;
+  if (perf.clock < 0.5) return;
+  const gfx = Game.gpu ? 'GPU' : 'clássico';
+  perf.el.textContent = `${Math.round(perf.frames / perf.clock)} fps · pior ${perf.worst.toFixed(0)} ms · jogo ${(perf.work / perf.frames).toFixed(1)} ms · ${gfx}`;
+  perf.frames = perf.work = perf.worst = perf.clock = 0;
+}
+function togglePerf(): void {
+  if (perf.el) {
+    perf.el.remove();
+    perf.el = null;
+    return;
+  }
+  perf.el = document.createElement('div');
+  perf.el.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:50;padding:4px 8px;border-radius:6px;background:rgba(0,0,0,.65);color:#fff;font:12px monospace;pointer-events:none';
+  perf.el.textContent = 'medindo…';
+  document.body.append(perf.el);
+}
+
 function loop(now: number): void {
   const dt = (now - last) / 1000;
   last = now;
+  const t0 = performance.now();
+  loopBody(dt);
+  perfTick(dt, performance.now() - t0);
+  requestAnimationFrame(loop);
+}
+
+function loopBody(dt: number): void {
   if (game) {
     game.frame(dt);
     hud.update(dt);
@@ -841,7 +880,6 @@ function loop(now: number): void {
     input.endFrame();
     input.takeKeys();
   }
-  requestAnimationFrame(loop);
 }
 
 void document.fonts?.ready.then(() => undefined);

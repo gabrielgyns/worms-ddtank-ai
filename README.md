@@ -40,7 +40,7 @@ Fora da partida: perfil, conquistas (fácil → lendária), moedas, loja e baús
 | Clique no mapa | ataque aéreo / teletransporte / marca do teleguiado |
 | Arrastar / roda do mouse | mover câmera / zoom |
 | T | emotes |
-| Esc/P, M, F | pausa, som, tela cheia |
+| Esc/P, M, F, F3 | pausa, som, tela cheia, medidor de desempenho (fps) |
 
 No celular: mira arrastando (estilingue), pinça para zoom e botões na tela.
 
