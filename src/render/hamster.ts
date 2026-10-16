@@ -62,10 +62,12 @@ export function drawHamster(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpt
   c.save();
   // o hamster é mais "mole": achata e estica um pouco mais que os outros
   c.translate(0, p.hop);
+  // andando: o hamster rebola um pouquinho
+  if (mood === 'walk') c.rotate(p.walk * 0.06);
   c.scale(1 + (p.sx - 1) * 1.3, 1 + (p.sy - 1) * 1.3);
 
   // pé de lá
-  foot(c, PINK_DARK, -4 + step, tuck);
+  foot(c, PINK_DARK, -4 + step, tuck - (mood === 'walk' ? Math.max(0, p.walk) * 2 : 0));
 
   const weaponPose = (): void => {
     c.translate(3, -9);
@@ -87,7 +89,7 @@ export function drawHamster(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpt
   drawHamsterBody(c, team);
 
   // pé de cá, grandão e rosa
-  foot(c, PINK, 3.5 - step, tuck);
+  foot(c, PINK, 3.5 - step, tuck - (mood === 'walk' ? Math.max(0, -p.walk) * 2 : 0));
 
   // cabeça
   c.save();

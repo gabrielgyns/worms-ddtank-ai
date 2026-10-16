@@ -28,7 +28,7 @@ export type Emotion = 'smug' | 'angry' | 'sob';
 export type Mood = 'idle' | 'walk' | 'aim' | 'charge' | 'jump' | 'fall' | 'hurt' | 'worried' | 'celebrate' | Emotion;
 
 /** Memória de animação por bolota (aterrissagem, para achatar e esticar). Só visual. */
-const anim = new WeakMap<Unit, { wasGround: boolean; land: number; lastT: number }>();
+const anim = new WeakMap<Unit, { wasGround: boolean; land: number; lastT: number; lastPhase: number; moving: number }>();
 
 function ellipse(c: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rot = 0): void {
   c.beginPath();
@@ -54,7 +54,7 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   // achatar ao aterrissar
   let a = anim.get(u);
   if (!a) {
-    a = { wasGround: u.onGround, land: 0, lastT: t };
+    a = { wasGround: u.onGround, land: 0, lastT: t, lastPhase: u.walkPhase, moving: 0 };
     anim.set(u, a);
   }
   const dt = Math.max(0, Math.min(0.1, t - a.lastT));
@@ -62,6 +62,12 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
   if (u.onGround && !a.wasGround) a.land = 1;
   a.wasGround = u.onGround;
   a.land = Math.max(0, a.land - dt * 5);
+  // andando de verdade = o passo avançou desde o último quadro; uma folguinha evita piscar
+  // em tela de 120 Hz, onde nem todo quadro tem um passo novo da simulação
+  if (u.walkPhase !== a.lastPhase) a.moving = 0.12;
+  else a.moving = Math.max(0, a.moving - dt);
+  a.lastPhase = u.walkPhase;
+  const walking = u.onGround && a.moving > 0;
 
   const mood: Mood = o.celebrate
     ? 'celebrate'
@@ -73,15 +79,15 @@ export function drawUnit(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpts):
           ? 'jump'
           : o.charging
             ? 'charge'
-            : o.emotion
-              ? o.emotion
-              : o.active && o.holding
-              ? 'aim'
-              : Math.abs(Math.sin(u.walkPhase)) > 0.05 && o.active
-                ? 'walk'
-                : u.hp < 35
-                  ? 'worried'
-                  : 'idle';
+            : walking
+              ? 'walk'
+              : o.emotion
+                ? o.emotion
+                : o.active && o.holding
+                  ? 'aim'
+                  : u.hp < 35
+                    ? 'worried'
+                    : 'idle';
 
   // esticar no ar (pela velocidade), achatar na aterrissagem, respirar parada
   const breathe = !air ? Math.sin(t * 3 + u.seed) * 0.025 : 0;

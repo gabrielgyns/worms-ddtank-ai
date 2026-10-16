@@ -55,11 +55,19 @@ export function drawCritter(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpt
   const armed = !!o.holding && mood !== 'fall';
   const twoHands = o.holding === 'bazooka' || o.holding === 'triple' || o.holding === 'cluster' || o.holding === 'homing';
   const pawsUp = mood === 'fall' || mood === 'celebrate';
-  const step = mood === 'walk' ? p.walk * 3 : 0;
+  const walking = mood === 'walk';
+  const step = walking ? p.walk * 3 : 0;
   const tuck = mood === 'jump' ? -1.5 : 0;
+  // patas em pares diagonais: enquanto um par pisa, o outro sobe
+  const liftA = walking ? Math.max(0, p.walk) * 2.2 : 0;
+  const liftB = walking ? Math.max(0, -p.walk) * 2.2 : 0;
+  // andando, as patas da frente aparecem mesmo segurando a arma (a pata da arma continua nela)
+  const frontLegs = (!armed || walking) && !pawsUp;
 
   c.save();
   c.translate(0, p.hop);
+  // gingado de bichinho andando: o corpo balança de um lado para o outro
+  if (walking) c.rotate(p.walk * 0.05);
   // achata/estica a partir do chão
   c.scale(p.sx, p.sy);
 
@@ -67,8 +75,8 @@ export function drawCritter(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpt
 
   // patas do lado de lá (mais escuras, atrás do corpo)
   c.save();
-  leg(c, team.dark, 4.5 - step * 0.8, tuck, !armed && !pawsUp);
-  paw(c, team.dark, -7.5 + step, -1.4 + tuck, 3.8, 2.4);
+  leg(c, team.dark, 4.5 - step * 0.8, tuck - liftB, frontLegs);
+  paw(c, team.dark, -7.5 + step, -1.4 + tuck - liftA, 3.8, 2.4);
   c.restore();
 
   const weaponPose = (): void => {
@@ -94,10 +102,10 @@ export function drawCritter(c: CanvasRenderingContext2D, u: Unit, o: UnitDrawOpt
   c.beginPath();
   c.arc(-5.2, -5.6, 3, Math.PI * 0.9, Math.PI * 1.6);
   c.stroke();
-  paw(c, team.color, -3.5 - step, -1.3 + tuck, 4.4, 2.5);
+  paw(c, team.color, -3.5 - step, -1.3 + tuck - liftB, 4.4, 2.5);
 
   // pata da frente no chão (quando não segura nada nem está com as mãos pro alto)
-  if (!armed && !pawsUp) leg(c, team.color, 4 + step * 0.8, tuck, true);
+  if (frontLegs) leg(c, team.color, 4 + step * 0.8, tuck - liftA, true);
 
   // coleira com sininho
   c.strokeStyle = INK;
