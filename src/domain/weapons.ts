@@ -15,7 +15,7 @@ export interface ProjectileSpec {
   size: number;
   /** ao explodir, solta estes fragmentos */
   fragments?: { count: number; spec: ProjectileSpec };
-  /** anda pelo chão (ovelha) em vez de voar: velocidade em px/s */
+  /** depois de cair, anda pelo chão (tatu-bomba): velocidade em px/s */
   walker?: number;
   /** teleguiado: depois de um instante de voo vira para o alvo marcado (rad/s) */
   homing?: number;
@@ -167,13 +167,14 @@ export const WEAPONS: readonly WeaponDef[] = [
     maxSpeed: 0,
   },
   {
+    // o id continua 'sheep' (era uma ovelha): flags do painel de admin e replays antigos usam esse nome
     id: 'sheep',
-    name: 'Ovelha',
-    hint: 'Sai andando e pulando. Explode ao encostar em alguém, em 5 s, ou quando você aperta Espaço de novo.',
+    name: 'Tatu-bomba',
+    hint: 'Arremesse: onde cair, sai andando e pulando. Explode ao encostar em alguém, 5 s depois de cair, ou quando você aperta Espaço de novo.',
     key: '0',
     ammo: 1,
-    mode: 'drop',
-    maxSpeed: 0,
+    mode: 'charge',
+    maxSpeed: 620,
     projectile: { kind: 'sheep', blast: 70, damage: 65, windFactor: 0, fuse: 5, bounce: 0, size: 8, walker: 110 },
   },
   {

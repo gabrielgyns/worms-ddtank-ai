@@ -7,7 +7,7 @@ import type { Effects } from './render/effects';
 
 /** Armas com fala própria quando disparadas. */
 const WEAPON_CUE: Partial<Record<WeaponId, VoiceCue>> = {
-  sheep: 'sheep',
+  // o tatu-bomba usa a fala genérica de tiro (a gravação tinha "Bééé!" da antiga ovelha)
   airstrike: 'airstrike',
   banana: 'banana',
   teleport: 'teleport',

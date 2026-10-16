@@ -107,7 +107,7 @@ Chapéus (pirata, chef, coroa, cartola), cores e padrões de corpo, olhos (ócul
 - [x] **F9-04** · P1 · M — Sensação dos golpes: pausa de impacto, rastro de quem é arremessado, falas engraçadas ao levar dano/eliminar. — falas em `render/quips.ts` (catálogo).
 - [x] **F9-05** · P1 · M — Configurações: volume de música e efeitos, tempo de turno, velocidade da CPU, tremida de tela, paleta para daltonismo.
 - [x] **F9-06** · P1 · G — Itens de turno estilo DDTank (+50% dano, tiro duplo, escudo), gastos sem passar a vez. — `domain/items.ts`; 1 de cada por partida; CPU usa; protocolo v3.
-- [x] **F9-07** · P1 · M — Ovelha andante e bomba banana. — ovelha anda pela `stepProjectile` (sobe degrau, pula parede, detona com Espaço); banana com 5 fragmentos.
+- [x] **F9-07** · P1 · M — Ovelha andante e bomba banana. *(A ovelha virou o **Tatu-bomba**: arremessado, voa enrolado como tatu-bola e sai andando de onde cair; o pavio só conta no chão. O id interno continua `sheep` por causa das flags e dos replays.)* — ovelha anda pela `stepProjectile` (sobe degrau, pula parede, detona com Espaço); banana com 5 fragmentos.
 - [x] **F9-08** · P1 · M — Modo 2x2 (local, contra CPU e online). — 4 times em 2 lados, vez alternada; online cada aparelho controla uma dupla (`guestTeams`).
 - [x] **F9-09** · P2 · M — Míssil teleguiado e taco de beisebol. — teleguiado: clique marca, curva depois de 0,45 s (`stepProjectile`); taco: modo `melee`.
 - [x] **F9-10** · P2 · M — Viga: construir pontes e muros. — metal indestrutível, ângulo pela mira, prévia verde/vermelha; encerra a vez.

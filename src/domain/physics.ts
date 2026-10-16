@@ -133,8 +133,10 @@ export interface Projectile {
   age: number;
   ownerId: number;
   rot: number;
-  /** direção de quem anda (ovelha) */
+  /** direção de quem anda (tatu-bomba) */
   dir?: 1 | -1;
+  /** quem anda já caiu no chão e está andando (antes disso, voa como uma granada) */
+  landed?: boolean;
   /** alvo do míssil teleguiado */
   tx?: number;
   ty?: number;
@@ -156,7 +158,7 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
     p.fuse -= dt;
     if (p.fuse <= 0) return 'explode';
   }
-  if (p.spec.walker) return stepWalker(p, dt, w);
+  if (p.spec.walker && p.landed) return stepWalker(p, dt, w);
   if (p.spec.homing && p.tx !== undefined && p.ty !== undefined && p.age > HOMING_DELAY) {
     // vira aos poucos para a marca, mantendo a velocidade (nem vento nem gravidade)
     const sp = Math.max(320, Math.hypot(p.vx, p.vy));
@@ -190,7 +192,8 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
     }
     if (nx < -400 || nx > t.width + 400) return 'lost';
 
-    if (p.spec.fuse === undefined) {
+    // quem explode no contato: mísseis e o tatu ainda voando (acertou em cheio)
+    if (p.spec.fuse === undefined || p.spec.walker) {
       for (const u of w.units) {
         if (!u.alive || (u.id === p.ownerId && p.age < 0.3)) continue;
         const dx = nx - u.cx;
@@ -205,6 +208,7 @@ export function stepProjectile(p: Projectile, dt: number, w: SimWorld): FlightRe
     }
 
     if (t.isSolid(nx, ny)) {
+      if (p.spec.walker) return land(p, t);
       if (p.spec.fuse === undefined) return 'explode';
       const n = t.normalAt(nx, ny);
       const dot = p.vx * n.x + p.vy * n.y;
@@ -234,7 +238,22 @@ const HOMING_DELAY = 0.45;
 const WALKER_STEP = 10; // degrau que sobe andando
 const WALKER_HOP = 270; // pulo quando dá de cara com parede
 
-/** Ovelha: anda no chão, sobe degraus, pula paredes, explode em quem encostar. */
+/**
+ * O tatu arremessado tocou o chão: fica em pé na superfície, o pavio começa a contar
+ * e ele sai andando para o lado em que foi jogado.
+ */
+function land(p: Projectile, t: Terrain): FlightResult {
+  p.landed = true;
+  p.fuse = p.spec.fuse;
+  if (Math.abs(p.vx) > 20) p.dir = p.vx > 0 ? 1 : -1;
+  p.vx = 0;
+  p.vy = 0;
+  const r = p.spec.size;
+  for (let s = 0; s < 40 && t.isSolid(p.x, p.y + r - 1); s++) p.y -= 1;
+  return 'bounce';
+}
+
+/** Tatu-bomba no chão: anda, sobe degraus, pula paredes, explode em quem encostar. */
 function stepWalker(p: Projectile, dt: number, w: SimWorld): FlightResult {
   const t = w.terrain;
   const r = p.spec.size;

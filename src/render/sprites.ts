@@ -44,39 +44,146 @@ function drawBananaShape(c: CanvasRenderingContext2D, x: number, y: number, rot:
   c.restore();
 }
 
-/** Ovelha fofa com patinhas que andam. */
-function drawSheepShape(c: CanvasRenderingContext2D, x: number, y: number, dir: number, step: number): void {
+const SHELL = '#b0906a';
+const SHELL_DARK = '#7d6046';
+const SKIN = '#e2bf98';
+
+/** Bomba redonda amarrada no casco, com faísca no pavio. */
+function drawStrappedBomb(c: CanvasRenderingContext2D, x: number, y: number, spark: number): void {
+  c.fillStyle = '#2b2b33';
+  c.beginPath();
+  c.arc(x, y, 4.6, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.fillStyle = 'rgba(255,255,255,0.55)';
+  c.beginPath();
+  c.arc(x - 1.6, y - 1.6, 1.3, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = '#7a4a22';
+  c.lineWidth = 1.4;
+  c.beginPath();
+  c.moveTo(x + 1.5, y - 4);
+  c.quadraticCurveTo(x + 3, y - 7, x + 5, y - 7.5);
+  c.stroke();
+  c.fillStyle = spark > 0 ? '#ffe34a' : '#ff8a2a';
+  c.beginPath();
+  c.arc(x + 5.2, y - 7.7, 1.6 + Math.abs(spark) * 1.2, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = INK;
+  c.lineWidth = 2;
+}
+
+/**
+ * Tatu-bomba. Voando vem enrolado numa bola (o tatu-bola), girando;
+ * no chão desenrola e sai andando com a bomba amarrada no casco.
+ */
+function drawTatuShape(c: CanvasRenderingContext2D, x: number, y: number, dir: number, step: number, rolled = false, spin = 0, spark = 1): void {
   c.save();
   c.translate(x, y);
   c.scale(dir, 1);
   c.lineWidth = 2;
   c.strokeStyle = INK;
-  // patas
+  c.lineJoin = 'round';
+  if (rolled) {
+    c.rotate(spin);
+    // bola de casco com as faixas
+    c.fillStyle = SHELL;
+    c.beginPath();
+    c.arc(0, 0, 8.5, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.strokeStyle = SHELL_DARK;
+    c.lineWidth = 1.4;
+    for (const k of [-4.5, -1.5, 1.5, 4.5]) {
+      c.beginPath();
+      c.ellipse(k, 0, 1.6, 8, 0, -Math.PI / 2, Math.PI / 2);
+      c.stroke();
+    }
+    c.strokeStyle = INK;
+    c.lineWidth = 2;
+    // pontinha do focinho e do rabo escapando da bola
+    c.fillStyle = SKIN;
+    c.beginPath();
+    c.ellipse(7.5, 4.5, 2.4, 1.6, 0.6, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    drawStrappedBomb(c, -2, -9.5, spark);
+    c.restore();
+    return;
+  }
+  // rabo fino
+  c.fillStyle = SHELL_DARK;
+  c.beginPath();
+  c.moveTo(-9, 1);
+  c.quadraticCurveTo(-14, 2, -17, 5);
+  c.quadraticCurveTo(-13, 4.5, -9, 4);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  // perninhas curtas andando
+  c.fillStyle = SKIN;
+  for (const [lx, ph] of [[-6, 0], [-2, Math.PI], [3, Math.PI], [6.5, 0]] as const) {
+    const lift = Math.max(0, Math.sin(step + ph)) * 2.5;
+    c.beginPath();
+    c.ellipse(lx, 6 - lift, 2, 2.6, 0, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+  }
+  // cabeça comprida com focinho e orelhinhas
+  c.fillStyle = SKIN;
+  c.beginPath();
+  c.moveTo(6, -3);
+  c.quadraticCurveTo(12, -5, 16.5, 1.5);
+  c.quadraticCurveTo(12, 4.5, 6, 3.5);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.beginPath();
+  c.ellipse(9, -4.5, 1.5, 2.6, -0.3, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
   c.fillStyle = INK;
-  for (const [lx, ph] of [[-6, 0], [-2, Math.PI], [3, Math.PI], [7, 0]] as const) {
-    const lift = Math.max(0, Math.sin(step + ph)) * 3;
-    c.fillRect(lx - 1.2, 4 - lift, 2.4, 6);
-  }
-  // lã
-  c.fillStyle = '#fbfbf6';
   c.beginPath();
-  for (const [cx, cy, r] of [[-6, -1, 5], [-1, -4, 6], [5, -2, 5], [0, 2, 6], [-5, 3, 4]] as const) {
-    c.moveTo(cx + r, cy);
-    c.arc(cx, cy, r, 0, Math.PI * 2);
-  }
+  c.arc(11, -0.8, 1.3, 0, Math.PI * 2);
+  c.arc(16.3, 1.4, 1, 0, Math.PI * 2);
   c.fill();
-  c.stroke();
-  c.fill();
-  // cara
-  c.fillStyle = '#3a2c28';
-  c.beginPath();
-  c.ellipse(10, -2, 4.5, 4, 0.2, 0, Math.PI * 2);
-  c.fill();
-  c.stroke();
   c.fillStyle = '#fff';
   c.beginPath();
-  c.arc(11.5, -3, 1.5, 0, Math.PI * 2);
+  c.arc(11.4, -1.2, 0.5, 0, Math.PI * 2);
   c.fill();
+  // casco em cúpula com faixas
+  c.fillStyle = SHELL;
+  c.beginPath();
+  c.moveTo(-10, 4);
+  c.bezierCurveTo(-10, -12, 9, -12, 9, 4);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.strokeStyle = SHELL_DARK;
+  c.lineWidth = 1.4;
+  for (const k of [-5, -1.5, 2, 5.5]) {
+    c.beginPath();
+    c.moveTo(k * 1.05, 3.5);
+    c.quadraticCurveTo(k * 1.2, -4, k * 0.9, -7.8 + Math.abs(k) * 0.35);
+    c.stroke();
+  }
+  c.strokeStyle = 'rgba(255,255,255,0.4)';
+  c.beginPath();
+  c.moveTo(-6, -4);
+  c.quadraticCurveTo(-3, -8.5, 2, -8.6);
+  c.stroke();
+  c.strokeStyle = INK;
+  c.lineWidth = 2;
+  // a bomba amarrada no casco, com a cordinha
+  c.strokeStyle = '#c0392b';
+  c.lineWidth = 1.6;
+  c.beginPath();
+  c.moveTo(-6.5, -6);
+  c.lineTo(3.5, -6.5);
+  c.stroke();
+  c.strokeStyle = INK;
+  c.lineWidth = 2;
+  drawStrappedBomb(c, -1, -11.5, spark);
   c.restore();
 }
 
@@ -192,7 +299,8 @@ export function drawHeldWeapon(c: CanvasRenderingContext2D, id: WeaponId): void 
       c.fillRect(-1, -2, 5, 4);
       break;
     case 'sheep':
-      drawSheepShape(c, 12, 0, 1, 0);
+      // arremessado como granada: a bolota segura o tatu enroladinho
+      drawTatuShape(c, 12, 0, 1, 0, true);
       break;
     case 'teleport':
       roundRect(c, 2, -5, 14, 10, 3);
@@ -293,7 +401,9 @@ export function drawProjectile(c: CanvasRenderingContext2D, p: Projectile, time:
   } else if (k === 'banana') {
     drawBananaShape(c, p.x, p.y, p.rot, p.spec.fuse === undefined ? 0.8 : 1.2);
   } else if (k === 'sheep') {
-    drawSheepShape(c, p.x, p.y - 2, p.dir ?? 1, p.rot * 2);
+    const spark = Math.sin(time * 40);
+    if (p.landed) drawTatuShape(c, p.x, p.y - 3, p.dir ?? 1, p.rot * 2, false, 0, spark);
+    else drawTatuShape(c, p.x, p.y, p.dir ?? 1, 0, true, p.rot * 3, spark);
   } else if (k === 'cluster') {
     c.save();
     c.translate(p.x, p.y);
@@ -620,8 +730,8 @@ export function drawWeaponIcon(c: CanvasRenderingContext2D, id: WeaponId): void 
       drawHeldWeapon(c, id);
       break;
     case 'sheep':
-      c.scale(1.5, 1.5);
-      drawSheepShape(c, -1, 0, 1, 0);
+      c.scale(1.4, 1.4);
+      drawTatuShape(c, -2, 1, 1, 0);
       break;
     case 'teleport':
     case 'rope':

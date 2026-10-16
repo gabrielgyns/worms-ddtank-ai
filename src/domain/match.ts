@@ -169,7 +169,7 @@ export interface MatchSnapshot {
     chute?: boolean;
     shield?: boolean;
   }>;
-  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number; dir?: 1 | -1; tx?: number; ty?: number }>;
+  projectiles: Array<{ x: number; y: number; vx: number; vy: number; spec: string; fuse: number | null; age: number; ownerId: number; rot: number; dir?: 1 | -1; landed?: boolean; tx?: number; ty?: number }>;
   homingTarget?: { x: number; y: number } | null;
   hillScore?: number[];
   terrain: string;
@@ -435,7 +435,7 @@ export class Match implements SimWorld {
       h.int(u.alive ? 1 : 0).int(u.onGround ? 1 : 0).int(u.chute ? 1 : 0).int(u.shield ? 1 : 0);
       if (u.rope) h.num(u.rope.ax).num(u.rope.ay).num(u.rope.len);
     }
-    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind).int(p.dir ?? 0).num(p.tx ?? -1).num(p.ty ?? -1);
+    for (const p of this.projectiles) h.num(p.x).num(p.y).num(p.vx).num(p.vy).num(p.fuse ?? -1).str(p.spec.kind).int(p.dir ?? 0).int(p.landed ? 1 : 0).num(p.tx ?? -1).num(p.ty ?? -1);
     for (const c of this.crates) h.int(c.id).num(c.x).num(c.y).num(c.vy).str(c.kind).int(c.landed ? 1 : 0);
     for (const b of this.barrels) h.int(b.id).num(b.x).num(b.y).num(b.vy).num(b.fuse ?? -1);
     for (const mn of this.mines) h.int(mn.id).num(mn.x).num(mn.y).num(mn.vy).num(mn.fuse ?? -1);
@@ -496,6 +496,7 @@ export class Match implements SimWorld {
         ownerId: p.ownerId,
         rot: p.rot,
         dir: p.dir,
+        landed: p.landed,
         tx: p.tx,
         ty: p.ty,
       })),
@@ -632,7 +633,7 @@ export class Match implements SimWorld {
     this.beginRetreat(RETREAT_TIME);
   }
 
-  /** Espaço de novo depois de soltar a ovelha: ela explode na hora. */
+  /** Espaço de novo depois de arremessar o tatu: ele explode na hora (no ar ou andando). */
   private detonateWalkers(): void {
     const me = this.active;
     if (!me) return;
@@ -865,6 +866,8 @@ export class Match implements SimWorld {
         p.tx = this.homingTarget.x;
         p.ty = this.homingTarget.y;
       }
+      // o tatu sai andando para onde a bolota olha, se cair sem embalo para os lados
+      if (w.projectile?.walker) p.dir = u.facing;
       this.projectiles.push(p);
     }
     u.lastPower = power;
@@ -883,12 +886,7 @@ export class Match implements SimWorld {
       this.beginRetreat(RETREAT_TIME);
       return;
     }
-    if (spec.walker) {
-      // ovelha: sai pulando na direção em que a bolota olha
-      const sheep = this.makeProjectile(u.x + u.facing * 18, u.y - 12, 0, -160, spec, u.id);
-      sheep.dir = u.facing;
-      this.projectiles.push(sheep);
-    } else this.projectiles.push(this.makeProjectile(u.x + u.facing * 8, u.y - 10, u.facing * 30, -80, spec, u.id));
+    this.projectiles.push(this.makeProjectile(u.x + u.facing * 8, u.y - 10, u.facing * 30, -80, spec, u.id));
     this.consumeAmmo();
     this.emit({ type: 'fire', weapon: this.weapon.id, unit: u });
     this.beginRetreat(RETREAT_TIME + 1);
@@ -923,7 +921,8 @@ export class Match implements SimWorld {
   }
 
   makeProjectile(x: number, y: number, vx: number, vy: number, spec: ProjectileSpec, ownerId: number): Projectile {
-    return { x, y, vx, vy, spec, fuse: spec.fuse, age: 0, ownerId, rot: 0 };
+    // quem anda só começa a contar o pavio quando cai no chão
+    return { x, y, vx, vy, spec, fuse: spec.walker ? undefined : spec.fuse, age: 0, ownerId, rot: 0 };
   }
 
   private consumeAmmo(): void {
