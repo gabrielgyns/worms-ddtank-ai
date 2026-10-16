@@ -1221,7 +1221,9 @@ backend.presence.onInvite((inv) => {
 });
 document.querySelectorAll<HTMLElement>('[data-back]').forEach((b) => b.addEventListener('click', () => show('menu')));
 show('menu');
-startDemo();
+// a partida de fundo (criar o mapa e pintar o terreno leva meio segundo) espera o menu
+// aparecer primeiro; se a pessoa já entrou numa partida, nem começa
+requestAnimationFrame(() => setTimeout(() => !game && !demo && startDemo(), 0));
 void openLetterFromUrl().then(async (opened) => {
   if (opened || friends.fromUrl()) return;
   const shared = await mapFromUrl();

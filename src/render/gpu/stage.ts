@@ -1,4 +1,4 @@
-import { Application, BlurFilter, Container, Graphics, Sprite, Texture } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Texture } from 'pixi.js';
 import type { Match } from '../../domain/match';
 import type { Camera } from '../camera';
 import type { TerrainView } from '../terrainView';
@@ -6,6 +6,10 @@ import { Ambience } from './ambience';
 import { Backdrop } from './backdrop';
 import { makeVfxTextures, type VfxTextures } from './textures';
 import { Vfx } from './vfx';
+
+/** a sombra do terreno é feita em 1/8 da resolução (fica borrada de graça ao ampliar) */
+const SHADOW_SCALE = 1 / 8;
+const SHADOW_PAD = 4;
 
 export interface GpuFrame {
   match: Match;
@@ -38,6 +42,9 @@ export class GpuStage {
   private frontWorld = new Container();
   private terrainSprite: Sprite | null = null;
   private terrainShadow: Sprite | null = null;
+  /** sombra do terreno já borrada, em resolução baixa: refeita só quando o terreno muda */
+  private shadowCanvas = document.createElement('canvas');
+  private shadowTex: Texture | null = null;
   private terrainSource: HTMLCanvasElement | null = null;
   private terrainTex: Texture | null = null;
   private terrainDirty = false;
@@ -93,11 +100,14 @@ export class GpuStage {
       this.terrainTex = Texture.from(f.terrain.canvas);
       this.backWorld.removeChildren();
       // sombra do terreno sobre o cenário: dá profundidade (o terreno "descola" do fundo)
-      this.terrainShadow = new Sprite(this.terrainTex);
-      this.terrainShadow.tint = 0x000000;
+      // (antes era um filtro de desfoque rodando todo quadro: várias passadas na tela inteira)
+      this.bakeShadow(f.terrain.canvas);
+      this.shadowTex?.destroy(false);
+      this.shadowTex = Texture.from(this.shadowCanvas);
+      this.terrainShadow = new Sprite(this.shadowTex);
       this.terrainShadow.alpha = 0.28;
-      this.terrainShadow.position.set(10, 14);
-      this.terrainShadow.filters = [new BlurFilter({ strength: 10, quality: 2 })];
+      this.terrainShadow.scale.set(1 / SHADOW_SCALE);
+      this.terrainShadow.position.set(10 - SHADOW_PAD / SHADOW_SCALE, 14 - SHADOW_PAD / SHADOW_SCALE);
       this.terrainSprite = new Sprite(this.terrainTex);
       this.backWorld.addChild(this.waterBack, this.vfx.back.view, this.terrainShadow, this.terrainSprite);
       const dirty = () => (this.terrainDirty = true);
@@ -120,6 +130,8 @@ export class GpuStage {
     }
     if (this.terrainDirty && this.terrainTex) {
       this.terrainTex.source.update();
+      this.bakeShadow(f.terrain.canvas);
+      this.shadowTex?.source.update();
       this.terrainDirty = false;
     }
     this.backdrop!.update(cam, w, h, f.time, f.match.wind);
@@ -136,6 +148,29 @@ export class GpuStage {
     }
     this.back.renderer.render(this.back.stage);
     this.front.renderer.render(this.front.stage);
+  }
+
+  /**
+   * Silhueta preta do terreno, reduzida e borrada uma vez. Ampliada de volta com filtro
+   * linear, a borda já sai macia; custa alguns milissegundos só quando o terreno muda.
+   */
+  private bakeShadow(src: HTMLCanvasElement): void {
+    const cv = this.shadowCanvas;
+    const w = Math.ceil(src.width * SHADOW_SCALE) + SHADOW_PAD * 2;
+    const h = Math.ceil(src.height * SHADOW_SCALE) + SHADOW_PAD * 2;
+    if (cv.width !== w || cv.height !== h) {
+      cv.width = w;
+      cv.height = h;
+    }
+    const c = cv.getContext('2d')!;
+    c.clearRect(0, 0, w, h);
+    c.filter = 'blur(1.2px)';
+    c.drawImage(src, SHADOW_PAD, SHADOW_PAD, w - SHADOW_PAD * 2, h - SHADOW_PAD * 2);
+    c.filter = 'none';
+    c.globalCompositeOperation = 'source-in';
+    c.fillStyle = '#000';
+    c.fillRect(0, 0, w, h);
+    c.globalCompositeOperation = 'source-over';
   }
 
   /** Água de trás do terreno: ondas suaves, mais escura que a da frente. */

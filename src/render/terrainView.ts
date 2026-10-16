@@ -7,6 +7,32 @@ function hex(c: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+/**
+ * Ruído suave amostrado numa grade e interpolado: o mesmo desenho com uma fração das
+ * contas (o terreno inteiro tem milhões de pixels). Só para ruídos que variam devagar
+ * em relação ao passo da grade.
+ */
+function noiseGrid(w: number, h: number, step: number, f: (x: number, y: number) => number): (x: number, y: number) => number {
+  const gw = Math.ceil(w / step) + 2;
+  const gh = Math.ceil(h / step) + 2;
+  const data = new Float32Array(gw * gh);
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) data[gy * gw + gx] = f(gx * step, gy * step);
+  return (x, y) => {
+    const fx = Math.max(0, x) / step;
+    const fy = Math.max(0, y) / step;
+    const ix = fx | 0;
+    const iy = fy | 0;
+    const tx = fx - ix;
+    const ty = fy - iy;
+    const i = iy * gw + ix;
+    const a = data[i];
+    const b = data[i + 1];
+    const c = data[i + gw];
+    const d = data[i + gw + 1];
+    return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
+  };
+}
+
 /** Viga de metal: cinza com borda escura, faixa clara e rebites. */
 function metalColor(x: number, y: number, solid: Uint8Array, i: number, w: number): [number, number, number] {
   const edge = solid[i - w] !== METAL || solid[i + w] !== METAL || solid[i - 1] !== METAL || solid[i + 1] !== METAL;
@@ -81,64 +107,90 @@ export class TerrainView {
       }
     }
 
-    for (let x = 0; x < w; x++) {
-      let depth = 0;
-      const grassLen = 12 + Math.round(valueNoise(x * 0.08, 3) * 7);
-      for (let y = 0; y < h; y++) {
+    // ruídos lentos numa grade (camadas, manchas grandes, pedras); o fino continua exato
+    const strataN = noiseGrid(w, h, 8, (x, y) => valueNoise(x * 0.01, y * 0.004));
+    const blotch = noiseGrid(w, h, 4, (x, y) => valueNoise(x * 0.035, y * 0.035));
+    const rockN = noiseGrid(w, h, 2, (x, y) => valueNoise(x * 0.05 + 50, y * 0.05));
+
+    // profundidade desde a superfície e altura da grama, por coluna; o laço anda linha a
+    // linha (memória em sequência) e sem criar arrays por pixel: são milhões de pixels
+    const depthCol = new Int32Array(w);
+    const grassCol = new Int32Array(w);
+    for (let x = 0; x < w; x++) grassCol[x] = 12 + Math.round(valueNoise(x * 0.08, 3) * 7);
+    const [olR, olG, olB] = ol;
+    for (let y = 0; y < h; y++) {
+      const deep = Math.min(1, y / h) * 0.35;
+      for (let x = 0; x < w; x++) {
         const i = y * w + x;
         if (!solid[i]) {
-          depth = 0;
+          depthCol[x] = 0;
           continue;
         }
-        depth++;
+        const depth = ++depthCol[x];
+        const grassLen = grassCol[x];
         const o = i * 4;
+        d[o + 3] = 255;
         if (solid[i] === METAL) {
           const m = metalColor(x, y, solid, i, w);
           d[o] = m[0];
           d[o + 1] = m[1];
           d[o + 2] = m[2];
-          d[o + 3] = 255;
           continue;
         }
-        const edgeSide = fromLeft[i] <= 2 || fromRight[i] <= 2;
-        const bottomEdge = below[i] <= 2;
-        let c: [number, number, number];
-        if (depth <= 3 || edgeSide || bottomEdge) c = ol;
-        else if (depth <= 6) c = g0;
-        else if (depth <= grassLen - 4) c = g1;
-        else if (depth <= grassLen) c = g2;
-        else {
-          // camadas de solo onduladas
-          const strata = Math.sin(y * 0.09 + valueNoise(x * 0.01, y * 0.004) * 6) * 0.5 + 0.5;
-          const n = valueNoise(x * 0.035, y * 0.035) * 0.55 + valueNoise(x * 0.12, y * 0.12) * 0.25 + strata * 0.2;
-          const deep = Math.min(1, y / h) * 0.35;
-          const t = Math.min(1, Math.max(0, n * 0.85 + deep));
-          c = [d0[0] + (d1[0] - d0[0]) * t, d0[1] + (d1[1] - d0[1]) * t, d0[2] + (d1[2] - d0[2]) * t];
-          const hv = hash2(x >> 2, y >> 2);
-          if (hv > 0.968) c = candy ? (hash2(x >> 2, (y >> 2) + 7) > 0.5 ? [255, 140, 200] : [140, 220, 255]) : sp;
-          // pedras com volume: claro em cima-esquerda, escuro embaixo-direita
-          const rock = valueNoise(x * 0.05 + 50, y * 0.05);
-          if (rock > 0.8) {
-            // dentro da pedra o ruído sobe: borda de cima-esquerda tem o "de dentro" embaixo-direita → clara
-            const lit = valueNoise((x + 3) * 0.05 + 50, (y + 3) * 0.05) - valueNoise((x - 3) * 0.05 + 50, (y - 3) * 0.05);
-            const base = rock > 0.84 ? 0.78 : 0.62;
-            const k = base + lit * 3;
-            c = [c[0] * k + 70 * (1 - base), c[1] * k + 62 * (1 - base), c[2] * k + 60 * (1 - base)];
-            if (rock < 0.81) c = [c[0] * 0.55, c[1] * 0.5, c[2] * 0.5];
-          }
-          // luz: borda de cima clara, saliência de baixo escura, lado direito mais escuro
-          let light = 0;
-          if (below[i] < 22) light -= (1 - below[i] / 22) * 0.45;
-          if (fromLeft[i] < 12) light += (1 - fromLeft[i] / 12) * 0.12;
-          if (fromRight[i] < 14) light -= (1 - fromRight[i] / 14) * 0.2;
-          if (depth < grassLen + 10) light -= (1 - (depth - grassLen) / 10) * 0.25; // sombra da grama
-          const mulK = 1 + light;
-          c = [c[0] * mulK, c[1] * mulK, c[2] * mulK];
+        if (depth <= 3 || fromLeft[i] <= 2 || fromRight[i] <= 2 || below[i] <= 2) {
+          d[o] = olR;
+          d[o + 1] = olG;
+          d[o + 2] = olB;
+          continue;
         }
-        d[o] = Math.max(0, Math.min(255, c[0]));
-        d[o + 1] = Math.max(0, Math.min(255, c[1]));
-        d[o + 2] = Math.max(0, Math.min(255, c[2]));
-        d[o + 3] = 255;
+        if (depth <= grassLen) {
+          const g = depth <= 6 ? g0 : depth <= grassLen - 4 ? g1 : g2;
+          d[o] = g[0];
+          d[o + 1] = g[1];
+          d[o + 2] = g[2];
+          continue;
+        }
+        // camadas de solo onduladas
+        const strata = Math.sin(y * 0.09 + strataN(x, y) * 6) * 0.5 + 0.5;
+        const n = blotch(x, y) * 0.55 + valueNoise(x * 0.12, y * 0.12) * 0.25 + strata * 0.2;
+        const t = Math.min(1, Math.max(0, n * 0.85 + deep));
+        let r = d0[0] + (d1[0] - d0[0]) * t;
+        let g = d0[1] + (d1[1] - d0[1]) * t;
+        let b = d0[2] + (d1[2] - d0[2]) * t;
+        if (hash2(x >> 2, y >> 2) > 0.968) {
+          if (candy) {
+            const pink = hash2(x >> 2, (y >> 2) + 7) > 0.5;
+            r = pink ? 255 : 140;
+            g = pink ? 140 : 220;
+            b = pink ? 200 : 255;
+          } else [r, g, b] = sp;
+        }
+        // pedras com volume: claro em cima-esquerda, escuro embaixo-direita
+        const rock = rockN(x, y);
+        if (rock > 0.8) {
+          // dentro da pedra o ruído sobe: borda de cima-esquerda tem o "de dentro" embaixo-direita → clara
+          const lit = rockN(x + 3, y + 3) - rockN(x - 3, y - 3);
+          const base = rock > 0.84 ? 0.78 : 0.62;
+          const k = base + lit * 3;
+          r = r * k + 70 * (1 - base);
+          g = g * k + 62 * (1 - base);
+          b = b * k + 60 * (1 - base);
+          if (rock < 0.81) {
+            r *= 0.55;
+            g *= 0.5;
+            b *= 0.5;
+          }
+        }
+        // luz: borda de cima clara, saliência de baixo escura, lado direito mais escuro
+        let light = 1;
+        if (below[i] < 22) light -= (1 - below[i] / 22) * 0.45;
+        if (fromLeft[i] < 12) light += (1 - fromLeft[i] / 12) * 0.12;
+        if (fromRight[i] < 14) light -= (1 - fromRight[i] / 14) * 0.2;
+        if (depth < grassLen + 10) light -= (1 - (depth - grassLen) / 10) * 0.25; // sombra da grama
+        // ImageData já corta em 0..255
+        d[o] = r * light;
+        d[o + 1] = g * light;
+        d[o + 2] = b * light;
       }
     }
     this.ctx.putImageData(img, 0, 0);
